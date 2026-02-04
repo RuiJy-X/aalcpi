@@ -33,7 +33,7 @@ function Tabs({ defaultValue, value, onValueChange, className, children }: TabsP
 
   return (
     <TabsContext.Provider value={{ value: currentValue, setValue }}>
-      <div data-slot="tabs" className={cn("w-full", className)}>
+      <div data-slot="tabs" className={cn("w-full ", className)}>
         {children}
       </div>
     </TabsContext.Provider>

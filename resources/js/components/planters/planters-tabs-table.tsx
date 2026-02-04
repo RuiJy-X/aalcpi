@@ -11,7 +11,7 @@ import { useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
+import { SearchInput } from '@/components/ui/search-input';
 import {
     Select,
     SelectContent,
@@ -285,10 +285,10 @@ export default function PlantersTabsTable() {
 
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                         <div className="w-full sm:w-72">
-                            <Input
+                            <SearchInput
                                 value={query}
                                 onChange={(e) => setQuery(e.target.value)}
-                                placeholder="Search planters..."
+                                placeholder="Search"
                             />
                         </div>
 
