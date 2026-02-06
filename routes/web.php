@@ -11,8 +11,11 @@ Route::get('dashboard', function () {
     return Inertia::render('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-Route::get('/Planters', function () {return Inertia::render('Planters/Index');})->middleware(['auth', 'verified'])->name('planters.index');
-Route::get('/Planters/Create', function(){return Inertia::render('Planters/Create');})->middleware(['auth','verified'])->name('planters.create');
+Route::get('/Planters', [PlanterController::class, 'index'])->middleware(['auth', 'verified'])->name('planters.index');
+Route::get('/Planters/Create', [PlanterController::class, 'create'])->middleware(['auth','verified'])->name('planters.create');
+Route::post('/Planters/Create', [PlanterController::class, 'store'])
+    ->middleware(['auth','verified'])
+    ->name('planters.store');
 
 Route::resource('/Employees', EmployeeController::class)->middleware(['auth', 'verified']);
 

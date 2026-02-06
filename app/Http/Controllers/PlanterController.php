@@ -17,4 +17,10 @@ class PlanterController extends Controller
     public function create(){
        return Inertia::render('Planters/Create');
     }
+
+    public function store(Request $request){
+        dd($request);
+        
+
+    }
 }   
