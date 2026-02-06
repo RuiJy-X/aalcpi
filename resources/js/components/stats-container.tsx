@@ -7,7 +7,7 @@ type StatsContainerProps = PropsWithChildren<{
 const StatsContainer = ({ children, className }: StatsContainerProps) => {
     return (
         <div
-            className={`flex-cols m-3 flex gap-2 rounded-md border border-[color:var(--border)] bg-[color:var(--background)] p-4 shadow ${className}`}
+            className={`flex-cols m-3 flex gap-2 rounded-md border border-[color:var(--border)] bg-[color:var(--background)] p-4 ${className}`}
         >
             {children}
         </div>

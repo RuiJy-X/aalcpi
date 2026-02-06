@@ -18,7 +18,7 @@ export default function Dashboard() {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Products" />
-            <StatsContainer className="flex-wrap">
+            <StatsContainer className="flex-wrap bg-[color:var(--card)]">
                 <StatCard
                     title="Planters"
                     value="1,233"
