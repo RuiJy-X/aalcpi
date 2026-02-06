@@ -69,7 +69,7 @@ function TabsTrigger({ className, value, type, onClick, ...props }: TabsTriggerP
       data-state={isActive ? "active" : "inactive"}
       type={type ?? "button"}
       className={cn(
-        "data-[state=active]:bg-[color:var(--brand-primary)] data-[state=active]:text-white data-[state=active]:shadow-xs focus-visible:border-ring focus-visible:ring-ring/50 inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 h-full text-sm font-medium transition-[color,box-shadow] outline-none  focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50 cursor-pointer",
+        "data-[state=active]:bg-secondary data-[state=active]:text-secondary-foreground data-[state=active]:shadow-xs focus-visible:border-ring focus-visible:ring-ring/50 inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 h-full text-sm font-medium transition-[color,box-shadow] outline-none  focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50 cursor-pointer",
         className
       )}
       onClick={(e) => {

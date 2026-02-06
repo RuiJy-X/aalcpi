@@ -12,6 +12,7 @@ Route::get('dashboard', function () {
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::get('/Planters', function () {return Inertia::render('Planters/Index');})->middleware(['auth', 'verified'])->name('planters.index');
+Route::get('/Planters/Create', function(){return Inertia::render('Planters/Create');})->middleware(['auth','verified'])->name('planters.create');
 
 Route::resource('/Employees', EmployeeController::class)->middleware(['auth', 'verified']);
 
