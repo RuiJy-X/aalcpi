@@ -19,7 +19,7 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
-import { index as employeeIndex } from '@/routes/Employees';
+import { index as employeeIndex } from '@/routes/employees';
 import { index as plantersIndex } from '@/routes/planters';
 import type { NavItem } from '@/types';
 import AppLogo from './app-logo';

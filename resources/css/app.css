@@ -71,6 +71,7 @@
     /* F7FFF5 */
     --background: oklch(1 0 0);
     --foreground: #1e293b;
+    --secondary-background: #F7FFF5;
     --card: oklch(1 0 0);
     --card-foreground: #1e293b;
     --popover: oklch(1 0 0);

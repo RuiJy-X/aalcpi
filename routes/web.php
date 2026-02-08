@@ -17,6 +17,6 @@ Route::post('/Planters/Create', [PlanterController::class, 'store'])
     ->middleware(['auth','verified'])
     ->name('planters.store');
 
-Route::resource('/Employees', EmployeeController::class)->middleware(['auth', 'verified']);
+Route::get('/Employees', [EmployeeController::class, 'index'])->middleware(['auth', 'verified'])->name('employees.index');
 
 require __DIR__.'/settings.php';
