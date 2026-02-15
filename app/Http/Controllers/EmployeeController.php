@@ -4,63 +4,73 @@ namespace App\Http\Controllers;
 use Inertia\Inertia;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 
 class EmployeeController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+
+    public function get()
     {
-        //
-        return Inertia::render('Employees/Index');
+        return Employee::orderBy('name', 'asc')->get();
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function header()
     {
-        //
+        return response()->json(Schema::getColumnListing('employees'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+    public function create(Request $request)
     {
-        //
+        $validated = $request->validate([
+            'name'            => 'required|string|max:255',
+            'position'        => 'required|string',
+            'employment_type' => 'required|in:Regular,Seasonal,Contractual',
+            'base_salary'     => 'required|numeric|min:0',
+            'hire_date'       => 'required|date',
+        ]);
+
+        $employee = Employee::create($validated);
+        return response()->json(['message' => 'Employee added!', 'employee' => $employee], 201);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
+    public function show_with_payroll($id)
     {
-        //
+        return Employee::with('payrolls')->findOrFail($id);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
+    public function show_with_attendance($id)
     {
-        //
+        return Employee::with('attendances')->findOrFail($id);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
+    public function show_with_both($id)
     {
-        //
+        $employee = Employee::with(['payrolls', 'attendances'])->findOrFail($id);
+
+        return response()->json($employee);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
+    public function update(Request $request, $id)
     {
-        //
+        $employee = Employee::findOrFail($id);
+
+        $validated = $request->validate([
+            'name'            => 'sometimes|string|max:255',
+            'position'        => 'sometimes|string',
+            'employment_type' => 'sometimes|in:Regular,Seasonal,Contractual',
+            'base_salary'     => 'sometimes|numeric',
+            'hire_date'       => 'sometimes|date',
+        ]);
+
+        $employee->update($validated);
+        return response()->json(['message' => 'Employee profile updated!']);
     }
+
+    public function destroy($id)
+    {
+        $employee = Employee::findOrFail($id);
+        $employee->delete();
+        return response()->json(['message' => 'Employee removed successfully']);
+    }
+
 }
