@@ -43,7 +43,7 @@ const StatCard = (props: Props) => {
                         {props.title}
                     </div>
                     <div
-                        className="stat-value text-3xl font-bold text-[color:var(--dark-color)]"
+                        className="stat-value text-3xl font-bold text-[color:var(--card-foreground)]"
                         title={props.value}
                     >
                         {formatValue(props.value)}

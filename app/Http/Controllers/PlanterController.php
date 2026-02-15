@@ -14,6 +14,7 @@ class PlanterController extends Controller
     public function index()
     {
         return Inertia::render('Planters/Index');
+        
     }
 
     public function get()

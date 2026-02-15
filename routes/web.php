@@ -55,6 +55,6 @@ Route::post('/Payrolls/create', [PayrollController::class, 'create']);
 Route::put('/Payrolls/{id}', [PayrollController::class, 'update']);
 Route::delete('/Payrolls/{id}', [PayrollController::class, 'destroy']);
 
-Route::resource('/Employees', EmployeeController::class)->middleware(['auth', 'verified']);
+Route::get('/Employees', [EmployeeController::class, 'index'])->middleware(['auth', 'verified'])->name('employees.index');
 
 require __DIR__.'/settings.php';
