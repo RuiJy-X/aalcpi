@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Planter extends Model
 {
@@ -17,4 +18,9 @@ class Planter extends Model
         'tin_number',
         'registration_date'
     ];
+
+    public function lands(): HasMany
+    {
+        return $this->hasMany(Land::class);
+    }
 }

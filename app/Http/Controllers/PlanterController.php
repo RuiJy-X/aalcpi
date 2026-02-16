@@ -14,10 +14,16 @@ class PlanterController extends Controller
     public function index()
     {
         return Inertia::render('Planters/Index');
-        
+
     }
 
-    public function get()
+    public function create(){
+        return Inertia::render('Planters/Create');
+    }
+
+
+
+    public function data()
     {
         $planters = Planter::with('lands')->get();
 
@@ -29,7 +35,7 @@ class PlanterController extends Controller
         return response()->json(Schema::getColumnListing('planters'));
     }
 
-    public function create(Request $request)
+    public function store(Request $request)
     {
         $validated = $request->validate([
             'name'           => 'required|string|max:255',
@@ -74,4 +80,4 @@ class PlanterController extends Controller
             'message' => 'Planter deleted successfully!'
         ]);
     }
-}   
+}

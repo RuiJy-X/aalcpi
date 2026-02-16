@@ -1,6 +1,5 @@
-import React from 'react';
-import { InputField } from './ui/input-field';
 import { Mail, Phone } from 'lucide-react';
+import React from 'react';
 import {
     InputGroup,
     InputGroupAddon,
@@ -9,6 +8,7 @@ import {
 import { Field } from '../ui/field';
 import { Label } from '../ui/label';
 import { usePlanterForm } from './planter-forms';
+import { InputField } from './ui/input-field';
 
 const BasicDetails = () => {
     const { data, setData } = usePlanterForm();
@@ -35,16 +35,16 @@ const BasicDetails = () => {
                 <div className="grid grid-cols-2 gap-5">
                     <div>
                         <Field>
-                            <Label>Email</Label>
+                            <Label>Tin Number</Label>
                             <InputGroup>
                                 <InputGroupAddon>
                                     <Mail className="size-4" />
                                 </InputGroupAddon>
                                 <InputGroupInput
-                                    placeholder="johndoe@email.com"
-                                    value={data.email}
+                                    placeholder="TIN Number"
+                                    value={data.tin_number}
                                     onChange={(e) =>
-                                        setData('email', e.target.value)
+                                        setData('tin_number', e.target.value)
                                     }
                                 />
                             </InputGroup>

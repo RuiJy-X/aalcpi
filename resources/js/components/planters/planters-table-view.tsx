@@ -5,7 +5,6 @@ import type {
     SortState,
 } from '@/components/planters/planters-table-types';
 import { SortableHeader } from '@/components/planters/sortable-header';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -23,6 +22,8 @@ type Props = {
     selectedIds: Set<string>;
 
     headerChecked: boolean | 'indeterminate';
+    headers: string[];
+
     onToggleAllVisible: (checked: boolean) => void;
     onToggleRow: (id: string) => void;
 
@@ -38,6 +39,7 @@ export function PlantersTableView({
     rows,
     selectedIds,
     headerChecked,
+    headers,
     onToggleAllVisible,
     onToggleRow,
     sort,
@@ -47,12 +49,13 @@ export function PlantersTableView({
     onDeleteRow,
 }: Props) {
     return (
-        <div className="rounded-md border">
+        <div className="relative overflow-x-auto rounded-md border">
             <Table>
                 <TableHeader>
                     <TableRow>
                         <TableHead className="w-10">
                             <Checkbox
+                                className="mr-2"
                                 checked={headerChecked}
                                 onCheckedChange={(v) =>
                                     onToggleAllVisible(v === true)
@@ -60,79 +63,17 @@ export function PlantersTableView({
                                 aria-label="Select all"
                             />
                         </TableHead>
-                        <TableHead>
-                            <SortableHeader
-                                label="Planter ID"
-                                sortKey="id"
-                                sort={sort}
-                                onSort={onSort}
-                            />
-                        </TableHead>
-                        <TableHead>
-                            <SortableHeader
-                                label="Name"
-                                sortKey="name"
-                                sort={sort}
-                                onSort={onSort}
-                            />
-                        </TableHead>
-                        <TableHead>
-                            <SortableHeader
-                                label="Address"
-                                sortKey="address"
-                                sort={sort}
-                                onSort={onSort}
-                            />
-                        </TableHead>
-                        <TableHead>
-                            <SortableHeader
-                                label="Status"
-                                sortKey="status"
-                                sort={sort}
-                                onSort={onSort}
-                            />
-                        </TableHead>
-                        <TableHead>
-                            <SortableHeader
-                                label="Email"
-                                sortKey="email"
-                                sort={sort}
-                                onSort={onSort}
-                            />
-                        </TableHead>
-                        <TableHead>
-                            <SortableHeader
-                                label="Phone"
-                                sortKey="phone"
-                                sort={sort}
-                                onSort={onSort}
-                            />
-                        </TableHead>
-                        <TableHead>
-                            <SortableHeader
-                                label="Hacienda Name"
-                                sortKey="haciendaName"
-                                sort={sort}
-                                onSort={onSort}
-                            />
-                        </TableHead>
-                        <TableHead>
-                            <SortableHeader
-                                label="Hacienda Location"
-                                sortKey="haciendaLocation"
-                                sort={sort}
-                                onSort={onSort}
-                            />
-                        </TableHead>
-                        <TableHead>
-                            <SortableHeader
-                                label="Ownership"
-                                sortKey="ownershipType"
-                                sort={sort}
-                                onSort={onSort}
-                            />
-                        </TableHead>
-                        <TableHead className="w-36 text-right">
+                        {headers.map((header) => (
+                            <TableHead key={header}>
+                                <SortableHeader
+                                    label={header}
+                                    sortKey={header.toLowerCase() as SortKey}
+                                    sort={sort}
+                                    onSort={onSort}
+                                />
+                            </TableHead>
+                        ))}
+                        <TableHead className="bg-transparenttext-right sticky right-0 z-20">
                             Actions
                         </TableHead>
                     </TableRow>
@@ -181,45 +122,46 @@ export function PlantersTableView({
                                     <TableCell className="font-medium">
                                         {r.id}
                                     </TableCell>
-                                    <TableCell>{r.name}</TableCell>
-                                    <TableCell className="max-w-[16rem] truncate">
+                                    <TableCell className="font-medium">
+                                        {r.planter_code}
+                                    </TableCell>
+                                    <TableCell className="min-w-[14rem]">
+                                        {r.name}
+                                    </TableCell>
+                                    <TableCell className="truncate">
                                         {r.address}
                                     </TableCell>
-                                    <TableCell>
-                                        <Badge
-                                            variant={
-                                                r.status === 'Active'
-                                                    ? 'secondary'
-                                                    : 'outline'
-                                            }
-                                            className={cn(
-                                                r.status === 'Active'
-                                                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
-                                                    : 'text-muted-foreground',
-                                            )}
-                                        >
-                                            {r.status}
-                                        </Badge>
+                                    <TableCell className="truncate">
+                                        {r.contact_number}
                                     </TableCell>
-                                    <TableCell className="max-w-[14rem] truncate">
-                                        {r.email}
+                                    <TableCell className="truncate">
+                                        {r.tin_number}
                                     </TableCell>
-                                    <TableCell>{r.phone}</TableCell>
-                                    <TableCell className="max-w-[14rem] truncate">
+                                    <TableCell className="truncate">
+                                        {r.registration_date}
+                                    </TableCell>
+                                    <TableCell className="truncate">
+                                        {r.created_at}
+                                    </TableCell>
+                                    <TableCell className="truncate">
+                                        {r.updated_at}
+                                    </TableCell>
+                                    <TableCell>{'""lands""'}</TableCell>
+                                    {/* <TableCell className="min-w-[14rem] truncate">
                                         {r.haciendaName}
                                     </TableCell>
-                                    <TableCell className="max-w-[14rem] truncate">
+                                    <TableCell className="min-w-[14rem] truncate">
                                         {r.haciendaLocation}
                                     </TableCell>
-                                    <TableCell>{r.ownershipType}</TableCell>
-                                    <TableCell className="text-right">
+                                    <TableCell>{r.ownershipType}</TableCell> */}
+                                    <TableCell className="sticky right-0 z-10 bg-transparent">
                                         <div
-                                            className="flex justify-end gap-1"
+                                            className="flex justify-end gap-2"
                                             onClick={(e) => e.stopPropagation()}
                                         >
                                             <Button
-                                                variant="ghost"
-                                                size="icon"
+                                                variant="secondary"
+                                                size="xs"
                                                 aria-label="Preview"
                                                 onClick={() =>
                                                     onPreviewRow(r.id)
@@ -228,16 +170,16 @@ export function PlantersTableView({
                                                 <Eye className="size-4" />
                                             </Button>
                                             <Button
-                                                variant="ghost"
-                                                size="icon"
+                                                variant="blue"
+                                                size="xs"
                                                 aria-label="Edit"
                                                 onClick={() => onEditRow(r.id)}
                                             >
                                                 <Pencil className="size-4" />
                                             </Button>
                                             <Button
-                                                variant="ghost"
-                                                size="icon"
+                                                variant="destructive"
+                                                size="xs"
                                                 aria-label="Delete"
                                                 onClick={() =>
                                                     onDeleteRow(r.id)

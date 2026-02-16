@@ -1,10 +1,10 @@
-import React, { createContext, useContext } from 'react';
 import type { InertiaFormProps } from '@inertiajs/react';
+import React, { createContext, useContext } from 'react';
 
 type PlanterFormData = {
     name: string;
     address: string;
-    email: string;
+    tin_number: string;
     phone: string;
     haciendaName: string;
     location: string;

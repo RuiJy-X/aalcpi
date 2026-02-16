@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Production;
@@ -40,7 +40,7 @@ class ProductionController extends Controller
             'association_dues_mol' => 'required|numeric',
             'trans_code' => 'required|string',
             'transloading' => 'required|boolean',
-            
+
         ]);
 
         $production = Production::create($validated);

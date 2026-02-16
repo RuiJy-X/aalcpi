@@ -1,17 +1,17 @@
 'use client';
 
-import React from 'react';
-import { InputField } from './ui/input-field';
 import { MapPin } from 'lucide-react';
+import React from 'react';
 import {
     InputGroup,
     InputGroupAddon,
     InputGroupInput,
 } from '@/components/ui/input-group';
-import { ComboboxStatus, ComboboxOwnership } from './ui/combo-box';
-import { Label } from '../ui/label';
 import { Field } from '../ui/field';
+import { Label } from '../ui/label';
 import { usePlanterForm } from './planter-forms';
+import { ComboboxStatus, ComboboxOwnership } from './ui/combo-box';
+import { InputField } from './ui/input-field';
 
 const HaciendaDetails = () => {
     const { data, setData } = usePlanterForm();

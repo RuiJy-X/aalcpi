@@ -1,18 +1,13 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { BookOpen, Clipboard, User } from 'lucide-react';
-import PlantersTabsTable from '@/components/planters/planters-tabs-table';
-import StatCard from '@/components/stat-card';
-import StatsContainer from '@/components/stats-container';
+import type { FormEvent } from 'react';
+import Heading from '@/components/heading';
+import BasicDetails from '@/components/planters/basic-details';
+import HaciendaDetails from '@/components/planters/hacienda-details';
+import { PlanterFormProvider } from '@/components/planters/planter-forms';
+import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import { index as planterIndex, create, store } from '@/routes/planters';
 import type { BreadcrumbItem } from '@/types';
-import Heading from '@/components/heading';
-import { Button } from '@/components/ui/button';
-import BasicDetails from '@/components/planters/basic-details';
-import HaciendaDetails from '@/components/planters/hacienda-details';
-import { email } from '@/routes/password';
-import { PlanterFormProvider } from '@/components/planters/planter-forms';
-import React from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -30,7 +25,7 @@ export default function Create() {
         // Basic Details
         name: '',
         address: '',
-        email: '',
+        tin_number: '',
         phone: '',
         // hacienda details
         haciendaName: '',
@@ -39,7 +34,7 @@ export default function Create() {
         ownershipType: '',
     });
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
         form.post(store.url());
     };

@@ -1,5 +1,4 @@
-import { ReactComponent } from 'node_modules/@inertiajs/react/types/types';
-import React, { HTMLAttributes } from 'react';
+import type { HTMLAttributes } from 'react';
 
 const ActionContainer = ({
     children,

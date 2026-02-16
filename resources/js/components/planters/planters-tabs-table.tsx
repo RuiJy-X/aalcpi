@@ -1,6 +1,5 @@
 import { BookOpen, FileCheck2, Users } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import { seedPlanterRows } from '@/components/planters/planters-seed';
+import { useEffect, useMemo, useState } from 'react';
 import { PlantersTableToolbar } from '@/components/planters/planters-table-toolbar';
 import type {
     OwnershipType,
@@ -22,8 +21,43 @@ function compareValues(a: string, b: string) {
 export default function PlantersTabsTable() {
     const [tab, setTab] = useState<PlantersTabKey>('planters');
 
-    const [rows, setRows] = useState<PlanterRow[]>(seedPlanterRows);
+    const [rows, setRows] = useState<PlanterRow[]>([]);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+    useEffect(() => {
+        const controller = new AbortController();
+
+        (async () => {
+            try {
+                const res = await fetch('/Planters/data', {
+                    headers: { Accept: 'application/json' },
+                    signal: controller.signal,
+                });
+
+                if (!res.ok) {
+                    throw new Error(
+                        `Failed to fetch planters: ${res.status} ${res.statusText}`,
+                    );
+                }
+
+                const data = (await res.json()) as PlanterRow[];
+                setRows(Array.isArray(data) ? data : []);
+            } catch (err) {
+                if (err instanceof DOMException && err.name === 'AbortError') {
+                    return;
+                }
+                console.error(err);
+            }
+        })();
+
+        return () => controller.abort();
+    }, []);
+
+    // Get field names (object keys) from the first row.
+    // This is derived state, so compute it with useMemo (no side effects).
+    const headers = useMemo(() => {
+        return Object.keys(rows[0] ?? {});
+    }, [rows]);
 
     const [query, setQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState<
@@ -48,8 +82,8 @@ export default function PlantersTabsTable() {
                     r.id,
                     r.name,
                     r.address,
-                    r.email,
-                    r.phone,
+                    r.tin_number,
+                    r.contact_number,
                     r.haciendaName,
                     r.haciendaLocation,
                     r.ownershipType,
@@ -184,6 +218,7 @@ export default function PlantersTabsTable() {
                     <PlantersTableView
                         rows={filteredSortedRows}
                         selectedIds={selectedIds}
+                        headers={headers}
                         headerChecked={headerChecked}
                         onToggleAllVisible={toggleAllVisible}
                         onToggleRow={toggleRow}

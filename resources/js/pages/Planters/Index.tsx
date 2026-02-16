@@ -1,14 +1,14 @@
 import { Head, Link } from '@inertiajs/react';
 import { BookOpen, Clipboard, User } from 'lucide-react';
+import ActionContainer from '@/components/action-container';
 import PlantersTabsTable from '@/components/planters/planters-tabs-table';
 import StatCard from '@/components/stat-card';
 import StatsContainer from '@/components/stats-container';
-import AppLayout from '@/layouts/app-layout';
-import { index as plantersIndex, create } from '@/routes/planters';
-import type { BreadcrumbItem } from '@/types';
-import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
-import ActionContainer from '@/components/action-container';
+import AppLayout from '@/layouts/app-layout';
+import { index as plantersIndex } from '@/routes/planters';
+import { create as createPage } from '@/routes/planters';
+import type { BreadcrumbItem } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -24,7 +24,7 @@ export default function Index() {
                 <title>Planters</title>
             </Head>
             <ActionContainer className="">
-                <Link href={create()}>
+                <Link href={createPage().url}>
                     <Button>Register Planter</Button>
                 </Link>
             </ActionContainer>

@@ -1,12 +1,12 @@
 import { Head, Link } from '@inertiajs/react';
+import { Briefcase } from 'lucide-react';
+import ActionContainer from '@/components/action-container';
+import StatCard from '@/components/stat-card';
+import StatsContainer from '@/components/stats-container';
+import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import { index as employeeIndex } from '@/routes/employees';
 import type { BreadcrumbItem } from '@/types';
-import ActionContainer from '@/components/action-container';
-import { Button } from '@/components/ui/button';
-import StatsContainer from '@/components/stats-container';
-import StatCard from '@/components/stat-card';
-import { User, BookOpen, Clipboard, Briefcase } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
