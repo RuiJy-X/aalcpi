@@ -73,7 +73,7 @@ export function PlantersTableView({
                                 />
                             </TableHead>
                         ))}
-                        <TableHead className="bg-transparenttext-right sticky right-0 z-20">
+                        <TableHead className="sticky right-0 z-20 bg-background text-center">
                             Actions
                         </TableHead>
                     </TableRow>
@@ -119,41 +119,18 @@ export function PlantersTableView({
                                             />
                                         </div>
                                     </TableCell>
-                                    <TableCell className="font-medium">
-                                        {r.id}
-                                    </TableCell>
-                                    <TableCell className="font-medium">
-                                        {r.planter_code}
-                                    </TableCell>
-                                    <TableCell className="min-w-[14rem]">
-                                        {r.name}
-                                    </TableCell>
-                                    <TableCell className="truncate">
-                                        {r.address}
-                                    </TableCell>
-                                    <TableCell className="truncate">
-                                        {r.contact_number}
-                                    </TableCell>
-                                    <TableCell className="truncate">
-                                        {r.tin_number}
-                                    </TableCell>
-                                    <TableCell className="truncate">
-                                        {r.registration_date}
-                                    </TableCell>
-                                    <TableCell className="truncate">
-                                        {r.created_at}
-                                    </TableCell>
-                                    <TableCell className="truncate">
-                                        {r.updated_at}
-                                    </TableCell>
-                                    <TableCell>{'""lands""'}</TableCell>
-                                    {/* <TableCell className="min-w-[14rem] truncate">
-                                        {r.haciendaName}
-                                    </TableCell>
-                                    <TableCell className="min-w-[14rem] truncate">
-                                        {r.haciendaLocation}
-                                    </TableCell>
-                                    <TableCell>{r.ownershipType}</TableCell> */}
+                                    {headers.map((key) => (
+                                        <TableCell
+                                            key={key}
+                                            className="truncate"
+                                        >
+                                            {String(
+                                                (r as Record<string, unknown>)[
+                                                    key
+                                                ] ?? '',
+                                            )}
+                                        </TableCell>
+                                    ))}
                                     <TableCell className="sticky right-0 z-10 bg-transparent">
                                         <div
                                             className="flex justify-end gap-2"

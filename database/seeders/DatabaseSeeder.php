@@ -29,8 +29,9 @@ class DatabaseSeeder extends Seeder
             'password' => Hash::make('admin'),
         ]);
 
+
         // Planters / Lands / Production / Certifications
-        $planters = Planter::factory()->count(5)->create();
+        $planters = Planter::factory()->count(10)->create();
 
         $lands = collect();
         foreach ($planters as $planter) {

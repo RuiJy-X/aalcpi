@@ -1,0 +1,19 @@
+# Dependency directories
+node_modules
+vendor
+
+# Logs and caches
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
+storage/logs
+storage/framework/cache
+storage/framework/sessions
+storage/framework/views
+
+# VCS and IDE files
+.git
+.gitignore
+.vscode
+.idea
+.DS_Store

@@ -11,7 +11,8 @@ class CertificationController extends Controller
 {
     public function get()
     {
-        return Certification::with(['planters', 'lands', 'productions'])->latest()->get();
+        return response()->json(Certification::with(['planters', 'lands', 'productions'])->latest()->get());
+
     }
 
     public function header()

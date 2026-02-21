@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\Planter;
+use App\Models\Production;
+use App\Models\Certification;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Schema;
 
@@ -13,7 +15,7 @@ class PlanterController extends Controller
     //
     public function index()
     {
-        return Inertia::render('Planters/Index');
+        return Inertia::render('Planters/Index',['planters' => Planter::with('lands')->get(), 'productions' => Production::with('planter')->get(), 'certifications' => Certification::with('planter')->get()]);
 
     }
 
@@ -21,7 +23,12 @@ class PlanterController extends Controller
         return Inertia::render('Planters/Create');
     }
 
+    public function view($id)
+    {
+        $planter = Planter::findOrFail($id);
 
+        return Inertia::render('Planters/View', compact('planter'));
+    }
 
     public function data()
     {

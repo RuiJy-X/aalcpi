@@ -1,10 +1,21 @@
 import { Head, Link } from '@inertiajs/react';
-import { BookOpen, Clipboard, User } from 'lucide-react';
+import { BookOpen, Clipboard, ShieldCheck, User } from 'lucide-react';
+import { useState } from 'react';
 import ActionContainer from '@/components/action-container';
-import PlantersTabsTable from '@/components/planters/planters-tabs-table';
+import { certificationColumns } from '@/components/data-table/certification-columns';
+import { DataTable } from '@/components/data-table/data-table';
+import { planterColumns } from '@/components/data-table/planter-columns';
+import { productionColumns } from '@/components/data-table/production-columns';
+import type {
+    PlanterRow,
+    ProductionRow,
+    CertificationRow,
+} from '@/components/planters/planters-table-types';
+// import PlantersTabsTable from '@/components/planters/planters-tabs-table';
 import StatCard from '@/components/stat-card';
 import StatsContainer from '@/components/stats-container';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsTrigger, TabsList } from '@/components/ui/tabs';
 import AppLayout from '@/layouts/app-layout';
 import { index as plantersIndex } from '@/routes/planters';
 import { create as createPage } from '@/routes/planters';
@@ -17,7 +28,17 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function Index() {
+export default function Index({
+    planters,
+    productions,
+    certifications,
+}: {
+    planters: PlanterRow[];
+    productions: ProductionRow[];
+    certifications: CertificationRow[];
+}) {
+    const [activeTab, setActiveTab] = useState('planters');
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Products">
@@ -48,7 +69,46 @@ export default function Index() {
                     color="green"
                 />
             </StatsContainer>
-            <PlantersTabsTable />
+            {/* <PlantersTabsTable data={planters} />
+             */}
+
+            <div className="container mx-3">
+                <Tabs
+                    value={activeTab}
+                    defaultValue="planters"
+                    className="w-[400px]"
+                    onValueChange={setActiveTab}
+                >
+                    <TabsList className="">
+                        <TabsTrigger value="planters">
+                            <User />
+                            Planters
+                        </TabsTrigger>
+                        <TabsTrigger value="productions">
+                            <Clipboard />
+                            Productions
+                        </TabsTrigger>
+                        <TabsTrigger value="certifications">
+                            <ShieldCheck />
+                            Certifications
+                        </TabsTrigger>
+                    </TabsList>
+                </Tabs>
+            </div>
+            <div className="container mx-auto">
+                {activeTab === 'planters' && (
+                    <DataTable columns={planterColumns} data={planters} />
+                )}
+                {activeTab === 'productions' && (
+                    <DataTable columns={productionColumns} data={productions} />
+                )}
+                {activeTab === 'certifications' && (
+                    <DataTable
+                        columns={certificationColumns}
+                        data={certifications}
+                    />
+                )}
+            </div>
         </AppLayout>
     );
 }
