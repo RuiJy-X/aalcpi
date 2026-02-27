@@ -1,15 +1,24 @@
 import { Head, Link } from '@inertiajs/react';
-import { BookOpen, Clipboard, ShieldCheck, User } from 'lucide-react';
+import {
+    BookOpen,
+    Clipboard,
+    Import,
+    LandPlot,
+    ShieldCheck,
+    User,
+} from 'lucide-react';
 import { useState } from 'react';
 import ActionContainer from '@/components/action-container';
 import { certificationColumns } from '@/components/data-table/certification-columns';
 import { DataTable } from '@/components/data-table/data-table';
+import { landColumns } from '@/components/data-table/land-columns';
 import { planterColumns } from '@/components/data-table/planter-columns';
 import { productionColumns } from '@/components/data-table/production-columns';
 import type {
     PlanterRow,
     ProductionRow,
     CertificationRow,
+    LandRow,
 } from '@/components/planters/planters-table-types';
 // import PlantersTabsTable from '@/components/planters/planters-tabs-table';
 import StatCard from '@/components/stat-card';
@@ -28,14 +37,62 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
+const tabs = [
+    {
+        title: 'Planters',
+        value: 'planters',
+        icon: User,
+    },
+    {
+        title: 'Productions',
+        value: 'productions',
+        icon: BookOpen,
+    },
+    {
+        title: 'Certifications',
+        value: 'certifications',
+        icon: ShieldCheck,
+    },
+    {
+        title: 'Lands',
+        value: 'lands',
+        icon: LandPlot,
+    },
+];
+
+const actions = [
+    {
+        title: 'Import Data',
+        href: '#',
+        icon: Import,
+    },
+    {
+        title: 'Register Planter',
+        href: createPage().url,
+        icon: User,
+    },
+    {
+        title: 'Add Production',
+        href: '#',
+        icon: Clipboard,
+    },
+    {
+        title: 'Generate Certificate',
+        href: '#',
+        icon: ShieldCheck,
+    },
+];
+
 export default function Index({
     planters,
     productions,
     certifications,
+    lands,
 }: {
     planters: PlanterRow[];
     productions: ProductionRow[];
     certifications: CertificationRow[];
+    lands: LandRow[];
 }) {
     const [activeTab, setActiveTab] = useState('planters');
 
@@ -45,34 +102,33 @@ export default function Index({
                 <title>Planters</title>
             </Head>
             <ActionContainer className="">
-                <Link href={createPage().url}>
-                    <Button>Register Planter</Button>
-                </Link>
+                {actions.map((action) => (
+                    <Link key={action.title} href={action.href}>
+                        <Button variant={'outline'}>
+                            <span>
+                                <action.icon />
+                            </span>
+                            {action.title}
+                        </Button>
+                    </Link>
+                ))}
             </ActionContainer>
+
             <StatsContainer className="flex-wrap bg-card">
-                <StatCard
-                    title="Planters"
-                    value="1,233"
-                    icon={User}
-                    color="green"
-                />
-                <StatCard
-                    title="Certifications"
-                    value="150"
-                    icon={Clipboard}
-                    color="green"
-                />
-                <StatCard
-                    title="Records"
-                    value="12,901"
-                    icon={BookOpen}
-                    color="green"
-                />
+                {tabs.map((tab) => (
+                    <StatCard
+                        key={tab.value}
+                        title={tab.title}
+                        value="1,233"
+                        icon={tab.icon}
+                        color="green"
+                    />
+                ))}
             </StatsContainer>
             {/* <PlantersTabsTable data={planters} />
              */}
 
-            <div className="container mx-3">
+            <div className="container mx-4">
                 <Tabs
                     value={activeTab}
                     defaultValue="planters"
@@ -92,10 +148,14 @@ export default function Index({
                             <ShieldCheck />
                             Certifications
                         </TabsTrigger>
+                        <TabsTrigger value="lands">
+                            <LandPlot />
+                            Lands
+                        </TabsTrigger>
                     </TabsList>
                 </Tabs>
             </div>
-            <div className="container mx-auto">
+            <div className="container-full px-3 py-2">
                 {activeTab === 'planters' && (
                     <DataTable columns={planterColumns} data={planters} />
                 )}
@@ -107,6 +167,9 @@ export default function Index({
                         columns={certificationColumns}
                         data={certifications}
                     />
+                )}
+                {activeTab === 'lands' && (
+                    <DataTable columns={landColumns} data={lands} />
                 )}
             </div>
         </AppLayout>

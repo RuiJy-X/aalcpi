@@ -23,8 +23,9 @@ Route::post('/Planters', [PlanterController::class, 'store'])->middleware(['auth
 
 Route::get('/Planters/data', [PlanterController::class, 'data'])->middleware(['auth', 'verified'])->name('planters.data');
 
-Route::get('Planters/view/{id}', [PlanterController::class,'view'])->middleware(['auth', 'verified'])->name('planters.view');
+Route::get('Planters/view/info/{id}', [PlanterController::class,'view'])->middleware(['auth', 'verified'])->name('planters.view');
 
+Route::get('/Planters/view/info/{planterId}/production/{productionId}', [PlanterController::class,'viewProduction'])->middleware(['auth', 'verified'])->name('planters.view.production');
 
 
 Route::get('/Employees', [EmployeeController::class, 'index'])->middleware(['auth', 'verified'])->name('employees.index');

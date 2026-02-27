@@ -2,19 +2,11 @@
 
 import type { ColumnDef } from '@tanstack/react-table';
 import { ArrowUpDown } from 'lucide-react';
+import type { LandRow } from '@/components/planters/planters-table-types';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 
-export type CertificationRow = {
-    planter_id: string;
-    land_id: string;
-    production_id: string;
-    certification_type: string;
-    issue_date: string;
-    status: string;
-};
-
-export const certificationColumns: ColumnDef<CertificationRow>[] = [
+export const landColumns: ColumnDef<LandRow>[] = [
     {
         id: 'select',
         header: ({ table }) => (
@@ -40,9 +32,8 @@ export const certificationColumns: ColumnDef<CertificationRow>[] = [
         enableSorting: false,
         enableHiding: false,
     },
-
     {
-        accessorKey: 'certification_type',
+        accessorKey: 'name',
         header: ({ column }) => (
             <Button
                 variant="ghost"
@@ -50,20 +41,58 @@ export const certificationColumns: ColumnDef<CertificationRow>[] = [
                     column.toggleSorting(column.getIsSorted() === 'asc')
                 }
             >
-                Certification Type
+                Name
+                <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+        ),
+        cell: ({ row }) => (
+            <div className="flex items-center">
+                <div className="ml-2 truncate">{row.original.name}</div>
+            </div>
+        ),
+    },
+    {
+        accessorKey: 'address',
+        header: ({ column }) => (
+            <Button
+                variant="ghost"
+                onClick={() =>
+                    column.toggleSorting(column.getIsSorted() === 'asc')
+                }
+            >
+                Address
+                <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+        ),
+        cell: ({ row }) => (
+            <div className="flex items-center">
+                <div className="ml-2 truncate">{row.original.address}</div>
+            </div>
+        ),
+    },
+    {
+        accessorKey: 'area_hectares',
+        header: ({ column }) => (
+            <Button
+                variant="ghost"
+                onClick={() =>
+                    column.toggleSorting(column.getIsSorted() === 'asc')
+                }
+            >
+                Area (ha)
                 <ArrowUpDown className="ml-2 h-4 w-4" />
             </Button>
         ),
         cell: ({ row }) => (
             <div className="flex items-center">
                 <div className="ml-2 truncate">
-                    {row.original.certification_type}
+                    {row.original.area_hectares}
                 </div>
             </div>
         ),
     },
     {
-        accessorKey: 'issue_date',
+        accessorKey: 'distance_from_urc',
         header: ({ column }) => (
             <Button
                 variant="ghost"
@@ -71,18 +100,20 @@ export const certificationColumns: ColumnDef<CertificationRow>[] = [
                     column.toggleSorting(column.getIsSorted() === 'asc')
                 }
             >
-                Issue Date
+                Distance from URC
                 <ArrowUpDown className="ml-2 h-4 w-4" />
             </Button>
         ),
         cell: ({ row }) => (
             <div className="flex items-center">
-                <div className="ml-2 truncate">{row.original.issue_date}</div>
+                <div className="ml-2 truncate">
+                    {row.original.distance_from_urc}
+                </div>
             </div>
         ),
     },
     {
-        accessorKey: 'status',
+        accessorKey: 'is_active',
         header: ({ column }) => (
             <Button
                 variant="ghost"
@@ -96,7 +127,9 @@ export const certificationColumns: ColumnDef<CertificationRow>[] = [
         ),
         cell: ({ row }) => (
             <div className="flex items-center">
-                <div className="ml-2 truncate">{row.original.status}</div>
+                <div className="ml-2 truncate">
+                    {row.original.is_active ? 'Active' : 'Inactive'}
+                </div>
             </div>
         ),
     },

@@ -5,7 +5,15 @@ import { User, ShieldCheck } from 'lucide-react';
 import ActionContainer from '@/components/action-container';
 
 import Heading from '@/components/heading';
-import type { PlanterRow } from '@/components/planters/planters-table-types';
+import { certificationColumns } from '@/components/data-table/certification-columns';
+import { DataTable } from '@/components/data-table/data-table';
+import { productionColumns } from '@/components/data-table/production-columns';
+import type {
+    CertificationRow,
+    LandRow,
+    PlanterRow,
+    ProductionRow,
+} from '@/components/planters/planters-table-types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
@@ -17,6 +25,8 @@ import { index as plantersIndex } from '@/routes/planters';
 import { create as createPage } from '@/routes/planters';
 import type { BreadcrumbItem } from '@/types';
 import { useState } from 'react';
+import PersonalInfo from '@/components/planters/planter-view/personal-info';
+import LandsInfo from '@/components/planters/planter-view/lands-info';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -29,21 +39,17 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function Index({ planter }: { planter: PlanterRow }) {
-    const createdAt = planter.created_at?.split('T')[0] ?? 'N/A';
-    const updatedAt = planter.updated_at?.split('T')[0] ?? 'N/A';
-
-    const details = [
-        { label: 'Planter Code', value: planter.planter_code },
-        { label: 'Name', value: planter.name },
-        { label: 'Address', value: planter.address },
-        { label: 'TIN Number', value: planter.tin_number },
-        { label: 'Contact Number', value: planter.contact_number },
-        { label: 'Registration Date', value: planter.registration_date },
-        { label: 'Created At', value: createdAt },
-        { label: 'Updated At', value: updatedAt },
-    ];
-
+export default function Index({
+    planter,
+    lands,
+    productions,
+    certifications,
+}: {
+    planter: PlanterRow;
+    lands: LandRow[];
+    productions: ProductionRow[];
+    certifications: CertificationRow[];
+}) {
     const [activeTab, setActiveTab] = useState('planters');
 
     return (
@@ -63,13 +69,13 @@ export default function Index({ planter }: { planter: PlanterRow }) {
                             <User />
                             Planter Info
                         </TabsTrigger>
-                        <TabsTrigger value="lands">
-                            <User />
-                            Lands
-                        </TabsTrigger>
                         <TabsTrigger value="productions">
                             <User />
                             Productions
+                        </TabsTrigger>
+                        <TabsTrigger value="lands">
+                            <User />
+                            Lands
                         </TabsTrigger>
                         <TabsTrigger value="certifications">
                             <User />
@@ -78,30 +84,22 @@ export default function Index({ planter }: { planter: PlanterRow }) {
                     </TabsList>
                 </Tabs>
             </ActionContainer>
-            <div className="mx-5 my-3">
+            <div className="mx-5 my-5">
                 <Heading
                     title="View Planter Details"
                     description="Viewing planter details of a specific planter"
                 />
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Planter Details</CardTitle>
-                        <Button className="max-sm-size">Edit Planter</Button>
-                    </CardHeader>
-                    <CardContent>
-                        {details.map((detail) => (
-                            <Field className="mt-3">
-                                <FieldLabel>{detail.label}</FieldLabel>
-                                <Input
-                                    placeholder={detail.label}
-                                    value={detail.value}
-                                    readOnly
-                                />
-                            </Field>
-                        ))}
-                    </CardContent>
-                </Card>
+                {activeTab === 'planters' && <PersonalInfo planter={planter} />}
+                {activeTab === 'lands' && <LandsInfo lands={lands} />}
+                {activeTab === 'productions' && (
+                    <DataTable columns={productionColumns} data={productions} />
+                )}
+                {activeTab === 'certifications' && (
+                    <DataTable
+                        columns={certificationColumns}
+                        data={certifications}
+                    />
+                )}
             </div>
         </AppLayout>
     );

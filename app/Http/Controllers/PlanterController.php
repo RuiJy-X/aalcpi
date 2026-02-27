@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Planter;
 use App\Models\Production;
 use App\Models\Certification;
+use App\Models\Land;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Schema;
 
@@ -15,7 +16,15 @@ class PlanterController extends Controller
     //
     public function index()
     {
-        return Inertia::render('Planters/Index',['planters' => Planter::with('lands')->get(), 'productions' => Production::with('planter')->get(), 'certifications' => Certification::with('planter')->get()]);
+        $plans = Planter::all();
+
+        $planter = Planter::with('lands')->get();
+        $productions = Production::with('planter')->get();
+        $certifications = Certification::with('planter')->get();
+        $lands = Land::with('planter')->get();
+
+
+        return Inertia::render('Planters/Index',['planters' => $planter, 'productions' => $productions, 'certifications' => $certifications, 'lands' => $lands ]);
 
     }
 
@@ -25,9 +34,32 @@ class PlanterController extends Controller
 
     public function view($id)
     {
-        $planter = Planter::findOrFail($id);
+        $planter = Planter::with('lands')->findOrFail($id);
+        $productions = Production::with('planter')
+            ->where('planter_id', $id)
+            ->get();
+        $certifications = Certification::with('planter')
+            ->where('planter_id', $id)
+            ->get();
 
-        return Inertia::render('Planters/View', compact('planter'));
+        return Inertia::render('Planters/View', [
+            'planter' => $planter,
+            'lands' => $planter->lands,
+            'productions' => $productions,
+            'certifications' => $certifications,
+        ]);
+    }
+
+    public function viewProduction($planterId, $productionId)
+    {
+        $production = Production::with('planter')
+            ->where('planter_id', $planterId)
+            ->where('id', $productionId)
+            ->firstOrFail();
+
+        return Inertia::render('Planters/ViewProduction', [
+            'production' => $production,
+        ]);
     }
 
     public function data()

@@ -262,7 +262,7 @@ export const planterColumns: ColumnDef<Planter>[] = [
                         size="xs"
                         aria-label="Edit"
                         onClick={() =>
-                            router.get(`/Planters/view/${planter.id}`)
+                            router.get(`/Planters/view/info/${planter.id}`)
                         }
                     >
                         <Pencil className="size-4" />

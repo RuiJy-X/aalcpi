@@ -14,7 +14,20 @@ export type PlanterRow = {
     created_at?: string;
     updated_at?: string;
 };
+
+export type LandRow = {
+    id: string;
+    planter_id: string;
+    name: string;
+    address: string;
+    area_hectares: number;
+    distance_from_urc: number;
+    is_active: boolean;
+    created_at?: string;
+    updated_at?: string;
+};
 export type ProductionRow = {
+    id: string;
     planter_id: string;
     land_id: string;
     production_year: number;

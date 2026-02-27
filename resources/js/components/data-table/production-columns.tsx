@@ -1,6 +1,7 @@
 //What data is shown for each column
 'use client';
 
+import { router } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
 
 import { ArrowUpDown, Eye, Pencil, Trash2 } from 'lucide-react';
@@ -8,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 
 export type ProductionRow = {
+    id: string;
     planter_id: string;
     land_id: string;
     production_year: number;
@@ -466,7 +468,16 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
                     >
                         <Eye className="size-4" />
                     </Button>
-                    <Button variant="blue" size="xs" aria-label="Edit">
+                    <Button
+                        variant="blue"
+                        size="xs"
+                        aria-label="Edit"
+                        onClick={() =>
+                            router.get(
+                                `/Planters/view/info/${production.planter_id}/production/${production.id}`,
+                            )
+                        }
+                    >
                         <Pencil className="size-4" />
                     </Button>
                     <Button variant="destructive" size="xs" aria-label="Delete">

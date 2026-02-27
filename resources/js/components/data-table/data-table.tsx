@@ -108,10 +108,10 @@ export function DataTable<TData, TValue>({
     });
 
     return (
-        <div className="m-4 border">
+        <div className="rounded-md border bg-white">
             {/* Filters */}
             <div className="align-center flex items-center gap-2 px-4 py-4">
-                <div className="w-full sm:w-72">
+                <div className="w-full bg-white sm:w-72">
                     <SearchInput
                         placeholder="Search all columns..."
                         value={(table.getState().globalFilter as string) ?? ''}
@@ -190,7 +190,7 @@ export function DataTable<TData, TValue>({
             </div>
             <div className="overflow-x-auto rounded-md border">
                 <Table>
-                    <TableHeader>
+                    <TableHeader className="bg-gray-100">
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
                                 {headerGroup.headers.map((header) => {
