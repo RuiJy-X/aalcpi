@@ -95,18 +95,23 @@ class PlanterController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
+            'planter_code' => 'required|string|max:255|unique:planters,planter_code',
             'name'           => 'required|string|max:255',
             'address'        => 'required|string',
             'contact_number' => 'required|string',
             'tin_number'     => 'required|string|unique:planters,tin_number',
+            'registration_date' => (now()->toDateString() >= $request->registration_date) ? 'required|date' : 'required|date|before_or_equal:today',
         ]);
 
         $planter = Planter::create($validated);
 
-        return response()->json([
-            'message' => 'Planter created successfully!',
-            'planter' => $planter
-        ], 201);
+        // return response()->json([
+        //     'message' => 'Planter created successfully!',
+        //     'planter' => $planter
+        // ], 201);
+
+        return redirect()->route('planters.create')->with('success', 'Planter created successfully!');
+ 
     }
 
     public function update(Request $request, $id)

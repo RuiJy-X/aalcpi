@@ -1,5 +1,5 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import type { FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
@@ -21,18 +21,27 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function Create() {
+    const [showModal, setShowModal] = useState(false);
     const form = useForm({
         planter_code: '',
         name: '',
         address: '',
         contact_number: '',
         tin_number: '',
-        registration_date: '',
+        registration_date: new Date().toISOString().split('T')[0], // Default to today's date
     });
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
-        form.post(store.url());
+
+        const res = form.post(store.url(), {
+            onSuccess: (page) => {
+                setShowModal(true);
+            },
+            onError: (errors) => {
+                console.error('Form submission errors:', errors);
+            },
+        });
     };
 
     return (
@@ -45,9 +54,37 @@ export default function Create() {
                     title="Register a new planter"
                     description="Fill up the planter details"
                 />
+                {showModal && (
+                    <div className="modal-overlay">
+                        <div className="modal-content">
+                            <h2>Success!</h2>
+                            <p>Planter has been created.</p>
+                            <button onClick={() => setShowModal(false)}>
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                )}
 
                 <form onSubmit={handleSubmit} className="mx-5 w-full max-w-2xl">
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <Field>
+                            <Label htmlFor="planter_code">Plater Code</Label>
+                            <Input
+                                id="planter_code"
+                                name="planter_code"
+                                placeholder="Enter planter code"
+                                value={form.data.planter_code}
+                                onChange={(e) =>
+                                    form.setData('planter_code', e.target.value)
+                                }
+                            />
+                            {form.errors.planter_code && (
+                                <p className="text-sm text-red-500">
+                                    {form.errors.planter_code}
+                                </p>
+                            )}
+                        </Field>
                         <Field>
                             <Label htmlFor="name">Name</Label>
                             <Input
