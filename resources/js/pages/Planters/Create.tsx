@@ -1,10 +1,10 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import Heading from '@/components/heading';
-import BasicDetails from '@/components/planters/basic-details';
-import HaciendaDetails from '@/components/planters/hacienda-details';
-import { PlanterFormProvider } from '@/components/planters/planter-forms';
 import { Button } from '@/components/ui/button';
+import { Field } from '@/components/ui/field';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/app-layout';
 import { index as planterIndex, create, store } from '@/routes/planters';
 import type { BreadcrumbItem } from '@/types';
@@ -22,16 +22,12 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 export default function Create() {
     const form = useForm({
-        // Basic Details
+        planter_code: '',
         name: '',
         address: '',
+        contact_number: '',
         tin_number: '',
-        phone: '',
-        // hacienda details
-        haciendaName: '',
-        location: '',
-        status: '',
-        ownershipType: '',
+        registration_date: '',
     });
 
     const handleSubmit = (e: FormEvent) => {
@@ -47,23 +43,97 @@ export default function Create() {
             <div className="px-4 py-6">
                 <Heading
                     title="Register a new planter"
-                    description="Fill up their basic details and hacienda details"
+                    description="Fill up the planter details"
                 />
 
-                <PlanterFormProvider value={form}>
-                    <form onSubmit={handleSubmit} className="mx-5 w-1/2">
-                        <BasicDetails />
-                        <HaciendaDetails />
-                        <div className="mt-2 flex justify-end gap-2">
-                            <Link>
-                                <Button type="button" variant="outline">
-                                    Cancel
-                                </Button>
-                            </Link>
-                            <Button type="submit">Register</Button>
-                        </div>
-                    </form>
-                </PlanterFormProvider>
+                <form onSubmit={handleSubmit} className="mx-5 w-full max-w-2xl">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <Field>
+                            <Label htmlFor="name">Name</Label>
+                            <Input
+                                id="name"
+                                name="name"
+                                placeholder="Enter planter name"
+                                value={form.data.name}
+                                onChange={(e) =>
+                                    form.setData('name', e.target.value)
+                                }
+                            />
+                            {form.errors.name && (
+                                <p className="text-sm text-red-500">
+                                    {form.errors.name}
+                                </p>
+                            )}
+                        </Field>
+                        <Field className="md:col-span-2">
+                            <Label htmlFor="address">Address</Label>
+                            <Input
+                                id="address"
+                                name="address"
+                                placeholder="Enter address"
+                                value={form.data.address}
+                                onChange={(e) =>
+                                    form.setData('address', e.target.value)
+                                }
+                            />
+                            {form.errors.address && (
+                                <p className="text-sm text-red-500">
+                                    {form.errors.address}
+                                </p>
+                            )}
+                        </Field>
+                        <Field>
+                            <Label htmlFor="contact_number">
+                                Contact Number
+                            </Label>
+                            <Input
+                                id="contact_number"
+                                name="contact_number"
+                                placeholder="Enter contact number"
+                                value={form.data.contact_number}
+                                onChange={(e) =>
+                                    form.setData(
+                                        'contact_number',
+                                        e.target.value,
+                                    )
+                                }
+                            />
+                            {form.errors.contact_number && (
+                                <p className="text-sm text-red-500">
+                                    {form.errors.contact_number}
+                                </p>
+                            )}
+                        </Field>
+                        <Field>
+                            <Label htmlFor="tin_number">TIN Number</Label>
+                            <Input
+                                id="tin_number"
+                                name="tin_number"
+                                placeholder="Enter TIN number"
+                                value={form.data.tin_number}
+                                onChange={(e) =>
+                                    form.setData('tin_number', e.target.value)
+                                }
+                            />
+                            {form.errors.tin_number && (
+                                <p className="text-sm text-red-500">
+                                    {form.errors.tin_number}
+                                </p>
+                            )}
+                        </Field>
+                    </div>
+
+                    <div className="mt-6 flex justify-end gap-2">
+                        <Link href={planterIndex.url()}>
+                            <Button type="button" variant="outline">
+                                Cancel
+                            </Button>
+                        </Link>
+                        <Button type="submit" disabled={form.processing}>
+                            {form.processing ? 'Registering...' : 'Register'}
+                        </Button>
+                    </div>
+                </form>
             </div>
         </AppLayout>
     );

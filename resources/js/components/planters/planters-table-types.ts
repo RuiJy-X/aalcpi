@@ -49,6 +49,7 @@ export type ProductionRow = {
 };
 
 export type CertificationRow = {
+    id: string;
     planter_id: string;
     land_id: string;
     production_id: string;

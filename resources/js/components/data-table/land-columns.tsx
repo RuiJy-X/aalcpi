@@ -1,10 +1,11 @@
 'use client';
 
 import type { ColumnDef } from '@tanstack/react-table';
-import { ArrowUpDown } from 'lucide-react';
+import { ArrowUpDown, Eye, Pencil, Trash2 } from 'lucide-react';
 import type { LandRow } from '@/components/planters/planters-table-types';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { router } from '@inertiajs/react';
 
 export const landColumns: ColumnDef<LandRow>[] = [
     {
@@ -132,5 +133,38 @@ export const landColumns: ColumnDef<LandRow>[] = [
                 </div>
             </div>
         ),
+    },
+    {
+        id: 'actions',
+        header: 'Actions',
+        cell: ({ row }) => {
+            const land = row.original;
+
+            return (
+                <div
+                    className="flex justify-end gap-2"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <Button variant="secondary" size="xs" aria-label="Preview">
+                        <Eye className="size-4" />
+                    </Button>
+                    <Button
+                        variant="blue"
+                        size="xs"
+                        aria-label="Edit"
+                        onClick={() =>
+                            router.get(
+                                `/Planters/view/info/${land.planter_id}/land/${land.id}`,
+                            )
+                        }
+                    >
+                        <Pencil className="size-4" />
+                    </Button>
+                    <Button variant="destructive" size="xs" aria-label="Delete">
+                        <Trash2 className="size-4" />
+                    </Button>
+                </div>
+            );
+        },
     },
 ];

@@ -22,7 +22,6 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // User::factory(10)->create();
-
         User::factory()->create([
             'name' => 'Test User',
             'email' => 'admin@gmail.com',
@@ -31,7 +30,7 @@ class DatabaseSeeder extends Seeder
 
 
         // Planters / Lands / Production / Certifications
-        $planters = Planter::factory()->count(10)->create();
+        $planters = Planter::factory()->count(20)->create();
 
         $lands = collect();
         foreach ($planters as $planter) {

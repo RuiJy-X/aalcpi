@@ -27,17 +27,9 @@ import type { BreadcrumbItem } from '@/types';
 import { useState } from 'react';
 import PersonalInfo from '@/components/planters/planter-view/personal-info';
 import LandsInfo from '@/components/planters/planter-view/lands-info';
-
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Planter Management',
-        href: plantersIndex().url,
-    },
-    {
-        title: 'Planter Details',
-        href: '',
-    },
-];
+import { view as plantersView } from '@/routes/planters';
+import ViewLayout from '@/components/planters/planter-view/view-layout';
+import { landColumns } from '@/components/data-table/land-columns';
 
 export default function Index({
     planter,
@@ -51,7 +43,21 @@ export default function Index({
     certifications: CertificationRow[];
 }) {
     const [activeTab, setActiveTab] = useState('planters');
-
+    const viewHref = plantersView(planter.id).url;
+    const breadcrumbs: BreadcrumbItem[] = [
+        {
+            title: 'Planter Management',
+            href: plantersIndex().url,
+        },
+        {
+            title: 'Planter Details',
+            href: viewHref,
+        },
+        {
+            title: `${planter.name}`,
+            href: viewHref,
+        },
+    ];
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Products">
@@ -84,13 +90,15 @@ export default function Index({
                     </TabsList>
                 </Tabs>
             </ActionContainer>
-            <div className="mx-5 my-5">
+            <ViewLayout>
                 <Heading
                     title="View Planter Details"
                     description="Viewing planter details of a specific planter"
                 />
                 {activeTab === 'planters' && <PersonalInfo planter={planter} />}
-                {activeTab === 'lands' && <LandsInfo lands={lands} />}
+                {activeTab === 'lands' && (
+                    <DataTable data={lands} columns={landColumns} />
+                )}
                 {activeTab === 'productions' && (
                     <DataTable columns={productionColumns} data={productions} />
                 )}
@@ -100,7 +108,7 @@ export default function Index({
                         data={certifications}
                     />
                 )}
-            </div>
+            </ViewLayout>
         </AppLayout>
     );
 }

@@ -1,11 +1,13 @@
 'use client';
 
 import type { ColumnDef } from '@tanstack/react-table';
-import { ArrowUpDown } from 'lucide-react';
+import { ArrowUpDown, Eye, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { router } from '@inertiajs/react';
 
 export type CertificationRow = {
+    id: string;
     planter_id: string;
     land_id: string;
     production_id: string;
@@ -99,5 +101,38 @@ export const certificationColumns: ColumnDef<CertificationRow>[] = [
                 <div className="ml-2 truncate">{row.original.status}</div>
             </div>
         ),
+    },
+    {
+        id: 'actions',
+        header: 'Actions',
+        cell: ({ row }) => {
+            const certificate = row.original;
+
+            return (
+                <div
+                    className="flex justify-end gap-2"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <Button variant="secondary" size="xs" aria-label="Preview">
+                        <Eye className="size-4" />
+                    </Button>
+                    <Button
+                        variant="blue"
+                        size="xs"
+                        aria-label="Edit"
+                        onClick={() =>
+                            router.get(
+                                `/Planters/view/info/${certificate.planter_id}/certificate/${certificate.id}`,
+                            )
+                        }
+                    >
+                        <Pencil className="size-4" />
+                    </Button>
+                    <Button variant="destructive" size="xs" aria-label="Delete">
+                        <Trash2 className="size-4" />
+                    </Button>
+                </div>
+            );
+        },
     },
 ];

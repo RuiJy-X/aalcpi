@@ -34,12 +34,18 @@ class PlanterController extends Controller
 
     public function view($id)
     {
-        $planter = Planter::with('lands')->findOrFail($id);
-        $productions = Production::with('planter')
-            ->where('planter_id', $id)
+        $planter = Planter::with(['lands', 'productions', 'certifications'])->findOrFail($id);
+
+        $productions = Production::with(['planter', 'land'])
+            ->where('planter_id', $planter->id)
+            ->orWhereHas('land', fn ($query) => $query->where('planter_id', $planter->id))
+            ->latest()
             ->get();
-        $certifications = Certification::with('planter')
-            ->where('planter_id', $id)
+
+        $certifications = Certification::with(['planter', 'land', 'production'])
+            ->where('planter_id', $planter->id)
+            ->orWhereHas('production', fn ($query) => $query->where('planter_id', $planter->id))
+            ->latest()
             ->get();
 
         return Inertia::render('Planters/View', [
@@ -59,7 +65,19 @@ class PlanterController extends Controller
 
         return Inertia::render('Planters/ViewProduction', [
             'production' => $production,
+            'planterName' => $production->planter->name
         ]);
+    }
+    
+    public function viewLand($planterId, $landId){
+        $land = Land::with('planter')->where('planter_id', $planterId)->where('id',$landId)->firstOrFail();
+
+        return Inertia::render('Planters/ViewLands', ['land' => $land, 'planterName' => $land->planter->name]);
+    }
+
+    public function viewCertificates($planterId, $certificateId){
+        $certificate = Certification::with('planter')->where('planter_id', $planterId)->where('id',$certificateId)->firstorFail();
+        return Inertia::render('Planters/ViewCertificates', ['certificate'=> $certificate, 'planterName' => $certificate->planter->name]);
     }
 
     public function data()
