@@ -7,6 +7,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { ArrowUpDown, Eye, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { production as productionView } from '@/routes/planters/view';
 
 export type ProductionRow = {
     id: string;
@@ -474,7 +475,10 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
                         aria-label="Edit"
                         onClick={() =>
                             router.get(
-                                `/Planters/view/info/${production.planter_id}/production/${production.id}`,
+                                productionView([
+                                    production.planter_id,
+                                    production.id,
+                                ]).url,
                             )
                         }
                     >

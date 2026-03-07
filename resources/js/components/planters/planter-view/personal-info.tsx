@@ -1,97 +1,161 @@
+import { useForm } from '@inertiajs/react';
+import { useState } from 'react';
+import EditButton from '@/components/edit-button';
 import type { PlanterRow } from '@/components/planters/planters-table-types';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
 import { FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import EditButton from '@/components/edit-button';
-import { useState } from 'react';
+import { update as plantersViewUpdate } from '@/routes/planters/view';
 
 const PersonalInfo = ({ planter }: { planter: PlanterRow }) => {
     const [isEditing, setIsEditing] = useState(false);
-    const createdAt = planter.created_at?.split('T')[0] ?? 'N/A';
-    const updatedAt = planter.updated_at?.split('T')[0] ?? 'N/A';
+    // const createdAt = planter.created_at?.split('T')[0] ?? 'N/A';
+    // const updatedAt = planter.updated_at?.split('T')[0] ?? 'N/A';
 
-    const details = [
-        { label: 'Planter Code', value: planter.planter_code },
-        { label: 'Name', value: planter.name },
-        { label: 'Address', value: planter.address },
-        { label: 'TIN Number', value: planter.tin_number },
-        { label: 'Contact Number', value: planter.contact_number },
-        { label: 'Registration Date', value: planter.registration_date },
-        { label: 'Created At', value: createdAt },
-        { label: 'Updated At', value: updatedAt },
-    ];
+    const { data, setData, patch, processing, errors } = useForm({
+        id: planter.id,
+        planter_code: planter.planter_code ?? '',
+        name: planter.name ?? '',
+        address: planter.address ?? '',
+        tin_number: planter.tin_number ?? '',
+        contact_number: planter.contact_number ?? '',
+        registration_date: planter.registration_date ?? '',
+        createdAt: planter.created_at ?? '',
+        updatedAt: planter.updated_at ?? '',
+    });
+
+    const submit = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        patch(plantersViewUpdate(planter.id).url, {
+            onSuccess: () => {
+                setIsEditing(false);
+            },
+            onError: (errors) => {
+                console.error('Form submission errors:', errors);
+            },
+        });
+        console.log(errors);
+    };
+
+    const fields = [
+        { label: 'Planter Code', key: 'planter_code' },
+        { label: 'Name', key: 'name' },
+        { label: 'Address', key: 'address' },
+        { label: 'TIN Number', key: 'tin_number' },
+        { label: 'Contact Number', key: 'contact_number' },
+        { label: 'Registration Date', key: 'registration_date' },
+    ] as const;
+
+    const handleChange = (
+        key: (typeof fields)[number]['key'],
+        value: string,
+    ) => {
+        setData(key, value);
+    };
+
     return (
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Planter Details</CardTitle>
-                <EditButton
-                    isEditing={isEditing}
-                    onEditingChange={setIsEditing}
-                    editLabel="Edit Planter"
-                />
+                {errors.name && (
+                    <p className="text-sm text-red-600">{errors.name}</p>
+                )}
+                <div className="flex gap-2">
+                    {isEditing && (
+                        <Button
+                            type="submit"
+                            form="planter-info-form"
+                            variant="blue"
+                            disabled={processing}
+                        >
+                            Save
+                        </Button>
+                    )}
+                    <EditButton
+                        isEditing={isEditing}
+                        onEditingChange={setIsEditing}
+                        editLabel="Edit Planter"
+                    />
+                </div>
             </CardHeader>
             <CardContent>
                 {isEditing ? (
-                    <div className="flex flex-col gap-6">
-                        <div className="flex flex-row flex-wrap gap-4">
-                            {details.slice(0, 4).map((detail) => (
-                                <Field
-                                    key={detail.label}
-                                    className="w-full md:w-[calc(50%-0.5rem)]"
-                                >
-                                    <FieldLabel>{detail.label}</FieldLabel>
-                                    <Input
-                                        placeholder={detail.label}
-                                        value={String(detail.value)}
-                                    />
-                                </Field>
-                            ))}
+                    <form onSubmit={submit} id="planter-info-form">
+                        <div className="flex flex-col gap-6">
+                            <div className="flex flex-row flex-wrap gap-4">
+                                {fields.slice(0, 4).map((field) => (
+                                    <Field
+                                        key={field.key}
+                                        className="w-full md:w-[calc(50%-0.5rem)]"
+                                    >
+                                        <FieldLabel>{field.label}</FieldLabel>
+
+                                        <Input
+                                            placeholder={field.label}
+                                            value={String(data[field.key])}
+                                            onChange={(e) =>
+                                                handleChange(
+                                                    field.key,
+                                                    e.target.value,
+                                                )
+                                            }
+                                        />
+                                    </Field>
+                                ))}
+                            </div>
+                            <div className="flex flex-row flex-wrap gap-4">
+                                {fields.slice(4).map((field) => (
+                                    <Field
+                                        key={field.key}
+                                        className="w-full md:w-[calc(50%-0.5rem)]"
+                                    >
+                                        <FieldLabel>{field.label}</FieldLabel>
+                                        <Input
+                                            placeholder={field.label}
+                                            value={String(data[field.key])}
+                                            onChange={(e) =>
+                                                handleChange(
+                                                    field.key,
+                                                    e.target.value,
+                                                )
+                                            }
+                                        />
+                                    </Field>
+                                ))}
+                            </div>
                         </div>
-                        <div className="flex flex-row flex-wrap gap-4">
-                            {details.slice(4).map((detail) => (
-                                <Field
-                                    key={detail.label}
-                                    className="w-full md:w-[calc(50%-0.5rem)]"
-                                >
-                                    <FieldLabel>{detail.label}</FieldLabel>
-                                    <Input
-                                        placeholder={detail.label}
-                                        value={String(detail.value)}
-                                    />
-                                </Field>
-                            ))}
-                        </div>
-                    </div>
+                    </form>
                 ) : (
                     <div className="flex flex-col gap-6">
                         <div className="flex flex-row flex-wrap gap-4">
-                            {details.slice(0, 4).map((detail) => (
+                            {fields.slice(0, 4).map((field) => (
                                 <div
-                                    key={detail.label}
+                                    key={field.key}
                                     className="flex w-full flex-col md:w-[calc(50%-0.5rem)]"
                                 >
                                     <span className="text-sm font-medium text-gray-500">
-                                        {detail.label}
+                                        {field.label}
                                     </span>
                                     <span className="text-sm">
-                                        {detail.value}
+                                        {data[field.key]}
                                     </span>
                                 </div>
                             ))}
                         </div>
                         <hr />
                         <div className="flex flex-row flex-wrap gap-4">
-                            {details.slice(4).map((detail) => (
+                            {fields.slice(4).map((field) => (
                                 <div
-                                    key={detail.label}
+                                    key={field.key}
                                     className="flex w-full flex-col md:w-[calc(50%-0.5rem)]"
                                 >
                                     <span className="text-sm font-medium text-gray-500">
-                                        {detail.label}
+                                        {field.label}
                                     </span>
                                     <span className="text-sm">
-                                        {detail.value}
+                                        {data[field.key]}
                                     </span>
                                 </div>
                             ))}

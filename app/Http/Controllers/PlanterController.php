@@ -32,48 +32,8 @@ class PlanterController extends Controller
         return Inertia::render('Planters/Create');
     }
 
-    public function view($id)
-    {
-        $planter = Planter::with(['lands', 'productions', 'certifications'])->findOrFail($id);
 
-        $productions = Production::with(['planter', 'land'])
-            ->where('planter_id', $planter->id)
-            ->orWhereHas('land', fn ($query) => $query->where('planter_id', $planter->id))
-            ->latest()
-            ->get();
 
-        $certifications = Certification::with(['planter', 'land', 'production'])
-            ->where('planter_id', $planter->id)
-            ->orWhereHas('production', fn ($query) => $query->where('planter_id', $planter->id))
-            ->latest()
-            ->get();
-
-        return Inertia::render('Planters/View', [
-            'planter' => $planter,
-            'lands' => $planter->lands,
-            'productions' => $productions,
-            'certifications' => $certifications,
-        ]);
-    }
-
-    public function viewProduction($planterId, $productionId)
-    {
-        $production = Production::with('planter')
-            ->where('planter_id', $planterId)
-            ->where('id', $productionId)
-            ->firstOrFail();
-
-        return Inertia::render('Planters/ViewProduction', [
-            'production' => $production,
-            'planterName' => $production->planter->name
-        ]);
-    }
-    
-    public function viewLand($planterId, $landId){
-        $land = Land::with('planter')->where('planter_id', $planterId)->where('id',$landId)->firstOrFail();
-
-        return Inertia::render('Planters/ViewLands', ['land' => $land, 'planterName' => $land->planter->name]);
-    }
 
     public function viewCertificates($planterId, $certificateId){
         $certificate = Certification::with('planter')->where('planter_id', $planterId)->where('id',$certificateId)->firstorFail();
@@ -101,17 +61,37 @@ class PlanterController extends Controller
             'contact_number' => 'required|string',
             'tin_number'     => 'required|string|unique:planters,tin_number',
             'registration_date' => (now()->toDateString() >= $request->registration_date) ? 'required|date' : 'required|date|before_or_equal:today',
+            'lands' => 'nullable|array',
+            'lands.*.name' => 'required_with:lands|string|max:255',
+            'lands.*.address' => 'required_with:lands|string|max:255',
+            'lands.*.area_hectares' => 'required_with:lands|numeric|min:0',
+            'lands.*.distance_from_urc' => 'required_with:lands|numeric|min:0',
+            'lands.*.is_active' => 'required_with:lands|boolean',
         ]);
 
+
+
         $planter = Planter::create($validated);
+        $validatedLands = $validated['lands'] ?? [];
+        $validatedLands = array_values(array_filter($validatedLands, function ($land) {
+            return !empty($land['name'])
+                || !empty($land['address'])
+                || isset($land['area_hectares'])
+                || isset($land['distance_from_urc']);
+        }));
 
-        // return response()->json([
-        //     'message' => 'Planter created successfully!',
-        //     'planter' => $planter
-        // ], 201);
+        if (!empty($validatedLands)) {
+            $planter->lands()->createMany($validatedLands);
+        }
 
-        return redirect()->route('planters.create')->with('success', 'Planter created successfully!');
- 
+        // // return response()->json([
+        // //     'message' => 'Planter created successfully!',
+        // //     'planter' => $planter
+        // // ], 201);
+
+        return redirect()->back()->with('success', 'Planter created successfully!');
+
+
     }
 
     public function update(Request $request, $id)

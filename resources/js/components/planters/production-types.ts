@@ -1,0 +1,20 @@
+export type ProductionFormData = {
+    planter_id: string;
+    land_id: string;
+    production_year: number;
+    production_month: number;
+    gross_cw: number;
+    net_cw: number;
+    trucks: number;
+    theoretical_lkg: number;
+    actual_lkg: number;
+    pshr_net_lkg: number;
+    pdpa_lkg: number;
+    association_dues_lkg: number;
+    actual_mol: number;
+    pshr_net_mol: number;
+    pdpa_mol: number;
+    association_dues_mol: number;
+    trans_code?: string | null;
+    transloading?: boolean | null;
+};

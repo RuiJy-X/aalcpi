@@ -1,11 +1,12 @@
 'use client';
 
+import { router } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { ArrowUpDown, Eye, Pencil, Trash2 } from 'lucide-react';
 import type { LandRow } from '@/components/planters/planters-table-types';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { router } from '@inertiajs/react';
+import { index as landView } from '@/routes/planters/view/land';
 
 export const landColumns: ColumnDef<LandRow>[] = [
     {
@@ -153,9 +154,7 @@ export const landColumns: ColumnDef<LandRow>[] = [
                         size="xs"
                         aria-label="Edit"
                         onClick={() =>
-                            router.get(
-                                `/Planters/view/info/${land.planter_id}/land/${land.id}`,
-                            )
+                            router.get(landView([land.planter_id, land.id]).url)
                         }
                     >
                         <Pencil className="size-4" />

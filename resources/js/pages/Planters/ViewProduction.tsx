@@ -4,10 +4,8 @@ import { Head } from '@inertiajs/react';
 import Heading from '@/components/heading';
 import type { ProductionRow } from '@/components/planters/planters-table-types';
 import AppLayout from '@/layouts/app-layout';
-import {
-    index as plantersIndex,
-    view as plantersView,
-} from '@/routes/planters';
+import { index as plantersIndex } from '@/routes/planters';
+import { info as plantersView } from '@/routes/planters/view';
 import type { BreadcrumbItem } from '@/types';
 import ProductionInfo from '@/components/planters/planter-view/production-info';
 
@@ -41,6 +39,7 @@ export default function Index({
             href: viewProductionHref,
         },
     ];
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Products">

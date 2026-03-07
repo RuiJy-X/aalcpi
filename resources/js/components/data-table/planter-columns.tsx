@@ -7,6 +7,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { ArrowUpDown, Eye, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { info as planterView } from '@/routes/planters/view';
 
 export type Planter = {
     id: string;
@@ -261,9 +262,7 @@ export const planterColumns: ColumnDef<Planter>[] = [
                         variant="blue"
                         size="xs"
                         aria-label="Edit"
-                        onClick={() =>
-                            router.get(`/Planters/view/info/${planter.id}`)
-                        }
+                        onClick={() => router.get(planterView(planter.id).url)}
                     >
                         <Pencil className="size-4" />
                     </Button>

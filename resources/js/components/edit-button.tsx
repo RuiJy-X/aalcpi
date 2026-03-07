@@ -1,12 +1,12 @@
-import { Button } from '@/components/ui/button';
 import { useState } from 'react';
+import { Button } from '@/components/ui/button';
 
 type EditButtonProps = {
     isEditing?: boolean;
     defaultEditing?: boolean;
     onEditingChange?: (value: boolean) => void;
     editLabel?: string;
-    doneLabel?: string;
+    cancelLabel?: string;
     className?: string;
 };
 
@@ -15,7 +15,7 @@ export default function EditButton({
     defaultEditing = false,
     onEditingChange,
     editLabel = 'Edit',
-    doneLabel = 'Done',
+    cancelLabel = 'Cancel',
     className = 'max-w-3xs',
 }: EditButtonProps) {
     const [internalEditing, setInternalEditing] = useState(defaultEditing);
@@ -33,11 +33,11 @@ export default function EditButton({
 
     return (
         <Button
-            variant={editing ? 'blue' : 'default'}
+            variant={editing ? 'outline' : 'default'}
             onClick={handleClick}
             className={className}
         >
-            {editing ? doneLabel : editLabel}
+            {editing ? cancelLabel : editLabel}
         </Button>
     );
 }

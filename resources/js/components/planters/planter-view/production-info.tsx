@@ -1,112 +1,198 @@
+import { useForm } from '@inertiajs/react';
+import { useState } from 'react';
+import EditButton from '@/components/edit-button';
 import type { ProductionRow } from '@/components/planters/planters-table-types';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
 import { FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import EditButton from '@/components/edit-button';
-import { useState } from 'react';
+import { update as productionViewUpdate } from '@/routes/planters/view/production';
 
 const ProductionInfo = ({ production }: { production: ProductionRow }) => {
     const [isEditing, setIsEditing] = useState(false);
+
+    const submit = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        patch(
+            productionViewUpdate([production.planter_id, production.id]).url,
+            {
+                onSuccess: () => {
+                    setIsEditing(false);
+                },
+                onError: (errors) => {
+                    console.error('Form submission errors:', errors);
+                },
+            },
+        );
+        console.log(errors);
+    };
+
+    const handleChange = (
+        key: (typeof details)[number]['key'],
+        value: string | boolean | number,
+    ) => {
+        setData(key, value);
+    };
+
+    const { data, setData, patch, processing, errors } = useForm({
+        planter_id: production.planter_id,
+        land_id: production.land_id,
+        production_year: production.production_year,
+        production_month: production.production_month,
+        gross_cw: production.gross_cw,
+        net_cw: production.net_cw,
+        trucks: production.trucks,
+        theoretical_lkg: production.theoretical_lkg,
+        actual_lkg: production.actual_lkg,
+        pshr_net_lkg: production.pshr_net_lkg,
+        pdpa_lkg: production.pdpa_lkg,
+        association_dues_lkg: production.association_dues_lkg,
+        actual_mol: production.actual_mol,
+        pshr_net_mol: production.pshr_net_mol,
+        pdpa_mol: production.pdpa_mol,
+        association_dues_mol: production.association_dues_mol,
+        trans_code: production.trans_code,
+        transloading: production.transloading,
+    });
+
     const details = [
-        { label: 'Planter ID', value: production.planter_id },
-        { label: 'Land ID', value: production.land_id },
-        { label: 'Year', value: production.production_year },
-        { label: 'Month', value: production.production_month },
-        { label: 'Gross CW', value: production.gross_cw },
-        { label: 'Net CW', value: production.net_cw },
-        { label: 'Trucks', value: production.trucks },
-        { label: 'Theoretical LKG', value: production.theoretical_lkg },
-        { label: 'Actual LKG', value: production.actual_lkg },
-        { label: 'PSHR Net LKG', value: production.pshr_net_lkg },
-        { label: 'PDPA LKG', value: production.pdpa_lkg },
+        { label: 'Planter ID', key: 'planter_id' },
+        { label: 'Land ID', key: 'land_id' },
+        { label: 'Year', key: 'production_year' },
+        { label: 'Month', key: 'production_month' },
+        { label: 'Gross CW', key: 'gross_cw' },
+        { label: 'Net CW', key: 'net_cw' },
+        { label: 'Trucks', key: 'trucks' },
+        { label: 'Theoretical LKG', key: 'theoretical_lkg' },
+        { label: 'Actual LKG', key: 'actual_lkg' },
+        { label: 'PSHR Net LKG', key: 'pshr_net_lkg' },
+        { label: 'PDPA LKG', key: 'pdpa_lkg' },
         {
             label: 'Association Dues LKG',
-            value: production.association_dues_lkg,
+            key: 'association_dues_lkg',
         },
-        { label: 'Actual MOL', value: production.actual_mol },
-        { label: 'PSHR Net MOL', value: production.pshr_net_mol },
-        { label: 'PDPA MOL', value: production.pdpa_mol },
+        { label: 'Actual MOL', key: 'actual_mol' },
+        { label: 'PSHR Net MOL', key: 'pshr_net_mol' },
+        { label: 'PDPA MOL', key: 'pdpa_mol' },
         {
             label: 'Association Dues MOL',
-            value: production.association_dues_mol,
+            key: 'association_dues_mol',
         },
-        { label: 'Trans Code', value: production.trans_code ?? 'N/A' },
+        { label: 'Trans Code', key: 'trans_code' },
         {
             label: 'Transloading',
-            value: production.transloading ? 'Yes' : 'No',
+            key: 'transloading',
         },
-    ];
+    ] as const;
     return (
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Production Details</CardTitle>
-                <EditButton
-                    isEditing={isEditing}
-                    onEditingChange={setIsEditing}
-                    editLabel="Edit Production"
-                />
+                <div className="flex gap-2">
+                    {isEditing && (
+                        <Button
+                            type="submit"
+                            form="production-info-form"
+                            variant="blue"
+                            disabled={processing}
+                        >
+                            Save
+                        </Button>
+                    )}
+                    <EditButton
+                        isEditing={isEditing}
+                        onEditingChange={setIsEditing}
+                        editLabel="Edit Production"
+                    />
+                </div>
             </CardHeader>
             <CardContent>
                 {isEditing ? (
-                    <div className="flex flex-col gap-6">
-                        <div className="flex flex-row flex-wrap gap-4">
-                            {details.slice(0, 4).map((detail) => (
-                                <Field
-                                    key={detail.label}
-                                    className="w-full md:w-[calc(50%-0.5rem)]"
-                                >
-                                    <FieldLabel>{detail.label}</FieldLabel>
-                                    <Input
-                                        placeholder={detail.label}
-                                        value={String(detail.value)}
-                                    />
-                                </Field>
-                            ))}
+                    <form onSubmit={submit} id="production-info-form">
+                        <div className="flex flex-col gap-6">
+                            <div className="flex flex-row flex-wrap gap-4">
+                                {details.slice(0, 4).map((detail) => (
+                                    <Field
+                                        key={detail.key}
+                                        className="w-full md:w-[calc(50%-0.5rem)]"
+                                    >
+                                        <FieldLabel>{detail.label}</FieldLabel>
+                                        <Input
+                                            placeholder={detail.label}
+                                            value={String(data[detail.key])}
+                                            onChange={(e) =>
+                                                handleChange(
+                                                    detail.key,
+                                                    e.target.value,
+                                                )
+                                            }
+                                        />
+                                    </Field>
+                                ))}
+                            </div>
+                            <div className="flex flex-row flex-wrap gap-4">
+                                {details.slice(4, 10).map((detail) => (
+                                    <Field
+                                        key={detail.key}
+                                        className="w-full md:w-[calc(33.333%-0.5rem)]"
+                                    >
+                                        <FieldLabel>{detail.label}</FieldLabel>
+                                        <Input
+                                            placeholder={detail.label}
+                                            value={String(data[detail.key])}
+                                            onChange={(e) =>
+                                                handleChange(
+                                                    detail.key,
+                                                    e.target.value,
+                                                )
+                                            }
+                                        />
+                                    </Field>
+                                ))}
+                            </div>
+                            <div className="flex flex-row flex-wrap gap-4">
+                                {details.slice(10, 16).map((detail) => (
+                                    <Field
+                                        key={detail.label}
+                                        className="w-full md:w-[calc(33.333%-0.5rem)]"
+                                    >
+                                        <FieldLabel>{detail.label}</FieldLabel>
+                                        <Input
+                                            placeholder={detail.label}
+                                            value={String(data[detail.key])}
+                                            onChange={(e) =>
+                                                handleChange(
+                                                    detail.key,
+                                                    e.target.value,
+                                                )
+                                            }
+                                        />
+                                    </Field>
+                                ))}
+                            </div>
+                            <div className="flex flex-row flex-wrap gap-4">
+                                {details.slice(16).map((detail) => (
+                                    <Field
+                                        key={detail.label}
+                                        className="w-full md:w-[calc(50%-0.5rem)]"
+                                    >
+                                        <FieldLabel>{detail.label}</FieldLabel>
+                                        <Input
+                                            placeholder={detail.label}
+                                            value={String(data[detail.key])}
+                                            onChange={(e) =>
+                                                handleChange(
+                                                    detail.key,
+                                                    e.target.value,
+                                                )
+                                            }
+                                        />
+                                    </Field>
+                                ))}
+                            </div>
                         </div>
-                        <div className="flex flex-row flex-wrap gap-4">
-                            {details.slice(4, 10).map((detail) => (
-                                <Field
-                                    key={detail.label}
-                                    className="w-full md:w-[calc(33.333%-0.5rem)]"
-                                >
-                                    <FieldLabel>{detail.label}</FieldLabel>
-                                    <Input
-                                        placeholder={detail.label}
-                                        value={String(detail.value)}
-                                    />
-                                </Field>
-                            ))}
-                        </div>
-                        <div className="flex flex-row flex-wrap gap-4">
-                            {details.slice(10, 16).map((detail) => (
-                                <Field
-                                    key={detail.label}
-                                    className="w-full md:w-[calc(33.333%-0.5rem)]"
-                                >
-                                    <FieldLabel>{detail.label}</FieldLabel>
-                                    <Input
-                                        placeholder={detail.label}
-                                        value={String(detail.value)}
-                                    />
-                                </Field>
-                            ))}
-                        </div>
-                        <div className="flex flex-row flex-wrap gap-4">
-                            {details.slice(16).map((detail) => (
-                                <Field
-                                    key={detail.label}
-                                    className="w-full md:w-[calc(50%-0.5rem)]"
-                                >
-                                    <FieldLabel>{detail.label}</FieldLabel>
-                                    <Input
-                                        placeholder={detail.label}
-                                        value={String(detail.value)}
-                                    />
-                                </Field>
-                            ))}
-                        </div>
-                    </div>
+                    </form>
                 ) : (
                     <div className="flex flex-col gap-6">
                         <div className="flex flex-row flex-wrap gap-4">
@@ -119,7 +205,7 @@ const ProductionInfo = ({ production }: { production: ProductionRow }) => {
                                         {detail.label}
                                     </span>
                                     <span className="text-sm">
-                                        {detail.value}
+                                        {String(data[detail.key])}
                                     </span>
                                 </div>
                             ))}
@@ -135,7 +221,7 @@ const ProductionInfo = ({ production }: { production: ProductionRow }) => {
                                         {detail.label}
                                     </span>
                                     <span className="text-sm">
-                                        {detail.value}
+                                        {String(data[detail.key])}
                                     </span>
                                 </div>
                             ))}
@@ -151,7 +237,7 @@ const ProductionInfo = ({ production }: { production: ProductionRow }) => {
                                         {detail.label}
                                     </span>
                                     <span className="text-sm">
-                                        {detail.value}
+                                        {String(data[detail.key])}
                                     </span>
                                 </div>
                             ))}
@@ -167,7 +253,7 @@ const ProductionInfo = ({ production }: { production: ProductionRow }) => {
                                         {detail.label}
                                     </span>
                                     <span className="text-sm">
-                                        {detail.value}
+                                        {String(data[detail.key])}
                                     </span>
                                 </div>
                             ))}

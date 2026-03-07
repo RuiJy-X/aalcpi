@@ -27,7 +27,7 @@ import type { BreadcrumbItem } from '@/types';
 import { useState } from 'react';
 import PersonalInfo from '@/components/planters/planter-view/personal-info';
 import LandsInfo from '@/components/planters/planter-view/lands-info';
-import { view as plantersView } from '@/routes/planters';
+import { info as plantersView } from '@/routes/planters/view';
 import ViewLayout from '@/components/planters/planter-view/view-layout';
 import { landColumns } from '@/components/data-table/land-columns';
 

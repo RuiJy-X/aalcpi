@@ -7,10 +7,8 @@ import type {
     LandRow,
 } from '@/components/planters/planters-table-types';
 import AppLayout from '@/layouts/app-layout';
-import {
-    index as plantersIndex,
-    view as plantersView,
-} from '@/routes/planters';
+import { index as plantersIndex } from '@/routes/planters';
+import { info as plantersView } from '@/routes/planters/view';
 import type { BreadcrumbItem } from '@/types';
 
 export default function Index({
@@ -18,7 +16,7 @@ export default function Index({
     planterName,
 }: {
     certificate: CertificationRow;
-    planterName: String;
+    planterName: string;
 }) {
     const viewHref = plantersView(certificate.planter_id).url;
     const viewProductionHref =

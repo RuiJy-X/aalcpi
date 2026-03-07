@@ -1,10 +1,12 @@
 import { Head, Link, useForm } from '@inertiajs/react';
+import { Plus } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import Heading from '@/components/heading';
+import NewLand from '@/components/planters/ui/new-land';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
 import { index as planterIndex, create, store } from '@/routes/planters';
 import type { BreadcrumbItem } from '@/types';
@@ -22,6 +24,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 export default function Create() {
     const [showModal, setShowModal] = useState(false);
+    const [landCount, setlandCount] = useState<number[]>([0]);
     const form = useForm({
         planter_code: '',
         name: '',
@@ -29,14 +32,80 @@ export default function Create() {
         contact_number: '',
         tin_number: '',
         registration_date: new Date().toISOString().split('T')[0], // Default to today's date
+        lands: [
+            {
+                name: '',
+                address: '',
+                area_hectares: '',
+                distance_from_urc: '',
+                is_active: true,
+            },
+        ],
     });
+
+    const addLand = () => {
+        form.setData('lands', [
+            ...form.data.lands,
+            {
+                name: '',
+                address: '',
+                area_hectares: '',
+                distance_from_urc: '',
+                is_active: true,
+            },
+        ]);
+    };
+
+    const removeLand = (index: number) => {
+        const updatedLands = form.data.lands.filter((_, i) => i !== index);
+        form.setData('lands', updatedLands);
+    };
+
+    const handleOnChangeLand = (
+        index: number,
+        field: string,
+        value: string | boolean,
+    ) => {
+        const updatedLands = form.data.lands.map((land, i) => {
+            if (i === index) {
+                return {
+                    ...land,
+                    [field]: value,
+                };
+            }
+            return land;
+        });
+        form.setData('lands', updatedLands);
+    };
+
+    const handleAddLand = () => {
+        const nextId = landCount.length ? Math.max(...landCount) + 1 : 1;
+        setlandCount((prev) => [...prev, nextId]);
+        addLand();
+    };
+
+    const handleRemoveLand = (landId: number) => {
+        setlandCount((prev) => prev.filter((id) => id !== landId));
+        removeLand(landId);
+    };
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
 
-        const res = form.post(store.url(), {
-            onSuccess: (page) => {
+        form.post(store.url(), {
+            onSuccess: () => {
                 setShowModal(true);
+                form.reset(); // Reset form data
+                setlandCount([0]); // Reset landCount to its initial state
+                form.setData('lands', [
+                    {
+                        name: '',
+                        address: '',
+                        area_hectares: '',
+                        distance_from_urc: '',
+                        is_active: true,
+                    },
+                ]); // Reset lands array explicitly
             },
             onError: (errors) => {
                 console.error('Form submission errors:', errors);
@@ -51,6 +120,7 @@ export default function Create() {
             </Head>
             <div className="px-4 py-6">
                 <Heading
+                    className="mb-7 flex w-full flex-col justify-center text-center"
                     title="Register a new planter"
                     description="Fill up the planter details"
                 />
@@ -66,8 +136,14 @@ export default function Create() {
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit} className="mx-5 w-full max-w-2xl">
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <form
+                    onSubmit={handleSubmit}
+                    className="m-auto w-full max-w-5xl"
+                >
+                    <div className="grid grid-cols-1 gap-4 border bg-white p-4 md:grid-cols-2">
+                        <h3 className="col-span-2 text-lg font-semibold">
+                            Planter Details
+                        </h3>
                         <Field>
                             <Label htmlFor="planter_code">Plater Code</Label>
                             <Input
@@ -159,6 +235,25 @@ export default function Create() {
                             )}
                         </Field>
                     </div>
+                    {landCount.map((landId) => (
+                        <NewLand
+                            key={landId}
+                            landId={landId}
+                            land={form.data.lands[landId]}
+                            onRemove={handleRemoveLand}
+                            handleOnChangeLand={handleOnChangeLand}
+                        />
+                    ))}
+
+                    <Button
+                        type="button"
+                        variant="outline"
+                        className="mt-3"
+                        onClick={handleAddLand}
+                    >
+                        <Plus />
+                        Add Lands
+                    </Button>
 
                     <div className="mt-6 flex justify-end gap-2">
                         <Link href={planterIndex.url()}>

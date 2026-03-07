@@ -98,7 +98,7 @@ export default function Index({
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Products">
+            <Head title="Planters">
                 <title>Planters</title>
             </Head>
             <ActionContainer className="">
