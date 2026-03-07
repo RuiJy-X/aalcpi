@@ -1,6 +1,6 @@
+import type { ChangeEvent } from 'react';
 import { Field, FieldDescription, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import type { ChangeEvent } from 'react';
 
 type Props = {
     label: string;
