@@ -19,6 +19,7 @@ interface FilterProps<TData, TValue> {
     setColumnFilters: Dispatch<SetStateAction<ColumnFiltersState>>;
 }
 
+// This filter accepts the column of the table and the current column filters state, and a function to update the column filters state. It checks if the column has filter options defined in its meta, and if so, it renders a dropdown menu with those options. If not, it renders a text input for filtering. The filter values are stored in the column filters state, which is an array of objects with id and value properties. The id corresponds to the column id, and the value is the filter value for that column.
 export default function Filter<TData, TValue>({
     column,
     columnFilters,

@@ -102,7 +102,6 @@ export function DataTable<TData, TValue>({
         onRowSelectionChange: setRowSelection,
         columnResizeMode: 'onChange',
         globalFilterFn: 'includesString',
-
         state: {
             sorting,
             columnFilters,
