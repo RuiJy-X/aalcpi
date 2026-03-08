@@ -88,6 +88,7 @@ export const planterColumns: ColumnDef<Planter>[] = [
             );
         },
     },
+
     {
         accessorKey: 'address',
         header: ({ column }) => {

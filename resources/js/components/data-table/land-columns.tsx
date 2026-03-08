@@ -1,12 +1,26 @@
 'use client';
 
 import { router } from '@inertiajs/react';
-import type { ColumnDef } from '@tanstack/react-table';
+import type { ColumnDef, FilterFn } from '@tanstack/react-table';
 import { ArrowUpDown, Eye, Pencil, Trash2 } from 'lucide-react';
 import type { LandRow } from '@/components/planters/planters-table-types';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { index as landView } from '@/routes/planters/view/land';
+
+const booleanStringFilter: FilterFn<LandRow> = (row, columnId, filterValue) => {
+    if (!filterValue) {
+        return true;
+    }
+
+    if (Array.isArray(filterValue)) {
+        return filterValue
+            .map((value) => String(value))
+            .includes(String(row.getValue(columnId)));
+    }
+
+    return String(row.getValue(columnId)) === String(filterValue);
+};
 
 export const landColumns: ColumnDef<LandRow>[] = [
     {
@@ -33,6 +47,25 @@ export const landColumns: ColumnDef<LandRow>[] = [
         ),
         enableSorting: false,
         enableHiding: false,
+    },
+    {
+        accessorKey: 'planter_name',
+        header: ({ column }) => (
+            <Button
+                variant="ghost"
+                onClick={() =>
+                    column.toggleSorting(column.getIsSorted() === 'asc')
+                }
+            >
+                Planter Name
+                <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+        ),
+        cell: ({ row }) => (
+            <div className="flex items-center">
+                <div className="ml-2 truncate">{row.original.planter_name}</div>
+            </div>
+        ),
     },
     {
         accessorKey: 'name',
@@ -134,6 +167,16 @@ export const landColumns: ColumnDef<LandRow>[] = [
                 </div>
             </div>
         ),
+        filterFn: booleanStringFilter,
+
+        meta: {
+            label: 'Status',
+            filterOptions: [
+                { label: 'All', value: '' },
+                { label: 'Active', value: 'true' },
+                { label: 'Inactive', value: 'false' },
+            ],
+        },
     },
     {
         id: 'actions',

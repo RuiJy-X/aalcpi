@@ -27,13 +27,14 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsTrigger, TabsList } from '@/components/ui/tabs';
 import AppLayout from '@/layouts/app-layout';
 import { index as plantersIndex } from '@/routes/planters';
+import { index as productionsIndex } from '@/routes/productions';
 import { create as createPage } from '@/routes/planters';
 import type { BreadcrumbItem } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Planter Management',
-        href: plantersIndex().url,
+        title: 'Production Management',
+        href: productionsIndex().url,
     },
 ];
 
@@ -66,21 +67,6 @@ const actions = [
         href: '#',
         icon: Import,
     },
-    {
-        title: 'Register Planter',
-        href: createPage().url,
-        icon: User,
-    },
-    {
-        title: 'Add Production',
-        href: '#',
-        icon: Clipboard,
-    },
-    {
-        title: 'Generate Certificate',
-        href: '#',
-        icon: ShieldCheck,
-    },
 ];
 
 export default function Index({
@@ -98,9 +84,7 @@ export default function Index({
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Planters">
-                <title>Planters</title>
-            </Head>
+            <Head title="Productions"></Head>
             <ActionContainer className="">
                 {actions.map((action) => (
                     <Link key={action.title} href={action.href}>
@@ -127,21 +111,7 @@ export default function Index({
             </StatsContainer>
 
             <div className="container-full px-3 py-2">
-                {activeTab === 'planters' && (
-                    <DataTable columns={planterColumns} data={planters} />
-                )}
-                {activeTab === 'productions' && (
-                    <DataTable columns={productionColumns} data={productions} />
-                )}
-                {activeTab === 'certifications' && (
-                    <DataTable
-                        columns={certificationColumns}
-                        data={certifications}
-                    />
-                )}
-                {activeTab === 'lands' && (
-                    <DataTable columns={landColumns} data={lands} />
-                )}
+                <DataTable columns={productionColumns} data={productions} />
             </div>
         </AppLayout>
     );

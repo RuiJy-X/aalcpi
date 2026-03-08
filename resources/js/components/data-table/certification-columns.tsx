@@ -63,6 +63,34 @@ export const certificationColumns: ColumnDef<CertificationRow>[] = [
                 </div>
             </div>
         ),
+        filterFn: (row, columnId, filterValue) => {
+            const rowValue = row.getValue(columnId);
+
+            if (!filterValue) {
+                return true;
+            }
+
+            if (Array.isArray(filterValue)) {
+                return filterValue
+                    .map((value) => String(value))
+                    .includes(String(rowValue));
+            }
+
+            return String(rowValue) === String(filterValue);
+        },
+        meta: {
+            label: 'Certification Type',
+            filterOptions: [
+                { label: 'All', value: '' },
+                { label: 'Other', value: 'Other' },
+                { label: 'Organic', value: 'Organic' },
+                {
+                    label: 'Good Agricultural Practices',
+                    value: 'Good Agricultural Practices',
+                },
+                { label: 'Fair Trade', value: 'Fair Trade' },
+            ],
+        },
     },
     {
         accessorKey: 'issue_date',
@@ -101,6 +129,30 @@ export const certificationColumns: ColumnDef<CertificationRow>[] = [
                 <div className="ml-2 truncate">{row.original.status}</div>
             </div>
         ),
+        filterFn: (row, columnId, filterValue) => {
+            const rowValue = row.getValue(columnId);
+
+            if (!filterValue) {
+                return true;
+            }
+
+            if (Array.isArray(filterValue)) {
+                return filterValue
+                    .map((value) => String(value))
+                    .includes(String(rowValue));
+            }
+
+            return String(rowValue) === String(filterValue);
+        },
+        meta: {
+            label: 'Status',
+            filterOptions: [
+                { label: 'All', value: '' },
+                { label: 'Expired', value: 'expired' },
+                { label: 'Approved', value: 'approved' },
+                { label: 'Pending', value: 'pending' },
+            ],
+        },
     },
     {
         id: 'actions',

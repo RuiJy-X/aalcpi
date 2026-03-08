@@ -1,9 +1,12 @@
 import { Link } from '@inertiajs/react';
 import {
+    BookOpen,
     Briefcase,
     Clipboard,
     DollarSign,
+    LandPlot,
     LayoutGrid,
+    ShieldCheck,
     User,
 } from 'lucide-react';
 import { NavFooter } from '@/components/nav-footer';
@@ -21,6 +24,9 @@ import {
 import { dashboard } from '@/routes';
 import { index as employeeIndex } from '@/routes/employees';
 import { index as plantersIndex } from '@/routes/planters';
+import { index as productionsIndex } from '@/routes/productions';
+import { index as certificationIndex } from '@/routes/certifications';
+import { index as landsIndex } from '@/routes/lands';
 import type { NavItem } from '@/types';
 import AppLogo from './app-logo';
 
@@ -34,6 +40,21 @@ const mainNavItems: NavItem[] = [
         title: 'Planters',
         href: plantersIndex(),
         icon: User,
+    },
+    {
+        title: 'Lands',
+        href: landsIndex(),
+        icon: LandPlot,
+    },
+    {
+        title: 'Productions',
+        href: productionsIndex(),
+        icon: BookOpen,
+    },
+    {
+        title: 'Certifications',
+        href: certificationIndex(),
+        icon: ShieldCheck,
     },
     {
         title: 'Employees',

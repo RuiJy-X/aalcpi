@@ -2,16 +2,25 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use App\Models\Certification;
 use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
+use App\Models\Planter;
+use App\Models\Production;
+use App\Models\Certification;
+use App\Models\Land;
+use Inertia\Inertia;
 use Illuminate\Support\Facades\Schema;
-
 class CertificationController extends Controller
 {
+
+    public function index()
+    {
+       $certifications = Certification::with('planter')->get();
+        return Inertia::render('Certifications/Index', ['certifications' => $certifications]);
+    }
     public function get()
     {
-        return response()->json(Certification::with(['planters', 'lands', 'productions'])->latest()->get());
+        return response()->json(Certification::with(['planter', 'land', 'production'])->latest()->get());
 
     }
 

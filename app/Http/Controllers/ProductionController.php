@@ -6,9 +6,16 @@ use App\Http\Controllers\Controller;
 use App\Models\Production;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
+use Inertia\Inertia;
 
 class ProductionController extends Controller
 {
+
+    public function index(){
+        $productions = Production::with(['planter', 'land'])->get();
+        return Inertia::render('Productions/Index', ['productions' => $productions]);
+        
+    }
     public function get()
     {
         return Production::with(['planter', 'land'])->latest()->get();

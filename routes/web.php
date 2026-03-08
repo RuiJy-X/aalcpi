@@ -8,6 +8,7 @@ use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\LandViewController;
 use App\Http\Controllers\PayrollController;
 use App\Http\Controllers\ProductionViewController;
+use App\Http\Controllers\LandController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 Route::get('/', function () {
@@ -40,6 +41,15 @@ Route::post('Planters/create/land', [LandViewController::class,'store'])->middle
 
 // Planter view certifications
 Route::get('Planters/view/info/{planterId}/certificate/{certificateId}', [PlanterController::class,'viewCertificates'])->middleware(['auth', 'verified'])->name('planters.view.certificate');
+
+// Production
+Route::get('/Productions', [ProductionController::class, 'index'])->middleware(['auth', 'verified'])->name('productions.index');
+
+// Lands
+Route::get('/Lands', [LandController::class, 'index'])->middleware(['auth', 'verified'])->name('lands.index');
+
+// Certifications
+Route::get('/Certifications', [CertificationController::class, 'index'])->middleware(['auth', 'verified'])->name('certifications.index');
 
 Route::get('/Employees', [EmployeeController::class, 'index'])->middleware(['auth', 'verified'])->name('employees.index');
 

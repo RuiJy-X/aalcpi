@@ -57,6 +57,30 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
         enableSorting: false,
         enableHiding: false,
     },
+    {
+        accessorKey: 'trans_code',
+        header: ({ column }) => (
+            <Button
+                variant="ghost"
+                onClick={() =>
+                    column.toggleSorting(column.getIsSorted() === 'asc')
+                }
+            >
+                Trans Code
+                <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+        ),
+        cell: ({ row }) => {
+            const production = row.original;
+            return (
+                <div className="flex items-center">
+                    <div className="ml-2 truncate">
+                        {production.trans_code ?? '-'}
+                    </div>
+                </div>
+            );
+        },
+    },
 
     {
         accessorKey: 'production_year',
@@ -395,30 +419,7 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
             );
         },
     },
-    {
-        accessorKey: 'trans_code',
-        header: ({ column }) => (
-            <Button
-                variant="ghost"
-                onClick={() =>
-                    column.toggleSorting(column.getIsSorted() === 'asc')
-                }
-            >
-                Trans Code
-                <ArrowUpDown className="ml-2 h-4 w-4" />
-            </Button>
-        ),
-        cell: ({ row }) => {
-            const production = row.original;
-            return (
-                <div className="flex items-center">
-                    <div className="ml-2 truncate">
-                        {production.trans_code ?? '-'}
-                    </div>
-                </div>
-            );
-        },
-    },
+
     {
         accessorKey: 'transloading',
         header: ({ column }) => (
@@ -447,6 +448,28 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
                     </div>
                 </div>
             );
+        },
+        filterFn: (row, columnId, filterValue) => {
+            const rowValue = row.getValue(columnId);
+            if (!filterValue) {
+                return true;
+            }
+
+            if (Array.isArray(filterValue)) {
+                return filterValue
+                    .map((value) => String(value))
+                    .includes(String(rowValue));
+            }
+
+            return String(rowValue) === String(filterValue);
+        },
+        meta: {
+            label: 'Transloading',
+            filterOptions: [
+                { label: 'All', value: '' },
+                { label: 'Yes', value: 'true' },
+                { label: 'No', value: 'false' },
+            ],
         },
     },
 

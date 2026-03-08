@@ -13,6 +13,7 @@ import {
     getPaginationRowModel,
     useReactTable,
     getFilteredRowModel,
+    FilterFn,
 } from '@tanstack/react-table';
 
 import {
@@ -20,6 +21,7 @@ import {
     ChevronLeft,
     ChevronRight,
     ChevronsRight,
+    FilterIcon,
 } from 'lucide-react';
 import * as React from 'react';
 import {
@@ -48,7 +50,7 @@ import { Button } from '../ui/button';
 import { SearchInput } from '../ui/search-input';
 // import { DataTablePagination } from './pagination';
 
-// import { DataTableColumnFilter } from '@/components/data-table/data-table-column-filter';
+import Filter from './data-table-column-filter';
 
 interface DataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[];
@@ -75,6 +77,8 @@ export function DataTable<TData, TValue>({
         pageSize: 10,
     });
 
+    const [activeFilters, setActiveFilters] = React.useState<string[]>([]);
+
     // Column visibility
 
     const [columnVisibility, setColumnVisibility] =
@@ -96,7 +100,9 @@ export function DataTable<TData, TValue>({
         onGlobalFilterChange: setGlobalFilter,
         onColumnVisibilityChange: setColumnVisibility,
         onRowSelectionChange: setRowSelection,
+        columnResizeMode: 'onChange',
         globalFilterFn: 'includesString',
+
         state: {
             sorting,
             columnFilters,
@@ -137,6 +143,59 @@ export function DataTable<TData, TValue>({
 
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
+                        <Button variant="outline" className="">
+                            <FilterIcon />
+                            Filters
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                        {table
+                            .getAllColumns()
+                            .filter((column) => column.getCanFilter())
+                            .map((column) => {
+                                const isActive = activeFilters.includes(
+                                    column.id,
+                                );
+
+                                return (
+                                    <DropdownMenuCheckboxItem
+                                        key={column.id}
+                                        className="capitalize"
+                                        onSelect={(e) => e.preventDefault()}
+                                        checked={isActive}
+                                        onCheckedChange={(value) => {
+                                            const shouldShow = Boolean(value);
+
+                                            setActiveFilters((prev) => {
+                                                if (shouldShow) {
+                                                    return prev.includes(
+                                                        column.id,
+                                                    )
+                                                        ? prev
+                                                        : [...prev, column.id];
+                                                }
+
+                                                return prev.filter(
+                                                    (id) => id !== column.id,
+                                                );
+                                            });
+
+                                            if (!shouldShow) {
+                                                column.setFilterValue(
+                                                    undefined,
+                                                );
+                                            }
+                                        }}
+                                    >
+                                        {column.id}
+                                    </DropdownMenuCheckboxItem>
+                                );
+                            })}
+                    </DropdownMenuContent>
+                </DropdownMenu>
+
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
                         <Button variant="outline" className="ml-auto">
                             Columns
                         </Button>
@@ -150,6 +209,7 @@ export function DataTable<TData, TValue>({
                                     <DropdownMenuCheckboxItem
                                         key={column.id}
                                         className="capitalize"
+                                        onSelect={(e) => e.preventDefault()}
                                         checked={column.getIsVisible()}
                                         onCheckedChange={(value) =>
                                             column.toggleVisibility(!!value)
@@ -161,41 +221,42 @@ export function DataTable<TData, TValue>({
                             })}
                     </DropdownMenuContent>
                 </DropdownMenu>
-                {/* <div className="flex-rows flex">
-                    <DataTableColumnFilter
-                        table={table}
-                        columnId="name"
-                        label="Name"
-                        placeholder="Filter names..."
-                        className="flex flex-col gap-2 py-4"
-                        inputClassName="max-w-sm"
-                    />
-                    <DataTableColumnFilter
-                        table={table}
-                        columnId="address"
-                        label="Address"
-                        placeholder="Filter address..."
-                        className="flex flex-col gap-2 py-4"
-                        inputClassName="max-w-sm"
-                    />
-                    <DataTableColumnFilter
-                        table={table}
-                        columnId="name"
-                        label="Name"
-                        placeholder="Filter names..."
-                        className="flex flex-col gap-2 py-4"
-                        inputClassName="max-w-sm"
-                    />
-                </div> */}
+            </div>
+            <div className="mx-5">
+                {activeFilters.length > 0 && (
+                    <div className="flex flex-wrap gap-5">
+                        {table.getAllColumns().map((column) => {
+                            if (
+                                !column.getCanFilter() ||
+                                !activeFilters.includes(column.id)
+                            ) {
+                                return null;
+                            }
+
+                            return (
+                                <Filter
+                                    key={column.id}
+                                    column={column}
+                                    columnFilters={columnFilters}
+                                    setColumnFilters={setColumnFilters}
+                                />
+                            );
+                        })}
+                    </div>
+                )}
             </div>
             <div className="overflow-x-auto rounded-md border">
-                <Table>
+                <Table style={{ width: table.getTotalSize() }}>
                     <TableHeader className="bg-gray-100">
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
                                 {headerGroup.headers.map((header) => {
                                     return (
-                                        <TableHead key={header.id}>
+                                        <TableHead
+                                            key={header.id}
+                                            className="relative border border-gray-300"
+                                            style={{ width: header.getSize() }}
+                                        >
                                             {header.isPlaceholder
                                                 ? null
                                                 : flexRender(
@@ -203,6 +264,11 @@ export function DataTable<TData, TValue>({
                                                           .header,
                                                       header.getContext(),
                                                   )}
+                                            <div
+                                                onMouseDown={header.getResizeHandler()}
+                                                onTouchStart={header.getResizeHandler()}
+                                                className={`resize ${header.column.getIsResizing() ? 'isResizing' : ''}`}
+                                            ></div>
                                         </TableHead>
                                     );
                                 })}
@@ -219,7 +285,12 @@ export function DataTable<TData, TValue>({
                                     }
                                 >
                                     {row.getVisibleCells().map((cell) => (
-                                        <TableCell key={cell.id}>
+                                        <TableCell
+                                            key={cell.id}
+                                            style={{
+                                                width: cell.column.getSize(),
+                                            }}
+                                        >
                                             {flexRender(
                                                 cell.column.columnDef.cell,
                                                 cell.getContext(),

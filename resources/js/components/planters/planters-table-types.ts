@@ -17,6 +17,7 @@ export type PlanterRow = {
 
 export type LandRow = {
     id: string;
+    planter_name: string; // Temporary field to hold planter name for display purposes
     planter_id: string;
     name: string;
     address: string;

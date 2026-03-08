@@ -159,3 +159,24 @@
         font-family: var(--font-display);
     }
 }
+
+.resize {
+    position: absolute;
+    opacity: 0;
+    right: 0;
+    top: 0;
+    height: 100%;
+    width: 5px;
+    cursor: col-resize;
+    z-index: 10;
+    background-color: aqua;
+    user-select: none;
+    touch-action: none;
+}
+.resize.isResizing {
+    background-color: var(--color-primary);
+    opacity: 1;
+}
+*:hover > .resize {
+    opacity: 1;
+}
