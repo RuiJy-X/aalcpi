@@ -30,7 +30,7 @@ class DatabaseSeeder extends Seeder
 
 
         // Planters / Lands / Production / Certifications
-        $planters = Planter::factory()->count(20)->create();
+        $planters = Planter::factory()->count(50)->create();
 
         $lands = collect();
         foreach ($planters as $planter) {
@@ -38,13 +38,12 @@ class DatabaseSeeder extends Seeder
         }
 
         $productions = collect();
-        for ($i = 0; $i < 5; $i++) {
-            $planter = $planters->random();
-            $land = $lands->where('planter_id', $planter->id)->random();
-
-            $productions->push(
-                Production::factory()->forPlanterLand($planter, $land)->create()
-            );
+        foreach ($lands as $land) {
+            for ($i = 0; $i < 5; $i++) {
+                $productions->push(
+                    Production::factory()->forPlanterLand($land->planter, $land)->create()
+                );
+            }
         }
 
         foreach ($productions as $production) {
@@ -52,11 +51,11 @@ class DatabaseSeeder extends Seeder
         }
 
         // Employees / Attendance / Payroll
-        $employees = Employee::factory()->count(5)->create();
+        // $employees = Employee::factory()->count(5)->create();
 
-        foreach ($employees as $employee) {
-            Attendance::factory()->count(5)->forEmployee($employee)->create();
-            Payroll::factory()->count(5)->forEmployee($employee)->create();
-        }
+        // foreach ($employees as $employee) {
+        //     Attendance::factory()->count(5)->forEmployee($employee)->create();
+        //     Payroll::factory()->count(5)->forEmployee($employee)->create();
+        // }
     }
 }

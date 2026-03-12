@@ -1,30 +1,20 @@
 import { Head, Link } from '@inertiajs/react';
-import {
-    BookOpen,
-    Clipboard,
-    Import,
-    LandPlot,
-    ShieldCheck,
-    User,
-} from 'lucide-react';
-import { useState } from 'react';
+import { Import, User } from 'lucide-react';
 import ActionContainer from '@/components/action-container';
-import { certificationColumns } from '@/components/data-table/certification-columns';
 import { DataTable } from '@/components/data-table/data-table';
-import { landColumns } from '@/components/data-table/land-columns';
+import { planterBulkDelete } from '@/components/data-table/bulk-delete';
 import { planterColumns } from '@/components/data-table/planter-columns';
-import { productionColumns } from '@/components/data-table/production-columns';
+
 import type {
     PlanterRow,
     ProductionRow,
     CertificationRow,
     LandRow,
 } from '@/components/planters/planters-table-types';
-// import PlantersTabsTable from '@/components/planters/planters-tabs-table';
-import StatCard from '@/components/stat-card';
+
+import PlanterStats from '@/components/planters/stat-cards/PlanterStats';
 import StatsContainer from '@/components/stats-container';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsTrigger, TabsList } from '@/components/ui/tabs';
 import AppLayout from '@/layouts/app-layout';
 import { index as plantersIndex } from '@/routes/planters';
 import { create as createPage } from '@/routes/planters';
@@ -34,29 +24,6 @@ const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Planter Management',
         href: plantersIndex().url,
-    },
-];
-
-const tabs = [
-    {
-        title: 'Planters',
-        value: 'planters',
-        icon: User,
-    },
-    {
-        title: 'Productions',
-        value: 'productions',
-        icon: BookOpen,
-    },
-    {
-        title: 'Certifications',
-        value: 'certifications',
-        icon: ShieldCheck,
-    },
-    {
-        title: 'Lands',
-        value: 'lands',
-        icon: LandPlot,
     },
 ];
 
@@ -71,16 +38,6 @@ const actions = [
         href: createPage().url,
         icon: User,
     },
-    {
-        title: 'Add Production',
-        href: '#',
-        icon: Clipboard,
-    },
-    {
-        title: 'Generate Certificate',
-        href: '#',
-        icon: ShieldCheck,
-    },
 ];
 
 export default function Index({
@@ -94,8 +51,6 @@ export default function Index({
     certifications: CertificationRow[];
     lands: LandRow[];
 }) {
-    const [activeTab, setActiveTab] = useState('planters');
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Planters">
@@ -114,34 +69,21 @@ export default function Index({
                 ))}
             </ActionContainer>
 
-            <StatsContainer className="flex-wrap bg-card">
-                {tabs.map((tab) => (
-                    <StatCard
-                        key={tab.value}
-                        title={tab.title}
-                        value="1,233"
-                        icon={tab.icon}
-                        color="green"
-                    />
-                ))}
+            <StatsContainer label="Planter Stats">
+                <PlanterStats
+                    planters={planters}
+                    productions={productions}
+                    certifications={certifications}
+                    lands={lands}
+                />
             </StatsContainer>
 
             <div className="container-full px-3 py-2">
-                {activeTab === 'planters' && (
-                    <DataTable columns={planterColumns} data={planters} />
-                )}
-                {activeTab === 'productions' && (
-                    <DataTable columns={productionColumns} data={productions} />
-                )}
-                {activeTab === 'certifications' && (
-                    <DataTable
-                        columns={certificationColumns}
-                        data={certifications}
-                    />
-                )}
-                {activeTab === 'lands' && (
-                    <DataTable columns={landColumns} data={lands} />
-                )}
+                <DataTable
+                    columns={planterColumns}
+                    data={planters}
+                    bulkDelete={planterBulkDelete}
+                />
             </div>
         </AppLayout>
     );

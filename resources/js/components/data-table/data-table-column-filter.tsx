@@ -1,14 +1,14 @@
 import type { Column, ColumnFiltersState } from '@tanstack/react-table';
 import type { Dispatch, SetStateAction } from 'react';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
     DropdownMenuContent,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
 
 type FilterValue = string | number | boolean;
 type FilterSelection = FilterValue | FilterValue[] | '';
@@ -25,29 +25,37 @@ export default function Filter<TData, TValue>({
     columnFilters,
     setColumnFilters,
 }: FilterProps<TData, TValue>) {
+    // Find the current filter value for this column from the column filters state
     const columnFilterValue = columnFilters.find(
         (filter) => filter.id === column.id,
     )?.value;
 
+    // Get the filter options from the column meta, if defined. The filter options should be an array of objects with label and value properties. Ex. Status is either Active or Inactive but their value  is actually true or false, so the filter options will be [{ label: 'Active', value: 'true' }, { label: 'Inactive', value: 'false' }]
     const filterOptions = column.columnDef.meta?.filterOptions;
+
+    // If the filter value is an array, use it as is. If it's a single value, convert it to an array. If it's undefined or empty string, use an empty array. This will help us to handle both single and multiple selection filters in a consistent way.
     const selectedValues = Array.isArray(columnFilterValue)
         ? columnFilterValue
         : columnFilterValue === undefined || columnFilterValue === ''
           ? []
           : [columnFilterValue as FilterValue];
 
+    // For each options defined, if its selected append the value. So we know which options are selected.
     const selectedOptions = filterOptions?.filter((option) =>
         selectedValues.includes(option.value),
     );
 
     const onFilterChange = (id: string, value: FilterSelection) => {
         setColumnFilters((prev) => {
+            //Remove the filter object
             const nextFilters = prev.filter((filter) => filter.id !== id);
 
+            // If there is no value then return the deleted filter
             if (!value || (Array.isArray(value) && value.length === 0)) {
                 return nextFilters;
             }
 
+            // Else append the filter object to the filter array
             return nextFilters.concat({ id, value });
         });
     };

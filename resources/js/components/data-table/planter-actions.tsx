@@ -1,0 +1,78 @@
+import { router } from '@inertiajs/react';
+
+import { Eye, Pencil, Trash2 } from 'lucide-react';
+import React from 'react';
+
+import {
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/dialog';
+import { show as planterView } from '@/routes/planters';
+import { destroy as planterDelete } from '@/routes/planters';
+import type { PlanterRow } from '../planters/planters-table-types';
+import { Button } from '../ui/button';
+
+function PlanterActions({ planter }: { planter: PlanterRow }) {
+    const [isDeleteOpen, setDeleteOpen] = React.useState(false);
+
+    const handleDelete = () => {
+        router.delete(planterDelete(planter.id).url, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setDeleteOpen(false);
+                window.alert('Planter deleted successfully.');
+            },
+        });
+    };
+
+    return (
+        <div
+            className="flex justify-end gap-2"
+            onClick={(e) => e.stopPropagation()}
+        >
+            <Button variant="secondary" size="xs" aria-label="Preview">
+                <Eye className="size-4" />
+            </Button>
+            <Button
+                variant="blue"
+                size="xs"
+                aria-label="Edit"
+                onClick={() => router.get(planterView(planter.id).url)}
+            >
+                <Pencil className="size-4" />
+            </Button>
+            <Dialog open={isDeleteOpen} onOpenChange={setDeleteOpen}>
+                <DialogTrigger asChild>
+                    <Button variant="destructive" size="xs" aria-label="Delete">
+                        <Trash2 className="size-4" />
+                    </Button>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Delete planter</DialogTitle>
+                        <DialogDescription>
+                            This action cannot be undone. This will permanently
+                            delete the planter record.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <DialogClose asChild>
+                            <Button variant="secondary">Cancel</Button>
+                        </DialogClose>
+                        <Button variant="destructive" onClick={handleDelete}>
+                            Delete
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </div>
+    );
+}
+
+export default PlanterActions;

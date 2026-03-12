@@ -13,7 +13,6 @@ import {
     getPaginationRowModel,
     useReactTable,
     getFilteredRowModel,
-    FilterFn,
 } from '@tanstack/react-table';
 
 import {
@@ -21,15 +20,28 @@ import {
     ChevronLeft,
     ChevronRight,
     ChevronsRight,
+    CircleCheckBig,
     FilterIcon,
 } from 'lucide-react';
 import * as React from 'react';
+import { router, usePage } from '@inertiajs/react';
+import type { SharedData } from '@/types';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
     DropdownMenuContent,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import {
     Select,
     SelectContent,
@@ -50,16 +62,19 @@ import { Button } from '../ui/button';
 import { SearchInput } from '../ui/search-input';
 // import { DataTablePagination } from './pagination';
 
+import type { BulkDeleteConfig } from './bulk-delete';
 import Filter from './data-table-column-filter';
 
 interface DataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[];
     data: TData[];
+    bulkDelete?: BulkDeleteConfig<TData>;
 }
 
 export function DataTable<TData, TValue>({
     columns,
     data,
+    bulkDelete,
 }: DataTableProps<TData, TValue>) {
     // ======== Sorting ========
     const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -86,6 +101,27 @@ export function DataTable<TData, TValue>({
 
     // Row Selection
     const [rowSelection, setRowSelection] = React.useState({});
+    const [isBulkDeleteOpen, setBulkDeleteOpen] = React.useState(false);
+    const [isDeleting, setIsDeleting] = React.useState(false);
+    const page = usePage<SharedData>();
+    const flashSuccess = page.props.flash?.success;
+    const [successMessage, setSuccessMessage] = React.useState<string | null>(
+        flashSuccess ?? null,
+    );
+
+    React.useEffect(() => {
+        if (!flashSuccess) {
+            return;
+        }
+
+        setSuccessMessage(flashSuccess);
+
+        const timeout = window.setTimeout(() => {
+            setSuccessMessage(null);
+        }, 5000);
+
+        return () => window.clearTimeout(timeout);
+    }, [flashSuccess]);
 
     const table = useReactTable({
         data,
@@ -112,9 +148,52 @@ export function DataTable<TData, TValue>({
         },
     });
 
+    const selectedRows = table.getFilteredSelectedRowModel().rows;
+    const selectedCount = selectedRows.length;
+
+    const handleBulkDelete = () => {
+        if (!bulkDelete || selectedCount === 0) {
+            return;
+        }
+
+        setIsDeleting(true);
+
+        router.delete(bulkDelete.endpoint, {
+            data: {
+                ids: selectedRows.map((row) =>
+                    bulkDelete.getRowId(row.original),
+                ),
+            },
+            preserveScroll: true,
+            onSuccess: () => {
+                setRowSelection({});
+                setBulkDeleteOpen(false);
+            },
+            onFinish: () => setIsDeleting(false),
+        });
+    };
+
+    const entityLabel = bulkDelete?.entityName ?? 'record';
+    const selectedEntityLabel =
+        selectedCount === 1 ? entityLabel : `${entityLabel}s`;
+
     return (
         <div className="rounded-md border bg-white">
-            {/* Filters */}
+            {successMessage && (
+                <div className="border-b border-emerald-100 bg-emerald-50/80 px-4 py-4">
+                    <Card className="gap-3 border-emerald-200 bg-emerald-50 py-4 shadow-none">
+                        <CardHeader className="flex flex-row items-center gap-3 px-4">
+                            <CircleCheckBig className="size-5 text-emerald-600" />
+                            <CardTitle className="text-sm text-emerald-900">
+                                Success
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="px-4 text-sm text-emerald-800">
+                            {successMessage}
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
             <div className="align-center flex items-center gap-2 px-4 py-4">
                 <div className="w-full bg-white sm:w-72">
                     <SearchInput
@@ -126,17 +205,12 @@ export function DataTable<TData, TValue>({
                         className="max-w-sm"
                     />
                 </div>
-                {table.getFilteredSelectedRowModel().rows.length > 0 && (
+                {bulkDelete && selectedCount > 0 && (
                     <Button
                         variant="destructive"
-                        // Delete request goes here
-                        onClick={() =>
-                            table
-                                .getFilteredSelectedRowModel()
-                                .rows.map((row) => console.log(row.original))
-                        }
+                        onClick={() => setBulkDeleteOpen(true)}
                     >
-                        Delete {table.getFilteredSelectedRowModel().rows.length}
+                        Delete selected ({selectedCount})
                     </Button>
                 )}
 
@@ -147,7 +221,10 @@ export function DataTable<TData, TValue>({
                             Filters
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start">
+                    <DropdownMenuContent
+                        align="start"
+                        className="max-h-75 overflow-y-auto"
+                    >
                         {table
                             .getAllColumns()
                             .filter((column) => column.getCanFilter())
@@ -199,7 +276,10 @@ export function DataTable<TData, TValue>({
                             Columns
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
+                    <DropdownMenuContent
+                        align="end"
+                        className="max-h-75 overflow-y-auto"
+                    >
                         {table
                             .getAllColumns()
                             .filter((column) => column.getCanHide())
@@ -417,6 +497,45 @@ export function DataTable<TData, TValue>({
                     </div>
                 </div>
             </div>
+
+            {bulkDelete && (
+                <Dialog
+                    open={isBulkDeleteOpen}
+                    onOpenChange={setBulkDeleteOpen}
+                >
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>
+                                Delete selected {selectedEntityLabel}
+                            </DialogTitle>
+                            <DialogDescription>
+                                This action cannot be undone. This will
+                                permanently delete {selectedCount} selected{' '}
+                                {selectedEntityLabel}.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                            <DialogClose asChild>
+                                <Button
+                                    variant="secondary"
+                                    disabled={isDeleting}
+                                >
+                                    Cancel
+                                </Button>
+                            </DialogClose>
+                            <Button
+                                variant="destructive"
+                                onClick={handleBulkDelete}
+                                disabled={isDeleting}
+                            >
+                                {isDeleting
+                                    ? 'Deleting...'
+                                    : `Delete ${selectedCount} selected`}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            )}
         </div>
     );
 }

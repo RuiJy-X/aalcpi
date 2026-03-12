@@ -1,30 +1,18 @@
 import { Head, Link } from '@inertiajs/react';
-import {
-    BookOpen,
-    Clipboard,
-    Import,
-    LandPlot,
-    ShieldCheck,
-    User,
-} from 'lucide-react';
-import { useState } from 'react';
+import { BookOpen, Import, LandPlot, ShieldCheck, User } from 'lucide-react';
 import ActionContainer from '@/components/action-container';
-import { certificationColumns } from '@/components/data-table/certification-columns';
+import { landBulkDelete } from '@/components/data-table/bulk-delete';
 import { DataTable } from '@/components/data-table/data-table';
 import { landColumns } from '@/components/data-table/land-columns';
-import { planterColumns } from '@/components/data-table/planter-columns';
-import { productionColumns } from '@/components/data-table/production-columns';
+import { LandDialog } from '@/components/lands/land-dialog';
+import LandStats from '@/components/lands/stat-cards/LandStats';
 import type {
-    PlanterRow,
-    ProductionRow,
-    CertificationRow,
     LandRow,
+    PlanterRow,
 } from '@/components/planters/planters-table-types';
 // import PlantersTabsTable from '@/components/planters/planters-tabs-table';
-import StatCard from '@/components/stat-card';
 import StatsContainer from '@/components/stats-container';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsTrigger, TabsList } from '@/components/ui/tabs';
 import AppLayout from '@/layouts/app-layout';
 import { index as landsIndex } from '@/routes/lands';
 import type { BreadcrumbItem } from '@/types';
@@ -68,18 +56,14 @@ const actions = [
 ];
 
 export default function Index({
-    planters,
-    productions,
-    certifications,
     lands,
+    planterNames,
+    planters,
 }: {
-    planters: PlanterRow[];
-    productions: ProductionRow[];
-    certifications: CertificationRow[];
     lands: LandRow[];
+    planterNames: string[];
+    planters: PlanterRow[];
 }) {
-    const [activeTab, setActiveTab] = useState('planters');
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Lands"></Head>
@@ -94,22 +78,20 @@ export default function Index({
                         </Button>
                     </Link>
                 ))}
+
+                <LandDialog planterNames={planterNames} planters={planters} />
             </ActionContainer>
 
-            <StatsContainer className="flex-wrap bg-card">
-                {tabs.map((tab) => (
-                    <StatCard
-                        key={tab.value}
-                        title={tab.title}
-                        value="1,233"
-                        icon={tab.icon}
-                        color="green"
-                    />
-                ))}
+            <StatsContainer className="flex-wrap bg-card" label="Land Stats">
+                <LandStats lands={lands} />
             </StatsContainer>
 
             <div className="container-full px-3 py-2">
-                <DataTable columns={landColumns} data={lands} />
+                <DataTable
+                    columns={landColumns}
+                    data={lands}
+                    bulkDelete={landBulkDelete}
+                />
             </div>
         </AppLayout>
     );

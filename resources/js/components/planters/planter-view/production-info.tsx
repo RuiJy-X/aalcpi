@@ -7,35 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
 import { FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { update as productionViewUpdate } from '@/routes/planters/view/production';
+import { update as productionUpdate } from '@/routes/productions';
 
 const ProductionInfo = ({ production }: { production: ProductionRow }) => {
-    const [isEditing, setIsEditing] = useState(false);
-
-    const submit = (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        patch(
-            productionViewUpdate([production.planter_id, production.id]).url,
-            {
-                onSuccess: () => {
-                    setIsEditing(false);
-                },
-                onError: (errors) => {
-                    console.error('Form submission errors:', errors);
-                },
-            },
-        );
-        console.log(errors);
-    };
-
-    const handleChange = (
-        key: (typeof details)[number]['key'],
-        value: string | boolean | number,
-    ) => {
-        setData(key, value);
-    };
-
-    const { data, setData, patch, processing, errors } = useForm({
+    const initialData = {
         planter_id: production.planter_id,
         land_id: production.land_id,
         production_year: production.production_year,
@@ -54,35 +29,103 @@ const ProductionInfo = ({ production }: { production: ProductionRow }) => {
         association_dues_mol: production.association_dues_mol,
         trans_code: production.trans_code,
         transloading: production.transloading,
-    });
+    };
+
+    const [isEditing, setIsEditing] = useState(false);
+
+    const submit = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        patch(productionUpdate(production.id).url, {
+            onSuccess: () => {
+                setData(initialData);
+                setIsEditing(false);
+            },
+            onError: (errors) => {
+                console.error('Form submission errors:', errors);
+            },
+        });
+        console.log(errors);
+    };
+
+    const handleChange = (
+        key: (typeof details)[number]['key'],
+        value: string | boolean | number,
+    ) => {
+        setData(key, value);
+    };
+    const handleEditingChange = (value: boolean) => {
+        setData(initialData);
+        setIsEditing(value);
+    };
+
+    const { data, setData, patch, processing, errors } = useForm(initialData);
 
     const details = [
-        { label: 'Planter ID', key: 'planter_id' },
-        { label: 'Land ID', key: 'land_id' },
-        { label: 'Year', key: 'production_year' },
-        { label: 'Month', key: 'production_month' },
-        { label: 'Gross CW', key: 'gross_cw' },
-        { label: 'Net CW', key: 'net_cw' },
-        { label: 'Trucks', key: 'trucks' },
-        { label: 'Theoretical LKG', key: 'theoretical_lkg' },
-        { label: 'Actual LKG', key: 'actual_lkg' },
-        { label: 'PSHR Net LKG', key: 'pshr_net_lkg' },
-        { label: 'PDPA LKG', key: 'pdpa_lkg' },
+        {
+            label: 'Planter ID',
+            key: 'planter_id',
+            value: production.planter_id,
+        },
+        { label: 'Land ID', key: 'land_id', value: production.land_id },
+        {
+            label: 'Year',
+            key: 'production_year',
+            value: production.production_year,
+        },
+        {
+            label: 'Month',
+            key: 'production_month',
+            value: production.production_month,
+        },
+        { label: 'Gross CW', key: 'gross_cw', value: production.gross_cw },
+        { label: 'Net CW', key: 'net_cw', value: production.net_cw },
+        { label: 'Trucks', key: 'trucks', value: production.trucks },
+        {
+            label: 'Theoretical LKG',
+            key: 'theoretical_lkg',
+            value: production.theoretical_lkg,
+        },
+        {
+            label: 'Actual LKG',
+            key: 'actual_lkg',
+            value: production.actual_lkg,
+        },
+        {
+            label: 'PSHR Net LKG',
+            key: 'pshr_net_lkg',
+            value: production.pshr_net_lkg,
+        },
+        { label: 'PDPA LKG', key: 'pdpa_lkg', value: production.pdpa_lkg },
         {
             label: 'Association Dues LKG',
             key: 'association_dues_lkg',
+            value: production.association_dues_lkg,
         },
-        { label: 'Actual MOL', key: 'actual_mol' },
-        { label: 'PSHR Net MOL', key: 'pshr_net_mol' },
-        { label: 'PDPA MOL', key: 'pdpa_mol' },
+        {
+            label: 'Actual MOL',
+            key: 'actual_mol',
+            value: production.actual_mol,
+        },
+        {
+            label: 'PSHR Net MOL',
+            key: 'pshr_net_mol',
+            value: production.pshr_net_mol,
+        },
+        { label: 'PDPA MOL', key: 'pdpa_mol', value: production.pdpa_mol },
         {
             label: 'Association Dues MOL',
             key: 'association_dues_mol',
+            value: production.association_dues_mol,
         },
-        { label: 'Trans Code', key: 'trans_code' },
+        {
+            label: 'Trans Code',
+            key: 'trans_code',
+            value: production.trans_code,
+        },
         {
             label: 'Transloading',
             key: 'transloading',
+            value: production.transloading,
         },
     ] as const;
     return (
@@ -102,7 +145,7 @@ const ProductionInfo = ({ production }: { production: ProductionRow }) => {
                     )}
                     <EditButton
                         isEditing={isEditing}
-                        onEditingChange={setIsEditing}
+                        onEditingChange={handleEditingChange}
                         editLabel="Edit Production"
                     />
                 </div>
@@ -205,7 +248,7 @@ const ProductionInfo = ({ production }: { production: ProductionRow }) => {
                                         {detail.label}
                                     </span>
                                     <span className="text-sm">
-                                        {String(data[detail.key])}
+                                        {detail.value}
                                     </span>
                                 </div>
                             ))}
@@ -221,7 +264,7 @@ const ProductionInfo = ({ production }: { production: ProductionRow }) => {
                                         {detail.label}
                                     </span>
                                     <span className="text-sm">
-                                        {String(data[detail.key])}
+                                        {detail.value}
                                     </span>
                                 </div>
                             ))}
@@ -237,7 +280,7 @@ const ProductionInfo = ({ production }: { production: ProductionRow }) => {
                                         {detail.label}
                                     </span>
                                     <span className="text-sm">
-                                        {String(data[detail.key])}
+                                        {detail.value}
                                     </span>
                                 </div>
                             ))}
@@ -253,7 +296,7 @@ const ProductionInfo = ({ production }: { production: ProductionRow }) => {
                                         {detail.label}
                                     </span>
                                     <span className="text-sm">
-                                        {String(data[detail.key])}
+                                        {detail.value}
                                     </span>
                                 </div>
                             ))}

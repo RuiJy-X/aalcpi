@@ -31,6 +31,9 @@ export type ProductionRow = {
     id: string;
     planter_id: string;
     land_id: string;
+    planter_name: string;
+    land_name: string;
+    land_address: string;
     production_year: number;
     production_month: number;
     gross_cw: number;

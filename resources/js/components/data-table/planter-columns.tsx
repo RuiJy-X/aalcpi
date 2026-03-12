@@ -1,27 +1,16 @@
 //What data is shown for each column
 'use client';
 
-import { router } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
 
-import { ArrowUpDown, Eye, Pencil, Trash2 } from 'lucide-react';
+import { ArrowUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { info as planterView } from '@/routes/planters/view';
 
-export type Planter = {
-    id: string;
-    planter_code: string;
-    name: string;
-    address: string;
-    tin_number: string;
-    contact_number: string;
-    registration_date: string;
-    created_at?: string;
-    updated_at?: string;
-};
+import type { PlanterRow } from '../planters/planters-table-types';
+import PlanterActions from './planter-actions';
 
-export const planterColumns: ColumnDef<Planter>[] = [
+export const planterColumns: ColumnDef<PlanterRow>[] = [
     {
         id: 'select',
         header: ({ table }) => (
@@ -250,28 +239,7 @@ export const planterColumns: ColumnDef<Planter>[] = [
         header: 'Actions',
         cell: ({ row }) => {
             const planter = row.original;
-
-            return (
-                <div
-                    className="flex justify-end gap-2"
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    <Button variant="secondary" size="xs" aria-label="Preview">
-                        <Eye className="size-4" />
-                    </Button>
-                    <Button
-                        variant="blue"
-                        size="xs"
-                        aria-label="Edit"
-                        onClick={() => router.get(planterView(planter.id).url)}
-                    >
-                        <Pencil className="size-4" />
-                    </Button>
-                    <Button variant="destructive" size="xs" aria-label="Delete">
-                        <Trash2 className="size-4" />
-                    </Button>
-                </div>
-            );
+            return <PlanterActions planter={planter} />;
         },
     },
 ];

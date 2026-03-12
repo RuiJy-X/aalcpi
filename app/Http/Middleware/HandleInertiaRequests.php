@@ -37,9 +37,13 @@ class HandleInertiaRequests extends Middleware
     {
         return [
             ...parent::share($request),
+
             'name' => config('app.name'),
             'auth' => [
                 'user' => $this->filterUser($request->user()),
+            ],
+            'flash' => [
+                'success' => fn () => $request->session()->get('success'),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];

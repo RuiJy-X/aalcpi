@@ -1,16 +1,18 @@
 //What data is shown for each column
 'use client';
 
-import { router } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
 
-import { ArrowUpDown, Eye, Pencil, Trash2 } from 'lucide-react';
+import { ArrowUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { production as productionView } from '@/routes/planters/view';
+import ProductionActions from './production-actions';
 
 export type ProductionRow = {
     id: string;
+    planter_name: string;
+    land_name: string;
+    land_address: string;
     planter_id: string;
     land_id: string;
     production_year: number;
@@ -34,6 +36,7 @@ export type ProductionRow = {
 export const productionColumns: ColumnDef<ProductionRow>[] = [
     {
         id: 'select',
+        size: 20,
         header: ({ table }) => (
             <Checkbox
                 checked={
@@ -56,6 +59,78 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
         ),
         enableSorting: false,
         enableHiding: false,
+    },
+    {
+        accessorKey: 'planter_name',
+        header: ({ column }) => (
+            <Button
+                variant="ghost"
+                onClick={() =>
+                    column.toggleSorting(column.getIsSorted() === 'asc')
+                }
+            >
+                Planter Name
+                <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+        ),
+        cell: ({ row }) => {
+            const production = row.original;
+            return (
+                <div className="flex items-center">
+                    <div className="ml-2 truncate">
+                        {production.planter_name ?? '-'}
+                    </div>
+                </div>
+            );
+        },
+    },
+    {
+        accessorKey: 'land_name',
+        header: ({ column }) => (
+            <Button
+                variant="ghost"
+                onClick={() =>
+                    column.toggleSorting(column.getIsSorted() === 'asc')
+                }
+            >
+                Land Name
+                <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+        ),
+        cell: ({ row }) => {
+            const production = row.original;
+            return (
+                <div className="flex items-center">
+                    <div className="ml-2 truncate">
+                        {production.land_name ?? '-'}
+                    </div>
+                </div>
+            );
+        },
+    },
+    {
+        accessorKey: 'land_address',
+        header: ({ column }) => (
+            <Button
+                variant="ghost"
+                onClick={() =>
+                    column.toggleSorting(column.getIsSorted() === 'asc')
+                }
+            >
+                Land Address
+                <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+        ),
+        cell: ({ row }) => {
+            const production = row.original;
+            return (
+                <div className="flex items-center">
+                    <div className="ml-2 truncate">
+                        {production.land_address ?? '-'}
+                    </div>
+                </div>
+            );
+        },
     },
     {
         accessorKey: 'trans_code',
@@ -479,39 +554,7 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
         cell: ({ row }) => {
             const production = row.original;
 
-            return (
-                <div
-                    className="flex justify-end gap-2"
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    <Button
-                        variant="secondary"
-                        size="xs"
-                        aria-label="Preview"
-                        onClick={() => console.log(production.trans_code ?? '')}
-                    >
-                        <Eye className="size-4" />
-                    </Button>
-                    <Button
-                        variant="blue"
-                        size="xs"
-                        aria-label="Edit"
-                        onClick={() =>
-                            router.get(
-                                productionView([
-                                    production.planter_id,
-                                    production.id,
-                                ]).url,
-                            )
-                        }
-                    >
-                        <Pencil className="size-4" />
-                    </Button>
-                    <Button variant="destructive" size="xs" aria-label="Delete">
-                        <Trash2 className="size-4" />
-                    </Button>
-                </div>
-            );
+            return <ProductionActions production={production} />;
         },
     },
 ];

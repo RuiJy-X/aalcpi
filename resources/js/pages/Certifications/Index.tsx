@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import ActionContainer from '@/components/action-container';
+import { certificationBulkDelete } from '@/components/data-table/bulk-delete';
 import { certificationColumns } from '@/components/data-table/certification-columns';
 import { DataTable } from '@/components/data-table/data-table';
 import { landColumns } from '@/components/data-table/land-columns';
@@ -112,6 +113,7 @@ export default function Index({
                 <DataTable
                     columns={certificationColumns}
                     data={certifications}
+                    bulkDelete={certificationBulkDelete}
                 />
             </div>
         </AppLayout>

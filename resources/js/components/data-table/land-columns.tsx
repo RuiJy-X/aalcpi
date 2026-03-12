@@ -6,7 +6,7 @@ import { ArrowUpDown, Eye, Pencil, Trash2 } from 'lucide-react';
 import type { LandRow } from '@/components/planters/planters-table-types';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { index as landView } from '@/routes/planters/view/land';
+import { show as landShow } from '@/routes/lands';
 
 const booleanStringFilter: FilterFn<LandRow> = (row, columnId, filterValue) => {
     if (!filterValue) {
@@ -25,6 +25,7 @@ const booleanStringFilter: FilterFn<LandRow> = (row, columnId, filterValue) => {
 export const landColumns: ColumnDef<LandRow>[] = [
     {
         id: 'select',
+        size: 20,
         header: ({ table }) => (
             <Checkbox
                 checked={
@@ -196,9 +197,7 @@ export const landColumns: ColumnDef<LandRow>[] = [
                         variant="blue"
                         size="xs"
                         aria-label="Edit"
-                        onClick={() =>
-                            router.get(landView([land.planter_id, land.id]).url)
-                        }
+                        onClick={() => router.get(landShow(land.id).url)}
                     >
                         <Pencil className="size-4" />
                     </Button>

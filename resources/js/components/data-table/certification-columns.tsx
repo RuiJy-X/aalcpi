@@ -1,10 +1,10 @@
 'use client';
+import { router } from '@inertiajs/react';
 
 import type { ColumnDef } from '@tanstack/react-table';
 import { ArrowUpDown, Eye, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { router } from '@inertiajs/react';
 
 export type CertificationRow = {
     id: string;
@@ -19,6 +19,7 @@ export type CertificationRow = {
 export const certificationColumns: ColumnDef<CertificationRow>[] = [
     {
         id: 'select',
+        size: 20,
         header: ({ table }) => (
             <Checkbox
                 checked={

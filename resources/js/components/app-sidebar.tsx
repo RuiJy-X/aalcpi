@@ -22,11 +22,11 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
+import { index as certificationIndex } from '@/routes/certifications';
 import { index as employeeIndex } from '@/routes/employees';
+import { index as landsIndex } from '@/routes/lands';
 import { index as plantersIndex } from '@/routes/planters';
 import { index as productionsIndex } from '@/routes/productions';
-import { index as certificationIndex } from '@/routes/certifications';
-import { index as landsIndex } from '@/routes/lands';
 import type { NavItem } from '@/types';
 import AppLogo from './app-logo';
 
@@ -61,16 +61,16 @@ const mainNavItems: NavItem[] = [
         href: employeeIndex(),
         icon: Briefcase,
     },
-    {
-        title: 'Payroll',
-        href: '/', // Replace with actual route
-        icon: DollarSign,
-    },
-    {
-        title: 'Attendance',
-        href: '/', // Replace with actual route
-        icon: Clipboard,
-    },
+    // {
+    //     title: 'Payroll',
+    //     href: '/', // Replace with actual route
+    //     icon: DollarSign,
+    // },
+    // {
+    //     title: 'Attendance',
+    //     href: '/', // Replace with actual route
+    //     icon: Clipboard,
+    // },
 ];
 
 const footerNavItems: NavItem[] = [];

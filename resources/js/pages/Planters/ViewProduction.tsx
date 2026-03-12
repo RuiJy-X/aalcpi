@@ -5,7 +5,9 @@ import Heading from '@/components/heading';
 import type { ProductionRow } from '@/components/planters/planters-table-types';
 import AppLayout from '@/layouts/app-layout';
 import { index as plantersIndex } from '@/routes/planters';
-import { info as plantersView } from '@/routes/planters/view';
+import { show as planterShow } from '@/routes/planters';
+import { index as productionIndex } from '@/routes/productions';
+import { show as productionShow } from '@/routes/productions';
 import type { BreadcrumbItem } from '@/types';
 import ProductionInfo from '@/components/planters/planter-view/production-info';
 
@@ -16,11 +18,9 @@ export default function Index({
     production: ProductionRow;
     planterName: string;
 }) {
-    const viewHref = plantersView(production.planter_id).url;
-    const viewProductionHref =
-        plantersView(production.planter_id).url +
-        '/production/' +
-        production.id;
+    const viewHref = planterShow(production.planter_id).url;
+    const viewProductionHref = productionShow([production.id]).url;
+
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: 'Planter Management',

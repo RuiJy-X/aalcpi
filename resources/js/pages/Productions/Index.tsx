@@ -1,34 +1,21 @@
 import { Head, Link } from '@inertiajs/react';
-import {
-    BookOpen,
-    Clipboard,
-    Import,
-    LandPlot,
-    ShieldCheck,
-    User,
-} from 'lucide-react';
-import { useState } from 'react';
+import { Clipboard, Import, Minimize2 } from 'lucide-react';
 import ActionContainer from '@/components/action-container';
-import { certificationColumns } from '@/components/data-table/certification-columns';
+
+import { productionBulkDelete } from '@/components/data-table/bulk-delete';
 import { DataTable } from '@/components/data-table/data-table';
-import { landColumns } from '@/components/data-table/land-columns';
-import { planterColumns } from '@/components/data-table/planter-columns';
+
 import { productionColumns } from '@/components/data-table/production-columns';
 import type {
     PlanterRow,
     ProductionRow,
-    CertificationRow,
-    LandRow,
 } from '@/components/planters/planters-table-types';
 // import PlantersTabsTable from '@/components/planters/planters-tabs-table';
-import StatCard from '@/components/stat-card';
+import ProductionStats from '@/components/productions/stat-cards/ProductionStats';
 import StatsContainer from '@/components/stats-container';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsTrigger, TabsList } from '@/components/ui/tabs';
 import AppLayout from '@/layouts/app-layout';
-import { index as plantersIndex } from '@/routes/planters';
 import { index as productionsIndex } from '@/routes/productions';
-import { create as createPage } from '@/routes/planters';
 import type { BreadcrumbItem } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -38,50 +25,26 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-const tabs = [
-    {
-        title: 'Planters',
-        value: 'planters',
-        icon: User,
-    },
-    {
-        title: 'Productions',
-        value: 'productions',
-        icon: BookOpen,
-    },
-    {
-        title: 'Certifications',
-        value: 'certifications',
-        icon: ShieldCheck,
-    },
-    {
-        title: 'Lands',
-        value: 'lands',
-        icon: LandPlot,
-    },
-];
-
 const actions = [
     {
         title: 'Import Data',
         href: '#',
         icon: Import,
     },
+    {
+        title: 'Add Production',
+        href: '#',
+        icon: Clipboard,
+    },
 ];
 
 export default function Index({
     planters,
     productions,
-    certifications,
-    lands,
 }: {
     planters: PlanterRow[];
     productions: ProductionRow[];
-    certifications: CertificationRow[];
-    lands: LandRow[];
 }) {
-    const [activeTab, setActiveTab] = useState('planters');
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Productions"></Head>
@@ -98,20 +61,19 @@ export default function Index({
                 ))}
             </ActionContainer>
 
-            <StatsContainer className="flex-wrap bg-card">
-                {tabs.map((tab) => (
-                    <StatCard
-                        key={tab.value}
-                        title={tab.title}
-                        value="1,233"
-                        icon={tab.icon}
-                        color="green"
-                    />
-                ))}
+            <StatsContainer label="Production Statistics">
+                <ProductionStats
+                    productions={productions}
+                    planters={planters}
+                />
             </StatsContainer>
 
             <div className="container-full px-3 py-2">
-                <DataTable columns={productionColumns} data={productions} />
+                <DataTable
+                    columns={productionColumns}
+                    data={productions}
+                    bulkDelete={productionBulkDelete}
+                />
             </div>
         </AppLayout>
     );

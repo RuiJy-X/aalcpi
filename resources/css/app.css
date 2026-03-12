@@ -148,6 +148,7 @@
 
     body {
         @apply bg-background font-sans text-foreground;
+        pointer-events: auto !important;
     }
 
     h1,

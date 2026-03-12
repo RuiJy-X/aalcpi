@@ -7,14 +7,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
 import { FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { update as plantersViewUpdate } from '@/routes/planters/view';
+import { update as plantersViewUpdate } from '@/routes/planters';
 
 const PersonalInfo = ({ planter }: { planter: PlanterRow }) => {
     const [isEditing, setIsEditing] = useState(false);
     // const createdAt = planter.created_at?.split('T')[0] ?? 'N/A';
     // const updatedAt = planter.updated_at?.split('T')[0] ?? 'N/A';
 
-    const { data, setData, patch, processing, errors } = useForm({
+    const initialData = {
         id: planter.id,
         planter_code: planter.planter_code ?? '',
         name: planter.name ?? '',
@@ -24,28 +24,42 @@ const PersonalInfo = ({ planter }: { planter: PlanterRow }) => {
         registration_date: planter.registration_date ?? '',
         createdAt: planter.created_at ?? '',
         updatedAt: planter.updated_at ?? '',
-    });
+    };
+
+    const { data, setData, patch, processing, errors } = useForm(initialData);
 
     const submit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         patch(plantersViewUpdate(planter.id).url, {
             onSuccess: () => {
+                setData(initialData);
                 setIsEditing(false);
             },
             onError: (errors) => {
                 console.error('Form submission errors:', errors);
             },
         });
-        console.log(errors);
     };
 
     const fields = [
-        { label: 'Planter Code', key: 'planter_code' },
-        { label: 'Name', key: 'name' },
-        { label: 'Address', key: 'address' },
-        { label: 'TIN Number', key: 'tin_number' },
-        { label: 'Contact Number', key: 'contact_number' },
-        { label: 'Registration Date', key: 'registration_date' },
+        {
+            label: 'Planter Code',
+            key: 'planter_code',
+            value: planter.planter_code,
+        },
+        { label: 'Name', key: 'name', value: planter.name },
+        { label: 'Address', key: 'address', value: planter.address },
+        { label: 'TIN Number', key: 'tin_number', value: planter.tin_number },
+        {
+            label: 'Contact Number',
+            key: 'contact_number',
+            value: planter.contact_number,
+        },
+        {
+            label: 'Registration Date',
+            key: 'registration_date',
+            value: planter.registration_date,
+        },
     ] as const;
 
     const handleChange = (
@@ -53,6 +67,11 @@ const PersonalInfo = ({ planter }: { planter: PlanterRow }) => {
         value: string,
     ) => {
         setData(key, value);
+    };
+
+    const handleEditingChange = (value: boolean) => {
+        setData(initialData);
+        setIsEditing(value);
     };
 
     return (
@@ -75,7 +94,7 @@ const PersonalInfo = ({ planter }: { planter: PlanterRow }) => {
                     )}
                     <EditButton
                         isEditing={isEditing}
-                        onEditingChange={setIsEditing}
+                        onEditingChange={handleEditingChange}
                         editLabel="Edit Planter"
                     />
                 </div>
@@ -139,7 +158,7 @@ const PersonalInfo = ({ planter }: { planter: PlanterRow }) => {
                                         {field.label}
                                     </span>
                                     <span className="text-sm">
-                                        {data[field.key]}
+                                        {field.value}
                                     </span>
                                 </div>
                             ))}
@@ -155,7 +174,7 @@ const PersonalInfo = ({ planter }: { planter: PlanterRow }) => {
                                         {field.label}
                                     </span>
                                     <span className="text-sm">
-                                        {data[field.key]}
+                                        {field.value}
                                     </span>
                                 </div>
                             ))}

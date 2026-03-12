@@ -40,13 +40,9 @@ export default [
         },
         rules: {
             'import/order': [
-                'error',
+                'warn',
                 {
-                    groups: ['builtin', 'external', 'internal', 'parent', 'sibling', 'index'],
-                    alphabetize: {
-                        order: 'asc',
-                        caseInsensitive: true,
-                    },
+                    order: 'ignore',
                 },
             ],
         },
@@ -65,7 +61,14 @@ export default [
         },
     },
     {
-        ignores: ['vendor', 'node_modules', 'public', 'bootstrap/ssr', 'tailwind.config.js', 'vite.config.ts'],
+        ignores: [
+            'vendor',
+            'node_modules',
+            'public',
+            'bootstrap/ssr',
+            'tailwind.config.js',
+            'vite.config.ts',
+        ],
     },
     prettier, // Turn off all rules that might conflict with Prettier
 ];

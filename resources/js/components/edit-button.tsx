@@ -33,6 +33,7 @@ export default function EditButton({
 
     return (
         <Button
+            type="submit"
             variant={editing ? 'outline' : 'default'}
             onClick={handleClick}
             className={className}

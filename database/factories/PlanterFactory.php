@@ -16,7 +16,7 @@ class PlanterFactory extends Factory
             'name' => fake()->name(),
             'address' => fake()->address(),
             'contact_number' => fake()->phoneNumber(),
-            'tin_number' => fake()->optional()->bothify('###-###-###-###'),
+            'tin_number' => fake()->bothify('###-###-###-###'),
             'registration_date' => fake()->date(),
         ];
     }

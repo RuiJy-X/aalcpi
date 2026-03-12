@@ -64,4 +64,16 @@ class CertificationController extends Controller
         return response()->json(['message' => 'Record deleted']);
     }
 
+    public function bulkDestroy(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer', 'distinct', 'exists:certifications,id'],
+        ]);
+
+        Certification::whereIn('id', $validated['ids'])->delete();
+
+        return redirect()->back()->with('success', 'Selected certifications deleted successfully.');
+    }
+
 }

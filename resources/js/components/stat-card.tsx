@@ -3,7 +3,21 @@ interface Props {
     title: string;
     value: string;
     icon: React.ElementType;
-    color?: 'red' | 'yellow' | 'orange' | 'green' | 'blue';
+    color?:
+        | 'red'
+        | 'yellow'
+        | 'orange'
+        | 'green'
+        | 'blue'
+        | 'cyan'
+        | 'teal'
+        | 'indigo'
+        | 'purple'
+        | 'pink'
+        | 'gray'
+        | 'brown'
+        | 'lime'
+        | 'amber';
 }
 
 const StatCard = (props: Props) => {
@@ -13,6 +27,15 @@ const StatCard = (props: Props) => {
         orange: 'bg-orange-100',
         green: 'bg-green-100',
         blue: 'bg-sky-100',
+        cyan: 'bg-cyan-100',
+        teal: 'bg-teal-100',
+        indigo: 'bg-indigo-100',
+        purple: 'bg-purple-100',
+        pink: 'bg-pink-100',
+        gray: 'bg-gray-100',
+        brown: 'bg-brown-100',
+        lime: 'bg-lime-100',
+        amber: 'bg-amber-100',
     };
 
     const bgClass = props.color
@@ -35,7 +58,7 @@ const StatCard = (props: Props) => {
 
     return (
         <div
-            className={`p-4 ${bgClass} w-64 rounded-md border-gray-100 shadow`}
+            className={`p-4 ${bgClass} w-full rounded-md border-gray-100 shadow`}
         >
             <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">

@@ -127,11 +127,26 @@ function ComboboxContent({
 }
 
 function ComboboxList({ className, ...props }: ComboboxPrimitive.List.Props) {
+  const listRef = React.useRef<HTMLDivElement | null>(null)
+
+  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    const el = listRef.current
+    if (!el) return
+
+    // If the list can scroll vertically, stop propagation so the dialog/page
+    // parent doesn't consume the wheel event and prevent scrolling the list.
+    if (el.scrollHeight > el.clientHeight) {
+      e.stopPropagation()
+    }
+  }
+
   return (
     <ComboboxPrimitive.List
+      ref={listRef}
+      onWheel={handleWheel}
       data-slot="combobox-list"
       className={cn(
-        "max-h-[min(calc(--spacing(96)---spacing(9)),calc(var(--available-height)---spacing(9)))] scroll-py-1 overflow-y-auto p-1 data-empty:p-0",
+        "max-h-60 scroll-py-1 overflow-y-auto p-1 data-empty:p-0",
         className
       )}
       {...props}

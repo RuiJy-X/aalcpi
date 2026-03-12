@@ -13,7 +13,6 @@ use Illuminate\Support\Facades\Schema;
 
 class PlanterController extends Controller
 {
-    //
     public function index()
     {
         $plans = Planter::all();
@@ -31,9 +30,6 @@ class PlanterController extends Controller
     public function create(){
         return Inertia::render('Planters/Create');
     }
-
-
-
 
     public function viewCertificates($planterId, $certificateId){
         $certificate = Certification::with('planter')->where('planter_id', $planterId)->where('id',$certificateId)->firstorFail();
@@ -102,15 +98,14 @@ class PlanterController extends Controller
             'name' => 'required|string|max:255',
             'address' => 'required|string',
             'contact_number' => 'required|string',
-            'tin_number' => 'required|string'
+            'tin_number' => 'required|string',
+            'updated_at' => [(now()->toDateString() >= $request->updated_at) , 'nullable|date']
         ]);
 
         $planter->update($validated);
 
-        return response()->json([
-            'message' => 'Planter updated successfully!',
-            'planter' => $planter
-        ]);
+
+        return redirect()->route('planters.show', $planter->id)->with('success', 'Planter information updated successfully.');
     }
 
     public function destroy($id)
@@ -118,8 +113,52 @@ class PlanterController extends Controller
         $planter = Planter::findOrFail($id);
         $planter->delete();
 
-        return response()->json([
-            'message' => 'Planter deleted successfully!'
+        return redirect()->route('planters.index')->with('success', 'Planter deleted successfully.');
+    }
+
+    public function bulkDestroy(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer', 'distinct', 'exists:planters,id'],
+        ]);
+
+        Planter::whereIn('id', $validated['ids'])->delete();
+
+        return redirect()->back()->with('success', 'Selected planters deleted successfully.');
+    }
+
+    public function show($id)
+    {
+        $planter = Planter::with(['lands', 'productions', 'certifications'])->findOrFail($id);
+
+        $productions = Production::with(['planter', 'land'])
+            ->where('planter_id', $planter->id)
+            ->orWhereHas('land', fn ($query) => $query->where('planter_id', $planter->id))
+            ->latest()
+            ->get();
+        $productions->each(function ($production) {
+            $production->planter_name = $production->planter ? $production->planter->name : null;
+            $production->land_address = $production->land ? $production->land->address : null;
+            $production->land_name = $production->land ? $production->land->name : null;
+        });
+
+        $certifications = Certification::with(['planter', 'land', 'production'])
+            ->where('planter_id', $planter->id)
+            ->orWhereHas('production', fn ($query) => $query->where('planter_id', $planter->id))
+            ->latest()
+            ->get();
+
+        $lands = Land::with('planter')->where('planter_id', $id)->get()->map(function ($land) {
+            $land->planter_name = $land->planter ? $land->planter->name : '';
+            return $land;
+        });
+
+        return Inertia::render('Planters/View', [
+            'planter' => $planter,
+            'lands' => $lands,
+            'productions' => $productions,
+            'certifications' => $certifications,
         ]);
     }
 }
