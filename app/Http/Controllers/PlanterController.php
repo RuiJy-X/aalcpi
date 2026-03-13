@@ -80,11 +80,6 @@ class PlanterController extends Controller
             $planter->lands()->createMany($validatedLands);
         }
 
-        // // return response()->json([
-        // //     'message' => 'Planter created successfully!',
-        // //     'planter' => $planter
-        // // ], 201);
-
         return redirect()->back()->with('success', 'Planter created successfully!');
 
 
