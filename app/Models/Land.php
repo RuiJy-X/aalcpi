@@ -11,6 +11,7 @@ class Land extends Model
 
     protected $fillable = [
         'planter_id', 
+        'land_code',
         'name',
         'address', 
         'area_hectares',

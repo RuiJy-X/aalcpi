@@ -26,11 +26,16 @@ class ProductionFactory extends Factory
         $pdpaMol = fake()->randomFloat(2, 0, max(0, $actualMol - $pshrNetMol));
         $associationDuesMol = fake()->randomFloat(2, 0, max(0, $actualMol - $pshrNetMol - $pdpaMol));
 
+        $planter = Planter::factory();
+        $land = Land::factory()->for($planter);
+
         return [
-            'planter_id' => Planter::factory(),
-            'land_id' => Land::factory(),
+            'planter_id' => $planter,
+            'land_id' => $land,
             'production_year' => fake()->numberBetween(2015, (int) date('Y')),
             'production_month' => fake()->monthName(),
+            'planter_code' => fn (array $attributes) => Planter::query()->whereKey($attributes['planter_id'])->value('planter_code'),
+            'land_code' => fn (array $attributes) => Land::query()->whereKey($attributes['land_id'])->value('land_code'),
             'gross_cw' => $grossCw,
             'net_cw' => $netCw,
             'trucks' => fake()->numberBetween(1, 50),
@@ -50,9 +55,15 @@ class ProductionFactory extends Factory
 
     public function forPlanterLand(Planter $planter, Land $land): static
     {
+        if ($land->planter_id !== $planter->id) {
+            throw new \InvalidArgumentException('The given land does not belong to the given planter.');
+        }
+
         return $this->state(fn () => [
             'planter_id' => $planter->id,
             'land_id' => $land->id,
+            'planter_code' => $planter->planter_code,
+            'land_code' => $land->land_code,
         ]);
     }
 }

@@ -12,10 +12,11 @@ return new class extends Migration
         Schema::create('lands', function (Blueprint $table) {
             $table->id();
             $table->foreignId('planter_id')->constrained('planters')->onDelete('cascade');
+            $table->string('land_code')->unique();
             $table->string('name');
-            $table->text('address');
-            $table->decimal('area_hectares', 8, 2);
-            $table->integer('distance_from_urc');
+            $table->text('address')->nullable();
+            $table->decimal('area_hectares', 8, 2)->nullable();
+            $table->integer('distance_from_urc')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });

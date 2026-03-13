@@ -9,8 +9,8 @@ class Production extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
-        'planter_id', 'land_id', 'production_year', 'production_month',
+        protected $fillable = [
+            'planter_id', 'land_id','planter_code','land_code', 'production_year', 'production_month',
         'gross_cw', 'net_cw', 'trucks', 'theoretical_lkg', 'actual_lkg',
         'pshr_net_lkg', 'pdpa_lkg', 'association_dues_lkg', 'actual_mol',
         'pshr_net_mol', 'pdpa_mol', 'association_dues_mol', 'trans_code', 'transloading'

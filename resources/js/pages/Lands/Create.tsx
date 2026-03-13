@@ -40,6 +40,7 @@ export default function Create({
     const { data, setData, post, processing } = useForm({
         lands: [] as {
             name: string;
+            land_code: string;
             address: string;
             area_hectares: string;
             distance_from_urc: string;
@@ -52,6 +53,7 @@ export default function Create({
             ...data.lands,
             {
                 name: '',
+                land_code: '',
                 address: '',
                 area_hectares: '',
                 distance_from_urc: '',
@@ -189,6 +191,13 @@ export default function Create({
                                     <h4 className="col-span-2 font-medium">
                                         Land #{index + 1}
                                     </h4>
+                                    <Field>
+                                        <Label>Land Code</Label>
+                                        <Input
+                                            value={land.land_code}
+                                            disabled
+                                        />
+                                    </Field>
                                     <Field>
                                         <Label>Land Name</Label>
                                         <Input value={land.name} disabled />

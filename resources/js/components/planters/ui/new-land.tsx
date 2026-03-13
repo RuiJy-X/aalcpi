@@ -17,6 +17,7 @@ interface Props {
 }
 
 type LandFormData = {
+    land_code: string;
     name: string;
     address: string;
     area_hectares: string | number;
@@ -26,7 +27,12 @@ type LandFormData = {
 
 type LandFieldKey = keyof Pick<
     LandRow,
-    'name' | 'address' | 'area_hectares' | 'distance_from_urc' | 'is_active'
+    | 'land_code'
+    | 'name'
+    | 'address'
+    | 'area_hectares'
+    | 'distance_from_urc'
+    | 'is_active'
 >;
 
 const fields: Array<{
@@ -34,6 +40,7 @@ const fields: Array<{
     key: LandFieldKey;
     type: 'text' | 'number' | 'checkbox';
 }> = [
+    { label: 'Land Code', key: 'land_code', type: 'text' },
     { label: 'Land Name', key: 'name', type: 'text' },
     { label: 'Address', key: 'address', type: 'text' },
     { label: 'Area (ha)', key: 'area_hectares', type: 'number' },

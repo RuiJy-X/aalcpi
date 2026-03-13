@@ -12,7 +12,7 @@ class PlanterFactory extends Factory
     public function definition(): array
     {
         return [
-            'planter_code' => strtoupper(fake()->bothify('PLT-#####')),
+            'planter_code' => strtoupper(fake()->unique()->bothify('PLT-#####')),
             'name' => fake()->name(),
             'address' => fake()->address(),
             'contact_number' => fake()->phoneNumber(),

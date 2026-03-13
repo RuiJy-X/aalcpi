@@ -17,24 +17,12 @@ import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import { index as productionsIndex } from '@/routes/productions';
 import type { BreadcrumbItem } from '@/types';
+import { ImportDialog } from '@/components/import-dialog';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Production Management',
         href: productionsIndex().url,
-    },
-];
-
-const actions = [
-    {
-        title: 'Import Data',
-        href: '#',
-        icon: Import,
-    },
-    {
-        title: 'Add Production',
-        href: '#',
-        icon: Clipboard,
     },
 ];
 
@@ -49,16 +37,7 @@ export default function Index({
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Productions"></Head>
             <ActionContainer className="">
-                {actions.map((action) => (
-                    <Link key={action.title} href={action.href}>
-                        <Button variant={'outline'}>
-                            <span>
-                                <action.icon />
-                            </span>
-                            {action.title}
-                        </Button>
-                    </Link>
-                ))}
+                <ImportDialog />
             </ActionContainer>
 
             <StatsContainer label="Production Statistics">

@@ -13,6 +13,8 @@ return new class extends Migration
             $table->id();
             $table->foreignId('planter_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('land_id')->nullable()->constrained()->nullOnDelete();
+            $table->string('planter_code');
+            $table->string('land_code');
             $table->integer('production_year');
             $table->string('production_month');
             $table->decimal('gross_cw', 12, 2);

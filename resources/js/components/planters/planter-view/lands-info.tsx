@@ -15,6 +15,7 @@ const LandsInfo = ({ land }: { land: LandRow }) => {
     const initialData = {
         id: land.id,
         planter_id: land.planter_id,
+        land_code: land.land_code,
         name: land.name ?? '',
         address: land.address ?? '',
         area_hectares: land.area_hectares ?? '',
@@ -52,8 +53,7 @@ const LandsInfo = ({ land }: { land: LandRow }) => {
     };
 
     const details = [
-        { label: 'Land ID', key: 'id', value: land.id },
-        { label: 'Planter ID', key: 'planter_id', value: land.planter_id },
+        { label: 'Land Code', key: 'land_code', value: land.land_code ?? '' },
         { label: 'Name', key: 'name', value: land.name ?? '' },
         { label: 'Address', key: 'address', value: land.address ?? '' },
         {
@@ -83,9 +83,6 @@ const LandsInfo = ({ land }: { land: LandRow }) => {
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Land Details</CardTitle>
-                {errors.name && (
-                    <p className="text-sm text-red-600">{errors.name}</p>
-                )}
                 <div className="flex gap-2">
                     {isEditing && (
                         <Button
@@ -124,6 +121,11 @@ const LandsInfo = ({ land }: { land: LandRow }) => {
                                             )
                                         }
                                     />
+                                    {errors[detail.key] && (
+                                        <p className="text-sm text-red-600">
+                                            {errors[detail.key]}
+                                        </p>
+                                    )}
                                 </Field>
                             ))}
                         </div>

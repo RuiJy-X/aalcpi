@@ -11,6 +11,7 @@ use App\Models\Land;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Schema;
 
+
 class PlanterController extends Controller
 {
     public function index()
@@ -36,18 +37,6 @@ class PlanterController extends Controller
         return Inertia::render('Planters/ViewCertificates', ['certificate'=> $certificate, 'planterName' => $certificate->planter->name]);
     }
 
-    public function data()
-    {
-        $planters = Planter::with('lands')->get();
-
-        return response()->json($planters);
-    }
-
-    public function header()
-    {
-        return response()->json(Schema::getColumnListing('planters'));
-    }
-
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -59,6 +48,7 @@ class PlanterController extends Controller
             'registration_date' => (now()->toDateString() >= $request->registration_date) ? 'required|date' : 'required|date|before_or_equal:today',
             'lands' => 'nullable|array',
             'lands.*.name' => 'required_with:lands|string|max:255',
+            'lands.*.land_code' => 'required_with:lands|string|max:255|unique:lands,land_code',
             'lands.*.address' => 'required_with:lands|string|max:255',
             'lands.*.area_hectares' => 'required_with:lands|numeric|min:0',
             'lands.*.distance_from_urc' => 'required_with:lands|numeric|min:0',

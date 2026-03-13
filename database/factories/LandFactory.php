@@ -14,6 +14,7 @@ class LandFactory extends Factory
     {
         return [
             'planter_id' => Planter::factory(),
+            'land_code' => strtoupper(fake()->unique()->bothify('LAND-#####')),
             'name' => fake()->words(2, true),
             'address' => fake()->address(),
             'area_hectares' => fake()->randomFloat(2, 0.1, 50),

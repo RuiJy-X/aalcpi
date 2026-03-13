@@ -3,10 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Imports\ProductionsImport;
 use App\Models\Production;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
+
+use Maatwebsite\Excel\Facades\Excel;
 
 class ProductionController extends Controller
 {
@@ -34,6 +37,19 @@ class ProductionController extends Controller
             'land' => $production->land,
         ]);
     }
+
+    public function import(Request $request)
+    {
+        // Implementation for importing productions
+
+        $file = $request->file('file');
+
+        Excel::import(new ProductionsImport, $file);
+
+        return back()->with('success', 'Productions imported successfully.');
+
+    }
+
     public function get()
     {
         return Production::with(['planter', 'land'])->latest()->get();

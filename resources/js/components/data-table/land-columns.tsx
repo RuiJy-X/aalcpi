@@ -50,6 +50,25 @@ export const landColumns: ColumnDef<LandRow>[] = [
         enableHiding: false,
     },
     {
+        accessorKey: 'land_code',
+        header: ({ column }) => (
+            <Button
+                variant="ghost"
+                onClick={() =>
+                    column.toggleSorting(column.getIsSorted() === 'asc')
+                }
+            >
+                Land Code
+                <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+        ),
+        cell: ({ row }) => (
+            <div className="flex items-center">
+                <div className="ml-2 truncate">{row.original.land_code}</div>
+            </div>
+        ),
+    },
+    {
         accessorKey: 'planter_name',
         header: ({ column }) => (
             <Button

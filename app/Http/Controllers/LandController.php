@@ -37,6 +37,7 @@ class LandController extends Controller
 
          $validated = $request->validate([
             'lands' => 'nullable|array',
+            'lands.*.land_code' => 'required_with:lands|string|max:255|unique:lands,land_code',
             'lands.*.name' => 'required_with:lands|string|max:255',
             'lands.*.address' => 'required_with:lands|string|max:255',
             'lands.*.area_hectares' => 'required_with:lands|numeric|min:0',
@@ -69,6 +70,7 @@ class LandController extends Controller
         $land = Land::findOrFail($landId);
 
         $validatedData = $request->validate([
+            'land_code' => 'required|string|max:255|unique:lands,land_code,' . $land->id,
             'name' => 'required|string|max:255',
             'address' => 'required|string|max:255',
             'area_hectares' => 'required|numeric|min:0',

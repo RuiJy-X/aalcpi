@@ -7,31 +7,7 @@ import { ArrowUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import ProductionActions from './production-actions';
-
-export type ProductionRow = {
-    id: string;
-    planter_name: string;
-    land_name: string;
-    land_address: string;
-    planter_id: string;
-    land_id: string;
-    production_year: number;
-    production_month: number;
-    gross_cw: number;
-    net_cw: number;
-    trucks: number;
-    theoretical_lkg: number;
-    actual_lkg: number;
-    pshr_net_lkg: number;
-    pdpa_lkg: number;
-    association_dues_lkg: number;
-    actual_mol: number;
-    pshr_net_mol: number;
-    pdpa_mol: number;
-    association_dues_mol: number;
-    trans_code?: string | null;
-    transloading?: boolean | null;
-};
+import type { ProductionRow } from '@/components/planters/planters-table-types';
 
 export const productionColumns: ColumnDef<ProductionRow>[] = [
     {
@@ -61,6 +37,30 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
         enableHiding: false,
     },
     {
+        accessorKey: 'planter_code',
+        header: ({ column }) => (
+            <Button
+                variant="ghost"
+                onClick={() =>
+                    column.toggleSorting(column.getIsSorted() === 'asc')
+                }
+            >
+                Planter Code
+                <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+        ),
+        cell: ({ row }) => {
+            const production = row.original;
+            return (
+                <div className="flex items-center">
+                    <div className="ml-2 truncate">
+                        {production.planter_code ?? '-'}
+                    </div>
+                </div>
+            );
+        },
+    },
+    {
         accessorKey: 'planter_name',
         header: ({ column }) => (
             <Button
@@ -79,6 +79,30 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
                 <div className="flex items-center">
                     <div className="ml-2 truncate">
                         {production.planter_name ?? '-'}
+                    </div>
+                </div>
+            );
+        },
+    },
+    {
+        accessorKey: 'land_code',
+        header: ({ column }) => (
+            <Button
+                variant="ghost"
+                onClick={() =>
+                    column.toggleSorting(column.getIsSorted() === 'asc')
+                }
+            >
+                Land Code
+                <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+        ),
+        cell: ({ row }) => {
+            const production = row.original;
+            return (
+                <div className="flex items-center">
+                    <div className="ml-2 truncate">
+                        {production.land_code ?? '-'}
                     </div>
                 </div>
             );

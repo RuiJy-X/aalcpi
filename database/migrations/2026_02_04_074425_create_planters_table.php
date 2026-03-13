@@ -13,9 +13,9 @@ return new class extends Migration
             $table->id();
             $table->string('planter_code')->unique();
             $table->string('name');
-            $table->text('address');
-            $table->string('contact_number')->unique();
-            $table->string('tin_number')->unique();
+            $table->text('address')->nullable();
+            $table->string('contact_number')->nullable()->unique();
+            $table->string('tin_number')->nullable()->unique();
             $table->date('registration_date');
             $table->timestamps();
         });
