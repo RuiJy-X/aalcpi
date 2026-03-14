@@ -13,6 +13,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('planter_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('land_id')->nullable()->constrained()->nullOnDelete();
+            $table->string('trans_code')->unique();
             $table->string('planter_code');
             $table->string('land_code');
             $table->integer('production_year');
@@ -29,7 +30,6 @@ return new class extends Migration
             $table->decimal('pshr_net_mol', 12, 2);
             $table->decimal('pdpa_mol', 12, 2);
             $table->decimal('association_dues_mol', 12, 2);
-            $table->string('trans_code');
             $table->boolean('transloading')->default(false);
             $table->timestamps();
         });

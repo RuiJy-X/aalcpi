@@ -7,8 +7,10 @@ use App\Models\Land;
 use App\Models\Planter;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
+use Maatwebsite\Excel\Concerns\WithUpserts;
+use Maatwebsite\Excel\Concerns\WithSkipDuplicates;
 
-class ProductionsImport implements ToModel, WithHeadingRow
+class ProductionsImport implements ToModel, WithHeadingRow, WithSkipDuplicates, WithUpserts
 {
     /**
     * @param array $row
@@ -35,6 +37,7 @@ class ProductionsImport implements ToModel, WithHeadingRow
                 'is_active' => true, // Default to active
             ]
         );
+
         
         return new Production([
             'planter_id' => $planter->id,
@@ -60,4 +63,9 @@ class ProductionsImport implements ToModel, WithHeadingRow
 
         ]);
     }
+    public function uniqueBy()
+    {
+        return 'trans_code';
+    }
+   
 }
