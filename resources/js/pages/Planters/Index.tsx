@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import { index as plantersIndex } from '@/routes/planters';
 import { create as createPage } from '@/routes/planters';
+import { show as planterShow } from '@/routes/planters';
 import type { BreadcrumbItem } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -83,6 +84,7 @@ export default function Index({
                     columns={planterColumns}
                     data={planters}
                     bulkDelete={planterBulkDelete}
+                    onRowDoubleClick={(planter) => planterShow(planter.id).url}
                 />
             </div>
         </AppLayout>

@@ -15,6 +15,7 @@ import StatsContainer from '@/components/stats-container';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import { index as landsIndex } from '@/routes/lands';
+import { show as landShow } from '@/routes/lands';
 import type { BreadcrumbItem } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -91,6 +92,7 @@ export default function Index({
                     columns={landColumns}
                     data={lands}
                     bulkDelete={landBulkDelete}
+                    onRowDoubleClick={(land) => landShow(land.id).url}
                 />
             </div>
         </AppLayout>

@@ -38,6 +38,7 @@ Route::delete('/Productions/bulk-delete', [ProductionController::class, 'bulkDes
 Route::delete('/Productions/delete/{productionId}', [ProductionController::class, 'destroy'])->middleware(['auth','verified'])->name('productions.destroy');
 Route::patch('/Productions/view/update/{productionId}', [ProductionController::class,'update'])->middleware(['auth', 'verified'])->name('productions.update');
 Route::post('/Productions/import', [ProductionController::class,'import'])->middleware(['auth', 'verified'])->name('productions.import');
+Route::get('/Productions/{id}/final-data', [ProductionController::class,'finalData'])->middleware(['auth', 'verified'])->name('productions.final_data');
 
 // Lands
 Route::get('/Lands', [LandController::class, 'index'])->middleware(['auth', 'verified'])->name('lands.index');

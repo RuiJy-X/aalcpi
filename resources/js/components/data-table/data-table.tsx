@@ -69,12 +69,14 @@ interface DataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[];
     data: TData[];
     bulkDelete?: BulkDeleteConfig<TData>;
+    onRowDoubleClick?: (row: TData) => string | null | undefined;
 }
 
 export function DataTable<TData, TValue>({
     columns,
     data,
     bulkDelete,
+    onRowDoubleClick,
 }: DataTableProps<TData, TValue>) {
     // ======== Sorting ========
     const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -150,6 +152,31 @@ export function DataTable<TData, TValue>({
 
     const selectedRows = table.getFilteredSelectedRowModel().rows;
     const selectedCount = selectedRows.length;
+
+    const handleRowDoubleClick = React.useCallback(
+        (event: React.MouseEvent<HTMLTableRowElement>, rowData: TData) => {
+            if (!onRowDoubleClick) {
+                return;
+            }
+
+            const target = event.target as HTMLElement;
+            const interactiveParent = target.closest(
+                'button, a, input, textarea, select, label, [role="checkbox"], [data-no-row-open="true"]',
+            );
+
+            if (interactiveParent) {
+                return;
+            }
+
+            const destination = onRowDoubleClick(rowData);
+            if (!destination) {
+                return;
+            }
+
+            router.get(destination, {}, { preserveScroll: true });
+        },
+        [onRowDoubleClick],
+    );
 
     const handleBulkDelete = () => {
         if (!bulkDelete || selectedCount === 0) {
@@ -361,6 +388,13 @@ export function DataTable<TData, TValue>({
                                     key={row.id}
                                     data-state={
                                         row.getIsSelected() && 'selected'
+                                    }
+                                    className={`duration-150 ease-in hover:bg-green-100 ${onRowDoubleClick ? 'cursor-pointer' : ''}`}
+                                    onDoubleClick={(event) =>
+                                        handleRowDoubleClick(
+                                            event,
+                                            row.original,
+                                        )
                                     }
                                 >
                                     {row.getVisibleCells().map((cell) => (

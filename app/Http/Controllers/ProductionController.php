@@ -8,7 +8,7 @@ use App\Models\Production;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
-
+use Barryvdh\DomPDF\Facade\Pdf;
 use Maatwebsite\Excel\Facades\Excel;
 
 class ProductionController extends Controller
@@ -138,6 +138,15 @@ class ProductionController extends Controller
 
         return redirect()->route('productions.show', $production->id)
             ->with('success', 'Production information updated successfully.');
+    }
+
+    public function finalData($id)
+    {
+        $production = Production::with(['planter', 'land'])->findOrFail($id);
+
+        $pdf = Pdf::loadView('pdfs.certification_final_data', compact('production'))->setPaper('a4', 'portrait');
+
+        return $pdf->stream("{$production->planter->name}_final_data.pdf");
     }
 
 }

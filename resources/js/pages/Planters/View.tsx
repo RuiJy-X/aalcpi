@@ -31,6 +31,8 @@ import AppLayout from '@/layouts/app-layout';
 import { index as plantersIndex } from '@/routes/planters';
 import { create as createPage } from '@/routes/planters';
 import { create as createLand } from '@/routes/lands';
+import { show as landShow } from '@/routes/lands';
+import { show as productionShow } from '@/routes/productions';
 import type { BreadcrumbItem } from '@/types';
 import { useState } from 'react';
 import PersonalInfo from '@/components/planters/planter-view/personal-info';
@@ -118,6 +120,7 @@ export default function Index({
                         data={lands}
                         columns={landColumns}
                         bulkDelete={landBulkDelete}
+                        onRowDoubleClick={(land) => landShow(land.id).url}
                     />
                 )}
                 {activeTab === 'productions' && (
@@ -125,6 +128,9 @@ export default function Index({
                         columns={productionColumns}
                         data={productions}
                         bulkDelete={productionBulkDelete}
+                        onRowDoubleClick={(production) =>
+                            productionShow(production.id).url
+                        }
                     />
                 )}
                 {activeTab === 'certifications' && (

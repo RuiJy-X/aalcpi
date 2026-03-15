@@ -1,4 +1,4 @@
-import { useForm } from '@inertiajs/react';
+import { useForm, router } from '@inertiajs/react';
 import { useState } from 'react';
 import EditButton from '@/components/edit-button';
 import type { ProductionRow } from '@/components/planters/planters-table-types';
@@ -8,10 +8,14 @@ import { Field } from '@/components/ui/field';
 import { FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { update as productionUpdate } from '@/routes/productions';
+import { Printer } from 'lucide-react';
+import { final_data as finalData } from '@/routes/productions';
 
 const ProductionInfo = ({ production }: { production: ProductionRow }) => {
     const initialData = {
         planter_id: production.planter_id,
+        planter_code: production.planter_code,
+        land_code: production.land_code,
         land_id: production.land_id,
         production_year: production.production_year,
         production_month: production.production_month,
@@ -62,11 +66,11 @@ const ProductionInfo = ({ production }: { production: ProductionRow }) => {
 
     const details = [
         {
-            label: 'Planter ID',
-            key: 'planter_id',
-            value: production.planter_id,
+            label: 'Planter Code',
+            key: 'planter_code',
+            value: production.planter_code,
         },
-        { label: 'Land ID', key: 'land_id', value: production.land_id },
+        { label: 'Land Code', key: 'land_code', value: production.land_code },
         {
             label: 'Year',
             key: 'production_year',
@@ -133,6 +137,15 @@ const ProductionInfo = ({ production }: { production: ProductionRow }) => {
             <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Production Details</CardTitle>
                 <div className="flex gap-2">
+                    <Button
+                        variant="outline"
+                        onClick={() =>
+                            window.open(finalData(production.id).url, '_blank')
+                        }
+                    >
+                        <Printer />
+                        Print
+                    </Button>
                     {isEditing && (
                         <Button
                             type="submit"

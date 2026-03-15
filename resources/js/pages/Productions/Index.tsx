@@ -16,6 +16,7 @@ import StatsContainer from '@/components/stats-container';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import { index as productionsIndex } from '@/routes/productions';
+import { show as productionShow } from '@/routes/productions';
 import type { BreadcrumbItem } from '@/types';
 import { ImportDialog } from '@/components/import-dialog';
 
@@ -52,6 +53,9 @@ export default function Index({
                     columns={productionColumns}
                     data={productions}
                     bulkDelete={productionBulkDelete}
+                    onRowDoubleClick={(production) =>
+                        productionShow(production.id).url
+                    }
                 />
             </div>
         </AppLayout>
