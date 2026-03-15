@@ -25,6 +25,11 @@
     </style>
 </head>
 <body>
+    @php
+        $records = isset($productions) ? $productions : collect([$production]);
+    @endphp
+
+    @foreach ($records as $production)
     <h2 style="text-align: center;">ASSOCIACION DE AGRICULTORES DE LA CARLOTA Y PONTEVEDRA, INC. P.O BOX 18, Brgy. RSB, La Carlota City</h2>
     <br><br>
     <h1 style="text-align: center;"><strong>CERTIFICATION</strong></h1>
@@ -86,5 +91,10 @@
     </tbody>
 
 </table>
+
+    @if (! $loop->last)
+        <div style="page-break-after: always;"></div>
+    @endif
+    @endforeach
 </body>
 </html>

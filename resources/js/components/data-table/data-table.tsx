@@ -22,6 +22,8 @@ import {
     ChevronsRight,
     CircleCheckBig,
     FilterIcon,
+    DownloadIcon,
+    Trash2,
 } from 'lucide-react';
 import * as React from 'react';
 import { router, usePage } from '@inertiajs/react';
@@ -63,11 +65,13 @@ import { SearchInput } from '../ui/search-input';
 // import { DataTablePagination } from './pagination';
 
 import type { BulkDeleteConfig } from './bulk-delete';
+import type { BulkDownloadConfig } from './bulk-download';
 import Filter from './data-table-column-filter';
 
 interface DataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[];
     data: TData[];
+    bulkDownload?: BulkDownloadConfig<TData>;
     bulkDelete?: BulkDeleteConfig<TData>;
     onRowDoubleClick?: (row: TData) => string | null | undefined;
 }
@@ -75,6 +79,7 @@ interface DataTableProps<TData, TValue> {
 export function DataTable<TData, TValue>({
     columns,
     data,
+    bulkDownload,
     bulkDelete,
     onRowDoubleClick,
 }: DataTableProps<TData, TValue>) {
@@ -178,6 +183,19 @@ export function DataTable<TData, TValue>({
         [onRowDoubleClick],
     );
 
+    const handleBulkDownload = () => {
+        if (!bulkDownload || selectedCount === 0) {
+            return;
+        }
+
+        const params = new URLSearchParams();
+        selectedRows.forEach((row) => {
+            params.append('ids[]', String(bulkDownload.getRowId(row.original)));
+        });
+
+        window.open(`${bulkDownload.endpoint}?${params.toString()}`, '_blank');
+    };
+
     const handleBulkDelete = () => {
         if (!bulkDelete || selectedCount === 0) {
             return;
@@ -237,7 +255,14 @@ export function DataTable<TData, TValue>({
                         variant="destructive"
                         onClick={() => setBulkDeleteOpen(true)}
                     >
-                        Delete selected ({selectedCount})
+                        <Trash2 />
+                        Delete ({selectedCount})
+                    </Button>
+                )}
+                {selectedCount > 0 && (
+                    <Button variant="outline" onClick={handleBulkDownload}>
+                        <DownloadIcon />
+                        Export ({selectedCount})
                     </Button>
                 )}
 

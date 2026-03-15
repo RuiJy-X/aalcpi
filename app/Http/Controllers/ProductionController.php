@@ -149,4 +149,25 @@ class ProductionController extends Controller
         return $pdf->stream("{$production->planter->name}_final_data.pdf");
     }
 
+    public function bulkDownload(Request $request)
+    {
+
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer', 'distinct', 'exists:productions,id'],
+        ]);
+
+        $productions = Production::with(['planter', 'land'])
+            ->whereIn('id', $validated['ids'])
+            ->orderBy('id')
+            ->get();
+
+        $pdf = Pdf::loadView('pdfs.certification_final_data', [
+            'productions' => $productions,
+        ])->setPaper('a4', 'portrait');
+
+        return $pdf->download('productions_final_data_' . now()->format('Ymd_His') . '.pdf');
+    
+    }
+
 }

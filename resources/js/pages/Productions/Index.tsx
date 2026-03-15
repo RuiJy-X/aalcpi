@@ -3,6 +3,7 @@ import { Clipboard, Import, Minimize2 } from 'lucide-react';
 import ActionContainer from '@/components/action-container';
 
 import { productionBulkDelete } from '@/components/data-table/bulk-delete';
+import { productionBulkDownload } from '@/components/data-table/bulk-download';
 import { DataTable } from '@/components/data-table/data-table';
 
 import { productionColumns } from '@/components/data-table/production-columns';
@@ -52,6 +53,7 @@ export default function Index({
                 <DataTable
                     columns={productionColumns}
                     data={productions}
+                    bulkDownload={productionBulkDownload}
                     bulkDelete={productionBulkDelete}
                     onRowDoubleClick={(production) =>
                         productionShow(production.id).url
