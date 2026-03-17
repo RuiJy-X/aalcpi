@@ -15,8 +15,8 @@ const ProductionInfo = ({ production }: { production: ProductionRow }) => {
     const initialData = {
         planter_id: production.planter_id,
         planter_code: production.planter_code,
-        land_code: production.land_code,
-        land_id: production.land_id,
+        hacienda_code: production.hacienda_code,
+        hacienda_id: production.hacienda_id,
         production_year: production.production_year,
         production_month: production.production_month,
         gross_cw: production.gross_cw,
@@ -70,7 +70,11 @@ const ProductionInfo = ({ production }: { production: ProductionRow }) => {
             key: 'planter_code',
             value: production.planter_code,
         },
-        { label: 'Land Code', key: 'land_code', value: production.land_code },
+        {
+            label: 'HACIENDA Code',
+            key: 'hacienda_code',
+            value: production.hacienda_code,
+        },
         {
             label: 'Year',
             key: 'production_year',

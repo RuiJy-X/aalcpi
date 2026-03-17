@@ -5,7 +5,7 @@ namespace Database\Seeders;
 use App\Models\Attendance;
 use App\Models\Certification;
 use App\Models\Employee;
-use App\Models\Land;
+use App\Models\Hacienda;
 use App\Models\Payroll;
 use App\Models\Planter;
 use App\Models\Production;
@@ -29,19 +29,19 @@ class DatabaseSeeder extends Seeder
         ]);
 
 
-        // Planters / Lands / Production / Certifications
+        // Planters / haciendas / Production / Certifications
         $planters = Planter::factory()->count(50)->create();
 
-        $lands = collect();
+        $haciendas = collect();
         foreach ($planters as $planter) {
-            $lands->push(Land::factory()->for($planter)->create());
+            $haciendas->push(Hacienda::factory()->for($planter)->create());
         }
 
         $productions = collect();
-        foreach ($lands as $land) {
+        foreach ($haciendas as $hacienda) {
             for ($i = 0; $i < 5; $i++) {
                 $productions->push(
-                    Production::factory()->forPlanterLand($land->planter, $land)->create()
+                    Production::factory()->forPlanterhacienda($hacienda->planter, $hacienda)->create()
                 );
             }
         }

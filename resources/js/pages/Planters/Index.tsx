@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { Import, User } from 'lucide-react';
 import ActionContainer from '@/components/action-container';
 import { DataTable } from '@/components/data-table/data-table';
@@ -9,7 +9,7 @@ import type {
     PlanterRow,
     ProductionRow,
     CertificationRow,
-    LandRow,
+    HaciendaRow,
 } from '@/components/planters/planters-table-types';
 
 import PlanterStats from '@/components/planters/stat-cards/PlanterStats';
@@ -20,6 +20,8 @@ import { index as plantersIndex } from '@/routes/planters';
 import { create as createPage } from '@/routes/planters';
 import { show as planterShow } from '@/routes/planters';
 import type { BreadcrumbItem } from '@/types';
+import { ImportDialog } from '@/components/import/import-dialog';
+import { plantersImportConfig } from '@/components/import/import-config';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -28,29 +30,16 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-const actions = [
-    {
-        title: 'Import Data',
-        href: '#',
-        icon: Import,
-    },
-    {
-        title: 'Register Planter',
-        href: createPage().url,
-        icon: User,
-    },
-];
-
 export default function Index({
     planters,
     productions,
     certifications,
-    lands,
+    haciendas,
 }: {
     planters: PlanterRow[];
     productions: ProductionRow[];
     certifications: CertificationRow[];
-    lands: LandRow[];
+    haciendas: HaciendaRow[];
 }) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -58,16 +47,14 @@ export default function Index({
                 <title>Planters</title>
             </Head>
             <ActionContainer className="">
-                {actions.map((action) => (
-                    <Link key={action.title} href={action.href}>
-                        <Button variant={'outline'}>
-                            <span>
-                                <action.icon />
-                            </span>
-                            {action.title}
-                        </Button>
-                    </Link>
-                ))}
+                <ImportDialog config={plantersImportConfig} />
+                <Button
+                    variant="outline"
+                    onClick={() => router.get(createPage().url)}
+                >
+                    <User />
+                    Register Planter
+                </Button>
             </ActionContainer>
 
             <StatsContainer label="Planter Stats">
@@ -75,7 +62,7 @@ export default function Index({
                     planters={planters}
                     productions={productions}
                     certifications={certifications}
-                    lands={lands}
+                    haciendas={haciendas}
                 />
             </StatsContainer>
 

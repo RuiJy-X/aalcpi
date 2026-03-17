@@ -2,34 +2,34 @@ import { useForm } from '@inertiajs/react';
 import { useState } from 'react';
 
 import EditButton from '@/components/edit-button';
-import type { LandRow } from '@/components/planters/planters-table-types';
+import type { HaciendaRow } from '@/components/planters/planters-table-types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Field, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { update as landUpdate } from '@/routes/lands';
+import { update as haciendaUpdate } from '@/routes/haciendas';
 
-const LandsInfo = ({ land }: { land: LandRow }) => {
+const HaciendasInfo = ({ hacienda }: { hacienda: HaciendaRow }) => {
     const [isEditing, setIsEditing] = useState(false);
 
     const initialData = {
-        id: land.id,
-        planter_id: land.planter_id,
-        land_code: land.land_code,
-        name: land.name ?? '',
-        address: land.address ?? '',
-        area_hectares: land.area_hectares ?? '',
-        distance_from_urc: land.distance_from_urc ?? '',
-        is_active: land.is_active ?? false,
-        created_at: land.created_at ?? '',
-        updated_at: land.updated_at ?? '',
+        id: hacienda.id,
+        planter_id: hacienda.planter_id,
+        hacienda_code: hacienda.hacienda_code,
+        name: hacienda.name ?? '',
+        address: hacienda.address ?? '',
+        area_hectares: hacienda.area_hectares ?? '',
+        distance_from_urc: hacienda.distance_from_urc ?? '',
+        is_active: hacienda.is_active ?? false,
+        created_at: hacienda.created_at ?? '',
+        updated_at: hacienda.updated_at ?? '',
     };
 
     const { data, setData, patch, processing, errors } = useForm(initialData);
 
     const submit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        patch(landUpdate(land.id).url, {
+        patch(haciendaUpdate(hacienda.id).url, {
             onSuccess: () => {
                 setData(initialData);
                 setIsEditing(false);
@@ -53,41 +53,49 @@ const LandsInfo = ({ land }: { land: LandRow }) => {
     };
 
     const details = [
-        { label: 'Land Code', key: 'land_code', value: land.land_code ?? '' },
-        { label: 'Name', key: 'name', value: land.name ?? '' },
-        { label: 'Address', key: 'address', value: land.address ?? '' },
+        {
+            label: 'Hacienda Code',
+            key: 'hacienda_code',
+            value: hacienda.hacienda_code ?? '',
+        },
+        { label: 'Name', key: 'name', value: hacienda.name ?? '' },
+        { label: 'Address', key: 'address', value: hacienda.address ?? '' },
         {
             label: 'Area (hectares)',
             key: 'area_hectares',
-            value: land.area_hectares ?? '',
+            value: hacienda.area_hectares ?? '',
         },
         {
             label: 'Distance from URC',
             key: 'distance_from_urc',
-            value: land.distance_from_urc ?? '',
+            value: hacienda.distance_from_urc ?? '',
         },
-        { label: 'Active', key: 'is_active', value: land.is_active ?? false },
+        {
+            label: 'Active',
+            key: 'is_active',
+            value: hacienda.is_active ?? false,
+        },
         {
             label: 'Created At',
             key: 'created_at',
-            value: land.created_at ?? '',
+            value: hacienda.created_at ?? '',
         },
         {
             label: 'Updated At',
             key: 'updated_at',
-            value: land.updated_at ?? '',
+            value: hacienda.updated_at ?? '',
         },
     ] as const;
 
     return (
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Land Details</CardTitle>
+                <CardTitle>Hacienda Details</CardTitle>
                 <div className="flex gap-2">
                     {isEditing && (
                         <Button
                             type="submit"
-                            form="lands-info-form"
+                            form="haciendas-info-form"
                             variant="blue"
                             disabled={processing}
                         >
@@ -97,13 +105,13 @@ const LandsInfo = ({ land }: { land: LandRow }) => {
                     <EditButton
                         isEditing={isEditing}
                         onEditingChange={handleEditingChange}
-                        editLabel="Edit Land"
+                        editLabel="Edit Hacienda"
                     />
                 </div>
             </CardHeader>
             <CardContent>
                 {isEditing ? (
-                    <form onSubmit={submit} id="lands-info-form">
+                    <form onSubmit={submit} id="haciendas-info-form">
                         <div className="grid grid-cols-2 gap-4">
                             {details.map((detail) => (
                                 <Field
@@ -147,4 +155,4 @@ const LandsInfo = ({ land }: { land: LandRow }) => {
     );
 };
 
-export default LandsInfo;
+export default HaciendasInfo;

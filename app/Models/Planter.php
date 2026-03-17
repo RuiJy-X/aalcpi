@@ -19,9 +19,9 @@ class Planter extends Model
         'registration_date'
     ];
 
-    public function lands(): HasMany
+    public function haciendas(): HasMany
     {
-        return $this->hasMany(Land::class);
+        return $this->hasMany(Hacienda::class);
     }
 
     public function productions(): HasMany

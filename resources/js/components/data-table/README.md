@@ -9,7 +9,7 @@ This README explains how the data-table component and its supporting column/filt
 - File: [resources/js/components/data-table/planter-columns.tsx](resources/js/components/data-table/planter-columns.tsx) : Example ColumnDefs for planters (shows typical columns, select checkbox, actions cell).
 - File: [resources/js/components/data-table/production-columns.tsx](resources/js/components/data-table/production-columns.tsx) : ColumnDefs for production rows (includes boolean filters and meta filterOptions).
 - File: [resources/js/components/data-table/certification-columns.tsx](resources/js/components/data-table/certification-columns.tsx) : ColumnDefs for certifications, demonstrates custom `filterFn` and `meta.filterOptions`.
-- File: [resources/js/components/data-table/land-columns.tsx](resources/js/components/data-table/land-columns.tsx) : ColumnDefs for lands, includes a `booleanStringFilter` helper and action buttons wired to Inertia routes.
+- File: [resources/js/components/data-table/HACIENDA-columns.tsx](resources/js/components/data-table/HACIENDA-columns.tsx) : ColumnDefs for HACIENDAS, includes a `booleanStringFilter` helper and action buttons wired to Inertia routes.
 
 ## How `DataTable` works (high-level)
 
@@ -41,7 +41,7 @@ This README explains how the data-table component and its supporting column/filt
     filterOptions: [ { label: 'All', value: '' }, { label: 'Active', value: 'true' }, { label: 'Inactive', value: 'false' } ]
     }
 
-- If the default filter behavior doesn't fit, provide `filterFn` on the column. Example boolean-string comparisons are implemented in `land-columns.tsx` and `production-columns.tsx`
+- If the default filter behavior doesn't fit, provide `filterFn` on the column. Example boolean-string comparisons are implemented in `HACIENDA-columns.tsx` and `production-columns.tsx`
 
 ## Actions column pattern
 
@@ -72,7 +72,7 @@ import { myColumns } from '@/components/data-table/my-columns';
 - File: [resources/js/components/data-table/planter-columns.tsx](resources/js/components/data-table/planter-columns.tsx)
 - File: [resources/js/components/data-table/production-columns.tsx](resources/js/components/data-table/production-columns.tsx)
 - File: [resources/js/components/data-table/certification-columns.tsx](resources/js/components/data-table/certification-columns.tsx)
-- File: [resources/js/components/data-table/land-columns.tsx](resources/js/components/data-table/land-columns.tsx)
+- File: [resources/js/components/data-table/HACIENDA-columns.tsx](resources/js/components/data-table/HACIENDA-columns.tsx)
 
 ## Next steps (optional)
 

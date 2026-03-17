@@ -3,6 +3,7 @@
 namespace App\Imports;
 
 use App\Models\Planter;
+use App\Models\Hacienda;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithUpserts;
@@ -28,12 +29,12 @@ class PlanterImport implements ToModel, WithHeadingRow, WithSkipDuplicates, With
             ]
         );
 
-        $land = Land::firstOrCreate(
-            ['land_code' => $row['land_code'] ?? $row['hacienda_code']],
+        $hacienda = Hacienda::firstOrCreate(
+            ['hacienda_code' => $row['land_code'] ?? $row['hacienda_code']],
             [
                 'planter_id' => $planter->id,
-                'name' => $row['land_name'] ?? $row['hacienda_name'] ?? 'Unknown Hacienda',
-                'address' => $row['land_address'] ?? $row['address'] ?? 'Unknown Address',
+                'name' => $row['hacienda_name'] ?? $row['land_name'] ?? 'Unknown Hacienda',
+                'address' => $row['hacienda_address'] ?? 'Unknown Address',
                 'area_hectares' => $row['area_hectares'] ?? 0,
                 'distance_from_urc' => $row['distance_from_urc'] ?? 0,
                 'is_active' => true, // Default to active
@@ -47,7 +48,7 @@ class PlanterImport implements ToModel, WithHeadingRow, WithSkipDuplicates, With
             'contact_number' => $row['contact_number'] ?? null,
             'tin_number' => $row['tin_number'] ?? null,
             'registration_date' => $row['registration_date'] ?? now()->toDateString(),
-            'lands' => $land, // Associate the land with the planter
+            'haciendas' => $hacienda, // Associate the hacienda with the planter
         ]);
     }
     public function uniqueBy()

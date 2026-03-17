@@ -85,7 +85,7 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
         },
     },
     {
-        accessorKey: 'land_code',
+        accessorKey: 'hacienda_code',
         header: ({ column }) => (
             <Button
                 variant="ghost"
@@ -93,7 +93,7 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
                     column.toggleSorting(column.getIsSorted() === 'asc')
                 }
             >
-                Land Code
+                hacienda Code
                 <ArrowUpDown className="ml-2 h-4 w-4" />
             </Button>
         ),
@@ -102,14 +102,14 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
             return (
                 <div className="flex items-center">
                     <div className="ml-2 truncate">
-                        {production.land_code ?? '-'}
+                        {production.hacienda_code ?? '-'}
                     </div>
                 </div>
             );
         },
     },
     {
-        accessorKey: 'land_name',
+        accessorKey: 'hacienda_name',
         header: ({ column }) => (
             <Button
                 variant="ghost"
@@ -117,7 +117,7 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
                     column.toggleSorting(column.getIsSorted() === 'asc')
                 }
             >
-                Land Name
+                hacienda Name
                 <ArrowUpDown className="ml-2 h-4 w-4" />
             </Button>
         ),
@@ -126,14 +126,14 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
             return (
                 <div className="flex items-center">
                     <div className="ml-2 truncate">
-                        {production.land_name ?? '-'}
+                        {production.hacienda_name ?? '-'}
                     </div>
                 </div>
             );
         },
     },
     {
-        accessorKey: 'land_address',
+        accessorKey: 'hacienda_address',
         header: ({ column }) => (
             <Button
                 variant="ghost"
@@ -141,7 +141,7 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
                     column.toggleSorting(column.getIsSorted() === 'asc')
                 }
             >
-                Land Address
+                hacienda Address
                 <ArrowUpDown className="ml-2 h-4 w-4" />
             </Button>
         ),
@@ -150,7 +150,7 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
             return (
                 <div className="flex items-center">
                     <div className="ml-2 truncate">
-                        {production.land_address ?? '-'}
+                        {production.hacienda_address ?? '-'}
                     </div>
                 </div>
             );

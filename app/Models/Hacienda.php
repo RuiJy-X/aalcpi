@@ -5,15 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class Land extends Model
+class Hacienda extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'planter_id', 
-        'land_code',
+        'planter_id',
+        'hacienda_code',
         'name',
-        'address', 
+        'address',
         'area_hectares',
         'distance_from_urc',
         'is_active'

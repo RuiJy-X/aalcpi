@@ -24,7 +24,7 @@ import {
 import { dashboard } from '@/routes';
 import { index as certificationIndex } from '@/routes/certifications';
 import { index as employeeIndex } from '@/routes/employees';
-import { index as landsIndex } from '@/routes/lands';
+import { index as haciendasIndex } from '@/routes/haciendas';
 import { index as plantersIndex } from '@/routes/planters';
 import { index as productionsIndex } from '@/routes/productions';
 import type { NavItem } from '@/types';
@@ -42,8 +42,8 @@ const mainNavItems: NavItem[] = [
         icon: User,
     },
     {
-        title: 'Lands',
-        href: landsIndex(),
+        title: 'Haciendas',
+        href: haciendasIndex(),
         icon: LandPlot,
     },
     {

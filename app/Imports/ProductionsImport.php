@@ -3,7 +3,7 @@
 namespace App\Imports;
 
 use App\Models\Production;
-use App\Models\Land;
+use App\Models\Hacienda;
 use App\Models\Planter;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
@@ -25,25 +25,25 @@ class ProductionsImport implements ToModel, WithHeadingRow, WithSkipDuplicates, 
             'registration_date' => now()] // Optionally set a default name
         );
 
-        $land = Land::firstOrCreate(
-            ['land_code' => $row['hacienda_code'] ?? $row['land_code'],
-            'planter_id' => $planter->id,], // Use the correct key for land_code
+        $hacienda = Hacienda::firstOrCreate(
+            ['hacienda_code' => $row['hacienda_code'] ?? $row['hacienda_code'],
+            'planter_id' => $planter->id,], // Use the correct key for hacienda_code
             [
-                
-                'name' => $row['hacienda_name'] ?? $row['land_name'] ?? 'Unknown Land', // Optionally set a default name
-                'address' => $row['land_address'] ?? 'Unknown Address',
+
+                'name' => $row['hacienda_name'] ?? $row['hacienda_name'] ?? 'Unknown Hacienda', // Optionally set a default name
+                'address' => $row['hacienda_address'] ?? $row['address'] ?? 'Unknown Address',
                 'area_hectares' => $row['area_hectares'] ?? 0,
                 'distance_from_urc' => $row['distance_from_urc'] ?? 0,
                 'is_active' => true, // Default to active
             ]
         );
 
-        
+
         return new Production([
             'planter_id' => $planter->id,
-            'land_id' => $land->id,
+            'hacienda_id' => $hacienda->id,
             'planter_code' => $row['planter_code'],
-            'land_code' => $row['hacienda_code'] ?? $row['land_code'],
+            'hacienda_code' => $row['hacienda_code'] ?? $row['hacienda_code'],
             'production_year'        => $row['production_year'],
             'production_month'       => $row['production_month'],
             'gross_cw'               => $row['gross_cw'],
@@ -67,5 +67,5 @@ class ProductionsImport implements ToModel, WithHeadingRow, WithSkipDuplicates, 
     {
         return 'trans_code';
     }
-   
+
 }

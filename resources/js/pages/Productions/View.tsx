@@ -5,12 +5,12 @@ import Heading from '@/components/heading';
 import type {
     ProductionRow,
     PlanterRow,
-    LandRow,
+    HaciendaRow,
 } from '@/components/planters/planters-table-types';
 import AppLayout from '@/layouts/app-layout';
 import { show as planterShow } from '@/routes/planters';
 import { index as productionsIndex } from '@/routes/productions';
-import { show as landShow } from '@/routes/lands';
+import { show as haciendaShow } from '@/routes/haciendas';
 import { show as productionShow } from '@/routes/productions';
 import type { BreadcrumbItem } from '@/types';
 import ProductionInfo from '@/components/planters/planter-view/production-info';
@@ -19,11 +19,11 @@ import PersonalInfo from '@/components/planters/planter-view/personal-info';
 export default function Index({
     production,
     planter,
-    land,
+    hacienda,
 }: {
     production: ProductionRow;
     planter: PlanterRow;
-    land: LandRow;
+    hacienda: HaciendaRow;
 }) {
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -39,8 +39,8 @@ export default function Index({
             href: planterShow(planter.id).url,
         },
         {
-            title: `${land.name}`,
-            href: landShow(land.id).url,
+            title: `${hacienda.name}`,
+            href: haciendaShow(hacienda.id).url,
         },
         {
             title: `${production.trans_code}`,

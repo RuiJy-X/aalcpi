@@ -13,7 +13,7 @@ return new class extends Migration
         Schema::create('certifications', function (Blueprint $table) {
             $table->id();
             $table->foreignId('planter_id')->nullable()->constrained()->nullOnDelete();
-            $table->foreignId('land_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('hacienda_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('production_id')->nullable()->constrained()->nullOnDelete();
             $table->string('certification_type');
             $table->date('issue_date');
@@ -21,7 +21,7 @@ return new class extends Migration
             $table->timestamps();
         });
     }
- 
+
     public function down(): void
     {
         DB::statement('DROP TABLE IF EXISTS "certifications" CASCADE');

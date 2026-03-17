@@ -12,7 +12,7 @@ import ActionContainer from '@/components/action-container';
 import { certificationBulkDelete } from '@/components/data-table/bulk-delete';
 import { certificationColumns } from '@/components/data-table/certification-columns';
 import { DataTable } from '@/components/data-table/data-table';
-import { landColumns } from '@/components/data-table/land-columns';
+import { landColumns } from '@/components/data-table/HACIENDA-columns';
 import { planterColumns } from '@/components/data-table/planter-columns';
 import { productionColumns } from '@/components/data-table/production-columns';
 import type {
@@ -54,8 +54,8 @@ const tabs = [
         icon: ShieldCheck,
     },
     {
-        title: 'Lands',
-        value: 'lands',
+        title: 'HACIENDAS',
+        value: 'HACIENDAS',
         icon: LandPlot,
     },
 ];
@@ -72,18 +72,18 @@ export default function Index({
     planters,
     productions,
     certifications,
-    lands,
+    HACIENDAS,
 }: {
     planters: PlanterRow[];
     productions: ProductionRow[];
     certifications: CertificationRow[];
-    lands: LandRow[];
+    HACIENDAS: LandRow[];
 }) {
     const [activeTab, setActiveTab] = useState('planters');
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Lands"></Head>
+            <Head title="HACIENDAS"></Head>
             <ActionContainer className="">
                 {actions.map((action) => (
                     <Link key={action.title} href={action.href}>

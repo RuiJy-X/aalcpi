@@ -4,7 +4,7 @@ import type {
     PlanterRow,
     ProductionRow,
     CertificationRow,
-    LandRow,
+    HaciendaRow,
 } from '@/components/planters/planters-table-types';
 import StatCard from '@/components/stat-card';
 
@@ -12,16 +12,16 @@ export default function PlanterStats({
     planters,
     productions,
     certifications,
-    lands,
+    haciendas,
 }: {
     planters: PlanterRow[];
     productions: ProductionRow[];
     certifications: CertificationRow[];
-    lands: LandRow[];
+    haciendas: HaciendaRow[];
 }) {
     const totalPlanters = planters.length;
 
-    const totalLands = lands.length;
+    const totalHaciendas = haciendas.length;
     const totalProductions = productions.length;
 
     return (
@@ -34,8 +34,8 @@ export default function PlanterStats({
             />
 
             <StatCard
-                title="Total Lands"
-                value={String(totalLands)}
+                title="Total Haciendas"
+                value={String(totalHaciendas)}
                 icon={LandPlot}
                 color="orange"
             />

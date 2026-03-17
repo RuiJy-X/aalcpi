@@ -1,0 +1,17 @@
+import productions from '@/routes/productions';
+import planters from '@/routes/planters';
+
+export interface ImportConfig {
+    route: string;
+    label: string;
+}
+
+export const plantersImportConfig = {
+    route: planters.import.url(),
+    label: 'Planter Data',
+};
+
+export const productionsImportConfig = {
+    route: productions.import.url(),
+    label: 'Productions Data',
+};

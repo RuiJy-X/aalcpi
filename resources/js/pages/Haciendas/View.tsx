@@ -3,67 +3,69 @@ import { router } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
 import ActionContainer from '@/components/action-container';
 import Heading from '@/components/heading';
-import LandsInfo from '@/components/planters/planter-view/lands-info';
+import HaciendasInfo from '@/components/planters/planter-view/haciendas-info';
 import PersonalInfo from '@/components/planters/planter-view/personal-info';
 import ViewLayout from '@/components/planters/planter-view/view-layout';
 import type {
     PlanterRow,
-    LandRow,
+    HaciendaRow,
 } from '@/components/planters/planters-table-types';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
-import { index as landIndex } from '@/routes/lands';
-import { show as landShow } from '@/routes/lands';
-import { create as createLand } from '@/routes/lands';
+import { index as haciendaIndex } from '@/routes/haciendas';
+import { show as haciendaShow } from '@/routes/haciendas';
+import { create as createHacienda } from '@/routes/haciendas';
 import { show as planterShow } from '@/routes/planters';
 import type { BreadcrumbItem } from '@/types';
 
 export default function Index({
     planter,
-    land,
+    hacienda,
 }: {
     planter: PlanterRow;
-    land: LandRow;
+    hacienda: HaciendaRow;
 }) {
     const breadcrumbs: BreadcrumbItem[] = [
         {
-            title: 'Land Management',
-            href: landIndex().url,
+            title: 'Hacienda Management',
+            href: haciendaIndex().url,
         },
         {
-            title: 'Lands Details',
-            href: landShow(land.id).url,
+            title: 'Haciendas Details',
+            href: haciendaShow(hacienda.id).url,
         },
         {
             title: `${planter.name}`,
             href: planterShow(planter.id).url,
         },
         {
-            title: `${land.name}`,
+            title: `${hacienda.name}`,
             href: '',
         },
     ];
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Lands">
-                <title>Lands</title>
+            <Head title="Haciendas">
+                <title>Haciendas</title>
             </Head>
             <ActionContainer>
-                <Button onClick={() => router.get(createLand(planter.id).url)}>
+                <Button
+                    onClick={() => router.get(createHacienda(planter.id).url)}
+                >
                     <i>
                         <Plus />
                     </i>
-                    Add Land
+                    Add Hacienda
                 </Button>
             </ActionContainer>
             <ViewLayout>
                 <Heading
-                    title="View a Planter's Land Details"
+                    title="View a Planter's Hacienda Details"
                     description="Viewing planter details of a specific planter"
                 />
                 <PersonalInfo planter={planter} />
-                <LandsInfo land={land} />
+                <HaciendasInfo hacienda={hacienda} />
             </ViewLayout>
         </AppLayout>
     );

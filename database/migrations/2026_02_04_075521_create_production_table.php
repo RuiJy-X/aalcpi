@@ -12,10 +12,10 @@ return new class extends Migration
         Schema::create('productions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('planter_id')->nullable()->constrained()->nullOnDelete();
-            $table->foreignId('land_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('hacienda_id')->nullable()->constrained()->nullOnDelete();
             $table->string('trans_code')->unique();
             $table->string('planter_code');
-            $table->string('land_code');
+            $table->string('hacienda_code');
             $table->integer('production_year');
             $table->string('production_month');
             $table->decimal('gross_cw', 12, 2);

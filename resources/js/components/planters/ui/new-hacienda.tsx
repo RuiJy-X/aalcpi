@@ -3,21 +3,22 @@ import React from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Field, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import type { LandRow } from '../planters-table-types';
+import type { HaciendaRow } from '../planters-table-types';
 
 interface Props {
-    landId: number;
-    onRemove: (landId: number) => void;
-    land: LandFormData;
-    handleOnChangeLand: (
-        landId: number,
-        field: LandFieldKey,
+    haciendaId: number;
+    errors?: any;
+    onRemove: (haciendaId: number) => void;
+    hacienda: HaciendaFormData;
+    handleOnChangeHacienda: (
+        haciendaId: number,
+        field: HaciendaFieldKey,
         value: string | boolean,
     ) => void;
 }
 
-type LandFormData = {
-    land_code: string;
+type HaciendaFormData = {
+    hacienda_code: string;
     name: string;
     address: string;
     area_hectares: string | number;
@@ -25,9 +26,9 @@ type LandFormData = {
     is_active: boolean;
 };
 
-type LandFieldKey = keyof Pick<
-    LandRow,
-    | 'land_code'
+type HaciendaFieldKey = keyof Pick<
+    HaciendaRow,
+    | 'hacienda_code'
     | 'name'
     | 'address'
     | 'area_hectares'
@@ -37,11 +38,11 @@ type LandFieldKey = keyof Pick<
 
 const fields: Array<{
     label: string;
-    key: LandFieldKey;
+    key: HaciendaFieldKey;
     type: 'text' | 'number' | 'checkbox';
 }> = [
-    { label: 'Land Code', key: 'land_code', type: 'text' },
-    { label: 'Land Name', key: 'name', type: 'text' },
+    { label: 'Hacienda Code', key: 'hacienda_code', type: 'text' },
+    { label: 'Hacienda Name', key: 'name', type: 'text' },
     { label: 'Address', key: 'address', type: 'text' },
     { label: 'Area (ha)', key: 'area_hectares', type: 'number' },
     {
@@ -52,22 +53,30 @@ const fields: Array<{
     { label: 'Active', key: 'is_active', type: 'checkbox' },
 ];
 
-const NewLand = ({ landId, onRemove, land, handleOnChangeLand }: Props) => {
+const NewHacienda = ({
+    haciendaId,
+    onRemove,
+    hacienda,
+    handleOnChangeHacienda,
+    errors,
+}: Props) => {
     return (
         <div className="mt-4 flex flex-col gap-4 border bg-white p-4">
             <div className="flex justify-between">
-                <h3 className="text-lg font-semibold">Land #{landId + 1}</h3>
+                <h3 className="text-lg font-semibold">
+                    Hacienda #{haciendaId + 1}
+                </h3>
                 <i>
                     <Trash2
                         color="red"
                         className="cursor-pointer"
-                        onClick={() => onRemove(landId)}
+                        onClick={() => onRemove(haciendaId)}
                     />
                 </i>
             </div>
             {fields.map((field) => {
-                const inputId = `land-${landId}-${field.key}`;
-                const inputName = `lands.${landId}.${field.key}`;
+                const inputId = `hacienda-${haciendaId}-${field.key}`;
+                const inputName = `haciendas.${haciendaId}.${field.key}`;
                 const isCheckbox = field.type === 'checkbox';
 
                 return (
@@ -81,10 +90,10 @@ const NewLand = ({ landId, onRemove, land, handleOnChangeLand }: Props) => {
                             <Checkbox
                                 id={inputId}
                                 name={inputName}
-                                checked={Boolean(land?.is_active)}
+                                checked={Boolean(hacienda?.is_active)}
                                 onCheckedChange={(checked) =>
-                                    handleOnChangeLand(
-                                        landId,
+                                    handleOnChangeHacienda(
+                                        haciendaId,
                                         field.key,
                                         checked === true,
                                     )
@@ -97,18 +106,24 @@ const NewLand = ({ landId, onRemove, land, handleOnChangeLand }: Props) => {
                                 type={field.type}
                                 placeholder={field.label}
                                 value={
-                                    land?.[field.key] === undefined
+                                    hacienda?.[field.key] === undefined
                                         ? ''
-                                        : String(land?.[field.key])
+                                        : String(hacienda?.[field.key])
                                 }
                                 onChange={(e) =>
-                                    handleOnChangeLand(
-                                        landId,
+                                    handleOnChangeHacienda(
+                                        haciendaId,
                                         field.key,
                                         e.target.value,
                                     )
                                 }
                             />
+                        )}
+                        {errors[`haciendas.${haciendaId}.${field.key}`] && (
+                            <p className="mt-1 text-sm text-red-600">
+                                Hacienda {haciendaId + 1}'s {field.key} is
+                                required.
+                            </p>
                         )}
                     </Field>
                 );
@@ -116,5 +131,4 @@ const NewLand = ({ landId, onRemove, land, handleOnChangeLand }: Props) => {
         </div>
     );
 };
-
-export default NewLand;
+export default NewHacienda;

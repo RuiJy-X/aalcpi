@@ -1,14 +1,11 @@
 <?php
 use App\Http\Controllers\PlanterController;
-use App\Http\Controllers\PlanterViewController;
 use App\Http\Controllers\ProductionController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\CertificationController;
 use App\Http\Controllers\AttendanceController;
-use App\Http\Controllers\LandViewController;
 use App\Http\Controllers\PayrollController;
-use App\Http\Controllers\ProductionViewController;
-use App\Http\Controllers\LandController;
+use App\Http\Controllers\HaciendaController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 Route::get('/', function () {
@@ -28,6 +25,7 @@ Route::get('Planters/view/info/{id}', [PlanterController::class,'show'])->middle
 Route::delete('/Planters/bulk-delete', [PlanterController::class,'bulkDestroy'])->middleware(['auth', 'verified'])->name('planters.bulk-destroy');
 Route::delete('Planters/delete/{id}', [PlanterController::class,'destroy'])->middleware(['auth', 'verified'])->name('planters.destroy');
 Route::patch('Planters/view/info/{planterid}',[PlanterController::class,'update'])->middleware(['auth', 'verified'])->name('planters.update');
+Route::post('/Planters/import', [PlanterController::class,'import'])->middleware(['auth', 'verified'])->name('planters.import');
 
 // Route::get('/Planters/view/info/{planterId}/production/{productionId}', [ProductionViewController::class,'show'])->middleware(['auth', 'verified'])->name('planter.production.show');
 
@@ -41,25 +39,14 @@ Route::post('/Productions/import', [ProductionController::class,'import'])->midd
 Route::get('/Productions/{id}/final-data', [ProductionController::class,'finalData'])->middleware(['auth', 'verified'])->name('productions.final_data');
 Route::get('/Productions/bulk-download', [ProductionController::class,'bulkDownload'])->middleware(['auth', 'verified'])->name('productions.bulk_download');
 
-// Lands
-Route::get('/Lands', [LandController::class, 'index'])->middleware(['auth', 'verified'])->name('lands.index');
-Route::get('/Lands/view/{landId}', [LandController::class,'show'])->middleware(['auth', 'verified'])->name('lands.show');
-Route::get('/Lands/create/{planterId}', [LandController::class,'create'])->middleware(['auth', 'verified'])->name('lands.create');
-Route::post('/Lands/create/{planterId}', [LandController::class,'store'])->middleware(['auth', 'verified'])->name('lands.store');
-Route::delete('/Lands/bulk-delete', [LandController::class,'bulkDestroy'])->middleware(['auth', 'verified'])->name('lands.bulk-destroy');
-Route::patch('/Lands/view/update/{landId}', [LandController::class,'update'])->middleware(['auth', 'verified'])->name('lands.update');
+// Haciendas
+Route::get('/Haciendas', [HaciendaController::class, 'index'])->middleware(['auth', 'verified'])->name('haciendas.index');
+Route::get('/Haciendas/view/{haciendaId}', [HaciendaController::class,'show'])->middleware(['auth', 'verified'])->name('haciendas.show');
+Route::get('/Haciendas/create/{planterId}', [HaciendaController::class,'create'])->middleware(['auth', 'verified'])->name('haciendas.create');
+Route::post('/Haciendas/create/{planterId}', [HaciendaController::class,'store'])->middleware(['auth', 'verified'])->name('haciendas.store');
+Route::delete('/Haciendas/bulk-delete', [HaciendaController::class,'bulkDestroy'])->middleware(['auth', 'verified'])->name('haciendas.bulk-destroy');
+Route::patch('/Haciendas/view/update/{haciendaId}', [HaciendaController::class,'update'])->middleware(['auth', 'verified'])->name('haciendas.update');
 
-
-// Planter view production
-Route::patch('/Planters/view/info/{planterId}/production/{productionId}', [ProductionViewController::class,'update'])->middleware(['auth', 'verified'])->name('planters.view.production.update');
-
-// Planter view land
-// Route::get('/Planters/view/info/{planterId}/land/{landId}', [LandViewController::class,'index'])->middleware(['auth', 'verified'])->name('planters.view.land.index');
-// Route::patch('/Planters/view/info/{planterId}/land/{landId}', [LandViewController::class,'update'])->middleware(['auth', 'verified'])->name('planters.view.land.update');
-// Route::post('Planters/create/land', [LandViewController::class,'store'])->middleware(['auth', 'verified'])->name('planters.store.land');
-
-// Planter view certifications
-Route::get('Planters/view/info/{planterId}/certificate/{certificateId}', [PlanterController::class,'viewCertificates'])->middleware(['auth', 'verified'])->name('planters.view.certificate');
 
 
 // Certifications

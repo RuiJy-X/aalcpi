@@ -8,7 +8,7 @@ import {
     ComboboxList,
 } from '@/components/ui/combobox';
 
-export default function LandCombobox({
+export default function HaciendaCombobox({
     items,
     value,
     onValueChange,

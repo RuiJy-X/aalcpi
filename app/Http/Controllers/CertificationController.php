@@ -7,7 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Planter;
 use App\Models\Production;
 use App\Models\Certification;
-use App\Models\Land;
+use App\Models\Hacienda;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Schema;
 class CertificationController extends Controller
@@ -20,7 +20,7 @@ class CertificationController extends Controller
     }
     public function get()
     {
-        return response()->json(Certification::with(['planter', 'land', 'production'])->latest()->get());
+        return response()->json(Certification::with(['planter', 'hacienda', 'production'])->latest()->get());
 
     }
 
@@ -33,7 +33,7 @@ class CertificationController extends Controller
     {
         $validated = $request->validate([
             'planter_id'         => 'required|exists:planters,id',
-            'land_id'            => 'required|exists:lands,id',
+            'hacienda_id'            => 'required|exists:haciendas,id',
             'production_id'      => 'required|exists:productions,id',
             'certification_type' => 'required|string',
             'issue_date'         => 'required|date',

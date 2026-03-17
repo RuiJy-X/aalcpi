@@ -15,10 +15,10 @@ class ProductionController extends Controller
 {
 
     public function index(){
-        $productions = Production::with(['planter', 'land'])->get()->map(function ($production) {
+        $productions = Production::with(['planter', 'hacienda'])->get()->map(function ($production) {
             $production->planter_name = $production->planter ? $production->planter->name : null;
-            $production->land_address = $production->land ? $production->land->address : null;
-            $production->land_name = $production->land ? $production->land->name : null;
+            $production->hacienda_address = $production->hacienda ? $production->hacienda->address : null;
+            $production->hacienda_name = $production->hacienda ? $production->hacienda->name : null;
             return $production;
         });
         return Inertia::render('Productions/Index', ['productions' => $productions]);
@@ -34,7 +34,7 @@ class ProductionController extends Controller
         return Inertia::render('Productions/View', [
             'production' => $production,
             'planter' => $production->planter,
-            'land' => $production->land,
+            'hacienda' => $production->hacienda,
         ]);
     }
 
@@ -52,7 +52,7 @@ class ProductionController extends Controller
 
     public function get()
     {
-        return Production::with(['planter', 'land'])->latest()->get();
+        return Production::with(['planter', 'hacienda'])->latest()->get();
     }
 
     public function header()
@@ -64,7 +64,7 @@ class ProductionController extends Controller
     {
         $validated = $request->validate([
             'planter_id' => 'required|exists:planters,id',
-            'land_id' => 'required|exists:lands,id',
+            'hacienda_id' => 'required|exists:haciendas,id',
             'production_year' => 'required|integer',
             'production_month' => 'required|string',
             'gross_cw' => 'required|numeric',
@@ -113,7 +113,7 @@ class ProductionController extends Controller
 
         $validated = $request->validate([
             'planter_id' => 'required|exists:planters,id',
-            'land_id' => 'required|exists:lands,id',
+            'hacienda_id' => 'required|exists:haciendas,id',
             'production_year' => 'required|integer',
             'production_month' => 'required|string|
             max:255',
@@ -142,7 +142,7 @@ class ProductionController extends Controller
 
     public function finalData($id)
     {
-        $production = Production::with(['planter', 'land'])->findOrFail($id);
+        $production = Production::with(['planter', 'hacienda'])->findOrFail($id);
 
         $pdf = Pdf::loadView('pdfs.certification_final_data', compact('production'))->setPaper('a4', 'portrait');
 
@@ -157,7 +157,7 @@ class ProductionController extends Controller
             'ids.*' => ['integer', 'distinct', 'exists:productions,id'],
         ]);
 
-        $productions = Production::with(['planter', 'land'])
+        $productions = Production::with(['planter', 'hacienda'])
             ->whereIn('id', $validated['ids'])
             ->orderBy('id')
             ->get();
@@ -167,7 +167,7 @@ class ProductionController extends Controller
         ])->setPaper('a4', 'portrait');
 
         return $pdf->download('productions_final_data_' . now()->format('Ymd_His') . '.pdf');
-    
+
     }
 
 }

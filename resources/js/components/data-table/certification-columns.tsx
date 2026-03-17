@@ -9,7 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 export type CertificationRow = {
     id: string;
     planter_id: string;
-    land_id: string;
+    hacienda_id: string;
     production_id: string;
     certification_type: string;
     issue_date: string;

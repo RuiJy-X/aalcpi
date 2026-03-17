@@ -1,27 +1,27 @@
 import { Head, Link } from '@inertiajs/react';
 import { BookOpen, Import, LandPlot, ShieldCheck, User } from 'lucide-react';
 import ActionContainer from '@/components/action-container';
-import { landBulkDelete } from '@/components/data-table/bulk-delete';
+import { haciendaBulkDelete } from '@/components/data-table/bulk-delete';
 import { DataTable } from '@/components/data-table/data-table';
-import { landColumns } from '@/components/data-table/land-columns';
-import { LandDialog } from '@/components/lands/land-dialog';
-import LandStats from '@/components/lands/stat-cards/LandStats';
+import { haciendaColumns } from '@/components/data-table/hacienda-columns';
+import { HaciendaDialog } from '@/components/haciendas/haciendas-dialog';
+import HaciendaStats from '@/components/haciendas/stat-cards/HaciendaStats';
 import type {
-    LandRow,
+    HaciendaRow,
     PlanterRow,
 } from '@/components/planters/planters-table-types';
 // import PlantersTabsTable from '@/components/planters/planters-tabs-table';
 import StatsContainer from '@/components/stats-container';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
-import { index as landsIndex } from '@/routes/lands';
-import { show as landShow } from '@/routes/lands';
+import { index as haciendasIndex } from '@/routes/haciendas';
+import { show as haciendaShow } from '@/routes/haciendas';
 import type { BreadcrumbItem } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Lands Management',
-        href: landsIndex().url,
+        title: 'Haciendas Management',
+        href: haciendasIndex().url,
     },
 ];
 
@@ -42,8 +42,8 @@ const tabs = [
         icon: ShieldCheck,
     },
     {
-        title: 'Lands',
-        value: 'lands',
+        title: 'Haciendas',
+        value: 'haciendas',
         icon: LandPlot,
     },
 ];
@@ -57,17 +57,17 @@ const actions = [
 ];
 
 export default function Index({
-    lands,
+    haciendas,
     planterNames,
     planters,
 }: {
-    lands: LandRow[];
+    haciendas: HaciendaRow[];
     planterNames: string[];
     planters: PlanterRow[];
 }) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Lands"></Head>
+            <Head title="Haciendas"></Head>
             <ActionContainer className="">
                 {actions.map((action) => (
                     <Link key={action.title} href={action.href}>
@@ -80,19 +80,27 @@ export default function Index({
                     </Link>
                 ))}
 
-                <LandDialog planterNames={planterNames} planters={planters} />
+                <HaciendaDialog
+                    planterNames={planterNames}
+                    planters={planters}
+                />
             </ActionContainer>
 
-            <StatsContainer className="flex-wrap bg-card" label="Land Stats">
-                <LandStats lands={lands} />
+            <StatsContainer
+                className="flex-wrap bg-card"
+                label="Hacienda Stats"
+            >
+                <HaciendaStats haciendas={haciendas} />
             </StatsContainer>
 
             <div className="container-full px-3 py-2">
                 <DataTable
-                    columns={landColumns}
-                    data={lands}
-                    bulkDelete={landBulkDelete}
-                    onRowDoubleClick={(land) => landShow(land.id).url}
+                    columns={haciendaColumns}
+                    data={haciendas}
+                    bulkDelete={haciendaBulkDelete}
+                    onRowDoubleClick={(hacienda) =>
+                        haciendaShow(hacienda.id).url
+                    }
                 />
             </div>
         </AppLayout>

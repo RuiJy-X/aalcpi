@@ -2,7 +2,7 @@
 
 namespace Database\Factories;
 
-use App\Models\Land;
+use App\Models\Hacienda;
 use App\Models\Planter;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -27,15 +27,15 @@ class ProductionFactory extends Factory
         $associationDuesMol = fake()->randomFloat(2, 0, max(0, $actualMol - $pshrNetMol - $pdpaMol));
 
         $planter = Planter::factory();
-        $land = Land::factory()->for($planter);
+        $hacienda = Hacienda::factory()->for($planter);
 
         return [
             'planter_id' => $planter,
-            'land_id' => $land,
+            'hacienda_id' => $hacienda,
             'production_year' => fake()->numberBetween(2015, (int) date('Y')),
             'production_month' => fake()->monthName(),
             'planter_code' => fn (array $attributes) => Planter::query()->whereKey($attributes['planter_id'])->value('planter_code'),
-            'land_code' => fn (array $attributes) => Land::query()->whereKey($attributes['land_id'])->value('land_code'),
+            'hacienda_code' => fn (array $attributes) => Hacienda::query()->whereKey($attributes['hacienda_id'])->value('hacienda_code'),
             'gross_cw' => $grossCw,
             'net_cw' => $netCw,
             'trucks' => fake()->numberBetween(1, 50),
@@ -53,17 +53,17 @@ class ProductionFactory extends Factory
         ];
     }
 
-    public function forPlanterLand(Planter $planter, Land $land): static
+    public function forPlanterhacienda(Planter $planter, Hacienda $hacienda): static
     {
-        if ($land->planter_id !== $planter->id) {
-            throw new \InvalidArgumentException('The given land does not belong to the given planter.');
+        if ($hacienda->planter_id !== $planter->id) {
+            throw new \InvalidArgumentException('The given hacienda does not belong to the given planter.');
         }
 
         return $this->state(fn () => [
             'planter_id' => $planter->id,
-            'land_id' => $land->id,
+            'hacienda_id' => $hacienda->id,
             'planter_code' => $planter->planter_code,
-            'land_code' => $land->land_code,
+            'hacienda_code' => $hacienda->hacienda_code,
         ]);
     }
 }

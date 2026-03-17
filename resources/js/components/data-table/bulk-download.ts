@@ -1,7 +1,7 @@
 import { bulk_download } from './../../routes/productions/index';
 import type {
     CertificationRow,
-    LandRow,
+    HaciendaRow,
     PlanterRow,
     ProductionRow,
 } from '@/components/planters/planters-table-types';

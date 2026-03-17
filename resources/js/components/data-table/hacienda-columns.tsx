@@ -3,12 +3,16 @@
 import { router } from '@inertiajs/react';
 import type { ColumnDef, FilterFn } from '@tanstack/react-table';
 import { ArrowUpDown, Eye, Pencil, Trash2 } from 'lucide-react';
-import type { LandRow } from '@/components/planters/planters-table-types';
+import type { HaciendaRow } from '@/components/planters/planters-table-types';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { show as landShow } from '@/routes/lands';
+import { show as haciendaShow } from '@/routes/haciendas';
 
-const booleanStringFilter: FilterFn<LandRow> = (row, columnId, filterValue) => {
+const booleanStringFilter: FilterFn<HaciendaRow> = (
+    row,
+    columnId,
+    filterValue,
+) => {
     if (!filterValue) {
         return true;
     }
@@ -22,7 +26,7 @@ const booleanStringFilter: FilterFn<LandRow> = (row, columnId, filterValue) => {
     return String(row.getValue(columnId)) === String(filterValue);
 };
 
-export const landColumns: ColumnDef<LandRow>[] = [
+export const haciendaColumns: ColumnDef<HaciendaRow>[] = [
     {
         id: 'select',
         size: 20,
@@ -50,7 +54,7 @@ export const landColumns: ColumnDef<LandRow>[] = [
         enableHiding: false,
     },
     {
-        accessorKey: 'land_code',
+        accessorKey: 'hacienda_code',
         header: ({ column }) => (
             <Button
                 variant="ghost"
@@ -58,13 +62,15 @@ export const landColumns: ColumnDef<LandRow>[] = [
                     column.toggleSorting(column.getIsSorted() === 'asc')
                 }
             >
-                Land Code
+                hacienda Code
                 <ArrowUpDown className="ml-2 h-4 w-4" />
             </Button>
         ),
         cell: ({ row }) => (
             <div className="flex items-center">
-                <div className="ml-2 truncate">{row.original.land_code}</div>
+                <div className="ml-2 truncate">
+                    {row.original.hacienda_code}
+                </div>
             </div>
         ),
     },
@@ -202,7 +208,7 @@ export const landColumns: ColumnDef<LandRow>[] = [
         id: 'actions',
         header: 'Actions',
         cell: ({ row }) => {
-            const land = row.original;
+            const hacienda = row.original;
 
             return (
                 <div
@@ -216,7 +222,9 @@ export const landColumns: ColumnDef<LandRow>[] = [
                         variant="blue"
                         size="xs"
                         aria-label="Edit"
-                        onClick={() => router.get(landShow(land.id).url)}
+                        onClick={() =>
+                            router.get(haciendaShow(hacienda.id).url)
+                        }
                     >
                         <Pencil className="size-4" />
                     </Button>

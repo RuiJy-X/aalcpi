@@ -15,10 +15,10 @@ import {
 } from '@/components/ui/dialog';
 import { Field, FieldGroup } from '@/components/ui/field';
 import { Label } from '@/components/ui/label';
-import { create as createLand } from '@/routes/lands';
-import LandCombobox from './components/landcombobox';
+import { create as createHacienda } from '@/routes/haciendas';
+import HaciendaCombobox from '@/components/haciendas/components/haciendacombobox';
 
-export function LandDialog({
+export function HaciendaDialog({
     planterNames,
     planters,
 }: {
@@ -39,20 +39,20 @@ export function LandDialog({
                     <i>
                         <Plus />
                     </i>
-                    Add Lands
+                    Add Haciendas
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-sm">
                 <DialogHeader>
                     <DialogTitle>Choose Planter</DialogTitle>
                     <DialogDescription>
-                        Choose a planter that you want to add a Land to.
+                        Choose a planter that you want to add a Hacienda to.
                     </DialogDescription>
                 </DialogHeader>
                 <FieldGroup>
                     <Field>
                         <Label htmlFor="name-1">Name</Label>
-                        <LandCombobox
+                        <HaciendaCombobox
                             items={planterNames}
                             value={name}
                             onValueChange={(value) => onValueChange(value)}
@@ -71,7 +71,7 @@ export function LandDialog({
                     <Button
                         onClick={(e) => {
                             e.preventDefault();
-                            router.get(createLand(id).url);
+                            router.get(createHacienda(id).url);
                         }}
                     >
                         Go

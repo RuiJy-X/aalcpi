@@ -29,9 +29,9 @@ const tabs = ({ activeTab, setActiveTab }: Props) => {
                         <ShieldCheck />
                         Certifications
                     </TabsTrigger>
-                    <TabsTrigger value="lands">
+                    <TabsTrigger value="HACIENDAS">
                         <LandPlot />
-                        Lands
+                        HACIENDAS
                     </TabsTrigger>
                 </TabsList>
             </Tabs>

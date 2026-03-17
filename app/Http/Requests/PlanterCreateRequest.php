@@ -28,13 +28,13 @@ class PlanterCreateRequest extends FormRequest
             'contact_number' => 'required|string',
             'tin_number'     => 'required|string|unique:planters,tin_number',
             'registration_date' => (now()->toDateString() >= $request->registration_date) ? 'required|date' : 'required|date|before_or_equal:today',
-            'lands' => 'nullable|array',
-            'lands.*.name' => 'required_with:lands|string|max:255',
-            'lands.*.land_code' => 'required_with:lands|string|max:255|unique:lands,land_code',
-            'lands.*.address' => 'required_with:lands|string|max:255',
-            'lands.*.area_hectares' => 'required_with:lands|numeric|min:0',
-            'lands.*.distance_from_urc' => 'required_with:lands|numeric|min:0',
-            'lands.*.is_active' => 'required_with:lands|boolean',
+            'haciendas' => 'nullable|array',
+            'haciendas.*.name' => 'required_with:haciendas|string|max:255',
+            'haciendas.*.HACIENDA_code' => 'required_with:haciendas|string|max:255|unique:haciendas,HACIENDA_code',
+            'haciendas.*.address' => 'required_with:haciendas|string|max:255',
+            'haciendas.*.area_hectares' => 'required_with:haciendas|numeric|min:0',
+            'haciendas.*.distance_from_urc' => 'required_with:haciendas|numeric|min:0',
+            'haciendas.*.is_active' => 'required_with:haciendas|boolean',
         ];
     }
 }

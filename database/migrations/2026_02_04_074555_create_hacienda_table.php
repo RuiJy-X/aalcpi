@@ -9,10 +9,10 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('lands', function (Blueprint $table) {
+        Schema::create('haciendas', function (Blueprint $table) {
             $table->id();
             $table->foreignId('planter_id')->constrained('planters')->onDelete('cascade');
-            $table->string('land_code')->unique();
+            $table->string('hacienda_code')->unique();
             $table->string('name');
             $table->text('address')->nullable();
             $table->decimal('area_hectares', 8, 2)->nullable();
@@ -24,6 +24,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        DB::statement('DROP TABLE IF EXISTS "lands" CASCADE');
+        DB::statement('DROP TABLE IF EXISTS "haciendas" CASCADE');
     }
 };

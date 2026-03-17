@@ -15,9 +15,10 @@ import {
 import { Field, FieldGroup } from '@/components/ui/field';
 import { Label } from '@/components/ui/label';
 import productions from '@/routes/productions';
-import { Input } from './ui/input';
+import { Input } from '../ui/input';
+import { ImportConfig } from './import-config';
 
-export function ImportDialog({}: {}) {
+export function ImportDialog({ config }: { config: ImportConfig }) {
     const [isOpen, setIsOpen] = useState(false);
     const [isImporting, setIsImporting] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -30,7 +31,7 @@ export function ImportDialog({}: {}) {
         if (!selectedFile) return;
 
         router.post(
-            productions.import.url(),
+            config.route,
             { file: selectedFile },
             {
                 forceFormData: true,

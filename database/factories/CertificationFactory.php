@@ -2,7 +2,7 @@
 
 namespace Database\Factories;
 
-use App\Models\Land;
+use App\Models\Hacienda;
 use App\Models\Planter;
 use App\Models\Production;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -16,7 +16,7 @@ class CertificationFactory extends Factory
     {
         return [
             'planter_id' => Planter::factory(),
-            'land_id' => Land::factory(),
+            'hacienda_id' => Hacienda::factory(),
             'production_id' => Production::factory(),
             'certification_type' => fake()->randomElement(['Organic', 'Good Agricultural Practices', 'Fair Trade', 'Other']),
             'issue_date' => fake()->date(),
@@ -29,7 +29,7 @@ class CertificationFactory extends Factory
         return $this->state(fn () => [
             'production_id' => $production->id,
             'planter_id' => $production->planter_id,
-            'land_id' => $production->land_id,
+            'hacienda_id' => $production->hacienda_id,
         ]);
     }
 }

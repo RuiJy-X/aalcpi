@@ -4,27 +4,26 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use App\Imports\PlanterImport;
 use App\Models\Planter;
 use App\Models\Production;
 use App\Models\Certification;
-use App\Models\Land;
+use App\Models\Hacienda;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Schema;
-
+use Maatwebsite\Excel\Facades\Excel;
 
 class PlanterController extends Controller
 {
     public function index()
     {
-        $plans = Planter::all();
-
-        $planter = Planter::with('lands')->get();
+        $planter = Planter::with('haciendas')->get();
         $productions = Production::with('planter')->get();
         $certifications = Certification::with('planter')->get();
-        $lands = Land::with('planter')->get();
+        $haciendas = Hacienda::with('planter')->get();
 
 
-        return Inertia::render('Planters/Index',['planters' => $planter, 'productions' => $productions, 'certifications' => $certifications, 'lands' => $lands ]);
+        return Inertia::render('Planters/Index',['planters' => $planter, 'productions' => $productions, 'certifications' => $certifications, 'haciendas' => $haciendas ]);
 
     }
 
@@ -37,6 +36,18 @@ class PlanterController extends Controller
         return Inertia::render('Planters/ViewCertificates', ['certificate'=> $certificate, 'planterName' => $certificate->planter->name]);
     }
 
+    public function data()
+    {
+        $planters = Planter::with('haciendas')->get();
+
+        return response()->json($planters);
+    }
+
+    public function header()
+    {
+        return response()->json(Schema::getColumnListing('planters'));
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -46,28 +57,28 @@ class PlanterController extends Controller
             'contact_number' => 'required|string',
             'tin_number'     => 'required|string|unique:planters,tin_number',
             'registration_date' => (now()->toDateString() >= $request->registration_date) ? 'required|date' : 'required|date|before_or_equal:today',
-            'lands' => 'nullable|array',
-            'lands.*.name' => 'required_with:lands|string|max:255',
-            'lands.*.land_code' => 'required_with:lands|string|max:255|unique:lands,land_code',
-            'lands.*.address' => 'required_with:lands|string|max:255',
-            'lands.*.area_hectares' => 'required_with:lands|numeric|min:0',
-            'lands.*.distance_from_urc' => 'required_with:lands|numeric|min:0',
-            'lands.*.is_active' => 'required_with:lands|boolean',
+            'haciendas' => 'nullable|array',
+            'haciendas.*.hacienda_code' => 'required_with:haciendas|string|max:255',
+            'haciendas.*.name' => 'required_with:haciendas|string|max:255',
+            'haciendas.*.address' => 'required_with:haciendas|string|max:255',
+            'haciendas.*.area_hectares' => 'required_with:haciendas|numeric|min:0',
+            'haciendas.*.distance_from_urc' => 'required_with:haciendas|numeric|min:0',
+            'haciendas.*.is_active' => 'required_with:haciendas|boolean',
         ]);
 
 
 
         $planter = Planter::create($validated);
-        $validatedLands = $validated['lands'] ?? [];
-        $validatedLands = array_values(array_filter($validatedLands, function ($land) {
-            return !empty($land['name'])
-                || !empty($land['address'])
-                || isset($land['area_hectares'])
-                || isset($land['distance_from_urc']);
+        $validatedhaciendas = $validated['haciendas'] ?? [];
+        $validatedhaciendas = array_values(array_filter($validatedhaciendas, function ($hacienda) {
+            return !empty($hacienda['name'])
+                || !empty($hacienda['address'])
+                || isset($hacienda['area_hectares'])
+                || isset($hacienda['distance_from_urc']);
         }));
 
-        if (!empty($validatedLands)) {
-            $planter->lands()->createMany($validatedLands);
+        if (!empty($validatedhaciendas)) {
+            $planter->haciendas()->createMany($validatedhaciendas);
         }
 
         return redirect()->back()->with('success', 'Planter created successfully!');
@@ -115,35 +126,48 @@ class PlanterController extends Controller
 
     public function show($id)
     {
-        $planter = Planter::with(['lands', 'productions', 'certifications'])->findOrFail($id);
+        $planter = Planter::with(['haciendas', 'productions', 'certifications'])->findOrFail($id);
 
-        $productions = Production::with(['planter', 'land'])
+        $productions = Production::with(['planter', 'hacienda'])
             ->where('planter_id', $planter->id)
-            ->orWhereHas('land', fn ($query) => $query->where('planter_id', $planter->id))
+            ->orWhereHas('hacienda', fn ($query) => $query->where('planter_id', $planter->id))
             ->latest()
             ->get();
         $productions->each(function ($production) {
             $production->planter_name = $production->planter ? $production->planter->name : null;
-            $production->land_address = $production->land ? $production->land->address : null;
-            $production->land_name = $production->land ? $production->land->name : null;
+            $production->hacienda_address = $production->hacienda ? $production->hacienda->address : null;
+            $production->hacienda_name = $production->hacienda ? $production->hacienda->name : null;
         });
 
-        $certifications = Certification::with(['planter', 'land', 'production'])
+        $certifications = Certification::with(['planter', 'hacienda', 'production'])
             ->where('planter_id', $planter->id)
             ->orWhereHas('production', fn ($query) => $query->where('planter_id', $planter->id))
             ->latest()
             ->get();
 
-        $lands = Land::with('planter')->where('planter_id', $id)->get()->map(function ($land) {
-            $land->planter_name = $land->planter ? $land->planter->name : '';
-            return $land;
+        $haciendas = Hacienda::with('planter')->where('planter_id', $id)->get()->map(function ($hacienda) {
+            $hacienda->planter_name = $hacienda->planter ? $hacienda->planter->name : '';
+            return $hacienda;
         });
 
         return Inertia::render('Planters/View', [
             'planter' => $planter,
-            'lands' => $lands,
+            'haciendas' => $haciendas,
             'productions' => $productions,
             'certifications' => $certifications,
         ]);
     }
+
+    public function import(Request $request)
+    {
+        // Implementation for importing productions
+
+        $file = $request->file('file');
+
+        Excel::import(new PlanterImport, $file);
+
+        return back()->with('success', 'Planter data imported successfully.');
+
+    }
+
 }

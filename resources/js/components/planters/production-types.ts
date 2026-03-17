@@ -1,6 +1,6 @@
 export type ProductionFormData = {
     planter_id: string;
-    land_id: string;
+    hacienda_id: string;
     production_year: number;
     production_month: number;
     gross_cw: number;

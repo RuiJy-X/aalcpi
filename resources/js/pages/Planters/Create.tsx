@@ -2,7 +2,7 @@ import { Head, Link, useForm } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import Heading from '@/components/heading';
-import NewLand from '@/components/planters/ui/new-land';
+import NewHacienda from '@/components/planters/ui/new-hacienda';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
@@ -24,17 +24,18 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 export default function Create() {
     const [showModal, setShowModal] = useState(false);
-    const [landCount, setlandCount] = useState<number[]>([0]);
-    const form = useForm({
+    const [haciendaCount, sethaciendaCount] = useState<number[]>([0]);
+    const { data, setData, errors, processing, post, reset } = useForm({
         planter_code: '',
         name: '',
         address: '',
         contact_number: '',
         tin_number: '',
         registration_date: new Date().toISOString().split('T')[0], // Default to today's date
-        lands: [
+        haciendas: [
             {
                 name: '',
+                hacienda_code: '',
                 address: '',
                 area_hectares: '',
                 distance_from_urc: '',
@@ -43,12 +44,13 @@ export default function Create() {
         ],
     });
 
-    const addLand = () => {
-        form.setData('lands', [
-            ...form.data.lands,
+    const addHacienda = () => {
+        setData('haciendas', [
+            ...data.haciendas,
             {
                 name: '',
                 address: '',
+                hacienda_code: '',
                 area_hectares: '',
                 distance_from_urc: '',
                 is_active: true,
@@ -56,56 +58,59 @@ export default function Create() {
         ]);
     };
 
-    const removeLand = (index: number) => {
-        const updatedLands = form.data.lands.filter((_, i) => i !== index);
-        form.setData('lands', updatedLands);
+    const removeHacienda = (index: number) => {
+        const updatedHaciendas = data.haciendas.filter((_, i) => i !== index);
+        setData('haciendas', updatedHaciendas);
     };
 
-    const handleOnChangeLand = (
+    const handleOnChangeHacienda = (
         index: number,
         field: string,
         value: string | boolean,
     ) => {
-        const updatedLands = form.data.lands.map((land, i) => {
+        const updatedHaciendas = data.haciendas.map((hacienda, i) => {
             if (i === index) {
                 return {
-                    ...land,
+                    ...hacienda,
                     [field]: value,
                 };
             }
-            return land;
+            return hacienda;
         });
-        form.setData('lands', updatedLands);
+        setData('haciendas', updatedHaciendas);
     };
 
-    const handleAddLand = () => {
-        const nextId = landCount.length ? Math.max(...landCount) + 1 : 1;
-        setlandCount((prev) => [...prev, nextId]);
-        addLand();
+    const handleAddHacienda = () => {
+        const nextId = haciendaCount.length
+            ? Math.max(...haciendaCount) + 1
+            : 1;
+        sethaciendaCount((prev) => [...prev, nextId]);
+        addHacienda();
     };
 
-    const handleRemoveLand = (landId: number) => {
-        setlandCount((prev) => prev.filter((id) => id !== landId));
-        removeLand(landId);
+    const handleRemoveHacienda = (haciendaId: number) => {
+        sethaciendaCount((prev) => prev.filter((id) => id !== haciendaId));
+        removeHacienda(haciendaId);
     };
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
 
-        form.post(store.url(), {
+        post(store.url(), {
             onSuccess: () => {
                 setShowModal(true);
-                form.reset(); // Reset form data
-                setlandCount([0]); // Reset landCount to its initial state
-                form.setData('lands', [
+                reset(); // Reset form data
+                sethaciendaCount([0]); // Reset haciendaCount to its initial state
+                setData('haciendas', [
                     {
                         name: '',
+                        hacienda_code: '',
                         address: '',
                         area_hectares: '',
                         distance_from_urc: '',
                         is_active: true,
                     },
-                ]); // Reset lands array explicitly
+                ]); // Reset haciendas array explicitly
             },
             onError: (errors) => {
                 console.error('Form submission errors:', errors);
@@ -150,14 +155,14 @@ export default function Create() {
                                 id="planter_code"
                                 name="planter_code"
                                 placeholder="Enter planter code"
-                                value={form.data.planter_code}
+                                value={data.planter_code}
                                 onChange={(e) =>
-                                    form.setData('planter_code', e.target.value)
+                                    setData('planter_code', e.target.value)
                                 }
                             />
-                            {form.errors.planter_code && (
+                            {errors.planter_code && (
                                 <p className="text-sm text-red-500">
-                                    {form.errors.planter_code}
+                                    {errors.planter_code}
                                 </p>
                             )}
                         </Field>
@@ -167,14 +172,14 @@ export default function Create() {
                                 id="name"
                                 name="name"
                                 placeholder="Enter planter name"
-                                value={form.data.name}
+                                value={data.name}
                                 onChange={(e) =>
-                                    form.setData('name', e.target.value)
+                                    setData('name', e.target.value)
                                 }
                             />
-                            {form.errors.name && (
+                            {errors.name && (
                                 <p className="text-sm text-red-500">
-                                    {form.errors.name}
+                                    {errors.name}
                                 </p>
                             )}
                         </Field>
@@ -184,14 +189,14 @@ export default function Create() {
                                 id="address"
                                 name="address"
                                 placeholder="Enter address"
-                                value={form.data.address}
+                                value={data.address}
                                 onChange={(e) =>
-                                    form.setData('address', e.target.value)
+                                    setData('address', e.target.value)
                                 }
                             />
-                            {form.errors.address && (
+                            {errors.address && (
                                 <p className="text-sm text-red-500">
-                                    {form.errors.address}
+                                    {errors.address}
                                 </p>
                             )}
                         </Field>
@@ -203,17 +208,14 @@ export default function Create() {
                                 id="contact_number"
                                 name="contact_number"
                                 placeholder="Enter contact number"
-                                value={form.data.contact_number}
+                                value={data.contact_number}
                                 onChange={(e) =>
-                                    form.setData(
-                                        'contact_number',
-                                        e.target.value,
-                                    )
+                                    setData('contact_number', e.target.value)
                                 }
                             />
-                            {form.errors.contact_number && (
+                            {errors.contact_number && (
                                 <p className="text-sm text-red-500">
-                                    {form.errors.contact_number}
+                                    {errors.contact_number}
                                 </p>
                             )}
                         </Field>
@@ -223,25 +225,26 @@ export default function Create() {
                                 id="tin_number"
                                 name="tin_number"
                                 placeholder="Enter TIN number"
-                                value={form.data.tin_number}
+                                value={data.tin_number}
                                 onChange={(e) =>
-                                    form.setData('tin_number', e.target.value)
+                                    setData('tin_number', e.target.value)
                                 }
                             />
-                            {form.errors.tin_number && (
+                            {errors.tin_number && (
                                 <p className="text-sm text-red-500">
-                                    {form.errors.tin_number}
+                                    {errors.tin_number}
                                 </p>
                             )}
                         </Field>
                     </div>
-                    {landCount.map((landId) => (
-                        <NewLand
-                            key={landId}
-                            landId={landId}
-                            land={form.data.lands[landId]}
-                            onRemove={handleRemoveLand}
-                            handleOnChangeLand={handleOnChangeLand}
+                    {haciendaCount.map((haciendaId) => (
+                        <NewHacienda
+                            key={haciendaId}
+                            errors={errors}
+                            haciendaId={haciendaId}
+                            hacienda={data.haciendas[haciendaId]}
+                            onRemove={handleRemoveHacienda}
+                            handleOnChangeHacienda={handleOnChangeHacienda}
                         />
                     ))}
 
@@ -249,10 +252,10 @@ export default function Create() {
                         type="button"
                         variant="outline"
                         className="mt-3"
-                        onClick={handleAddLand}
+                        onClick={handleAddHacienda}
                     >
                         <Plus />
-                        Add Lands
+                        Add Haciendas
                     </Button>
 
                     <div className="mt-6 flex justify-end gap-2">
@@ -261,8 +264,8 @@ export default function Create() {
                                 Cancel
                             </Button>
                         </Link>
-                        <Button type="submit" disabled={form.processing}>
-                            {form.processing ? 'Registering...' : 'Register'}
+                        <Button type="submit" disabled={processing}>
+                            {processing ? 'Registering...' : 'Register'}
                         </Button>
                     </div>
                 </form>

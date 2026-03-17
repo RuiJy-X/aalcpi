@@ -8,7 +8,7 @@ import { router } from '@inertiajs/react';
 import Heading from '@/components/heading';
 import {
     certificationBulkDelete,
-    landBulkDelete,
+    haciendaBulkDelete,
     productionBulkDelete,
 } from '@/components/data-table/bulk-delete';
 import { certificationColumns } from '@/components/data-table/certification-columns';
@@ -17,7 +17,7 @@ import { productionColumns } from '@/components/data-table/production-columns';
 import { Plus } from 'lucide-react';
 import type {
     CertificationRow,
-    LandRow,
+    HaciendaRow,
     PlanterRow,
     ProductionRow,
 } from '@/components/planters/planters-table-types';
@@ -30,25 +30,25 @@ import { TabsTrigger, TabsList, Tabs } from '@/components/ui/tabs';
 import AppLayout from '@/layouts/app-layout';
 import { index as plantersIndex } from '@/routes/planters';
 import { create as createPage } from '@/routes/planters';
-import { create as createLand } from '@/routes/lands';
-import { show as landShow } from '@/routes/lands';
+import { create as createHacienda } from '@/routes/haciendas';
+import { show as haciendaShow } from '@/routes/haciendas';
 import { show as productionShow } from '@/routes/productions';
 import type { BreadcrumbItem } from '@/types';
 import { useState } from 'react';
 import PersonalInfo from '@/components/planters/planter-view/personal-info';
-import LandsInfo from '@/components/planters/planter-view/lands-info';
+import HaciendasInfo from '@/components/planters/planter-view/haciendas-info';
 import { show as planterShow } from '@/routes/planters';
 import ViewLayout from '@/components/planters/planter-view/view-layout';
-import { landColumns } from '@/components/data-table/land-columns';
+import { haciendaColumns } from '@/components/data-table/hacienda-columns';
 
 export default function Index({
     planter,
-    lands,
+    haciendas,
     productions,
     certifications,
 }: {
     planter: PlanterRow;
-    lands: LandRow[];
+    haciendas: HaciendaRow[];
     productions: ProductionRow[];
     certifications: CertificationRow[];
 }) {
@@ -89,9 +89,9 @@ export default function Index({
                             <User />
                             Productions
                         </TabsTrigger>
-                        <TabsTrigger value="lands">
+                        <TabsTrigger value="haciendas">
                             <User />
-                            Lands
+                            Haciendas
                         </TabsTrigger>
                         <TabsTrigger value="certifications">
                             <User />
@@ -101,12 +101,12 @@ export default function Index({
                 </Tabs>
                 <Button
                     variant="outline"
-                    onClick={() => router.get(createLand(planter.id).url)}
+                    onClick={() => router.get(createHacienda(planter.id).url)}
                 >
                     <i>
                         <Plus />
                     </i>
-                    Add Land
+                    Add Hacienda
                 </Button>
             </ActionContainer>
             <ViewLayout>
@@ -115,12 +115,14 @@ export default function Index({
                     description="Viewing planter details of a specific planter"
                 />
                 {activeTab === 'planters' && <PersonalInfo planter={planter} />}
-                {activeTab === 'lands' && (
+                {activeTab === 'haciendas' && (
                     <DataTable
-                        data={lands}
-                        columns={landColumns}
-                        bulkDelete={landBulkDelete}
-                        onRowDoubleClick={(land) => landShow(land.id).url}
+                        data={haciendas}
+                        columns={haciendaColumns}
+                        bulkDelete={haciendaBulkDelete}
+                        onRowDoubleClick={(hacienda) =>
+                            haciendaShow(hacienda.id).url
+                        }
                     />
                 )}
                 {activeTab === 'productions' && (

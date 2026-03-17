@@ -19,7 +19,8 @@ import AppLayout from '@/layouts/app-layout';
 import { index as productionsIndex } from '@/routes/productions';
 import { show as productionShow } from '@/routes/productions';
 import type { BreadcrumbItem } from '@/types';
-import { ImportDialog } from '@/components/import-dialog';
+import { ImportDialog } from '@/components/import/import-dialog';
+import { productionsImportConfig } from '@/components/import/import-config';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -39,7 +40,7 @@ export default function Index({
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Productions"></Head>
             <ActionContainer className="">
-                <ImportDialog />
+                <ImportDialog config={productionsImportConfig} />
             </ActionContainer>
 
             <StatsContainer label="Production Statistics">

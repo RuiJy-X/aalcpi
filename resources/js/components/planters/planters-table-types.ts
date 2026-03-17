@@ -15,10 +15,10 @@ export type PlanterRow = {
     updated_at?: string;
 };
 
-export type LandRow = {
+export type HaciendaRow = {
     id: string;
     planter_name: string; // Temporary field to hold planter name for display purposes
-    land_code: string;
+    hacienda_code: string;
     planter_id: string;
     name: string;
     address: string;
@@ -31,12 +31,12 @@ export type LandRow = {
 export type ProductionRow = {
     id: string;
     planter_id: string;
-    land_id: string;
-    land_code: string;
+    hacienda_id: string;
+    hacienda_code: string;
     planter_code: string;
     planter_name: string;
-    land_name: string;
-    land_address: string;
+    hacienda_name: string;
+    hacienda_address: string;
     production_year: number;
     production_month: number;
     gross_cw: number;
@@ -58,7 +58,7 @@ export type ProductionRow = {
 export type CertificationRow = {
     id: string;
     planter_id: string;
-    land_id: string;
+    hacienda_id: string;
     production_id: string;
     certification_type: string;
     issue_date: string;

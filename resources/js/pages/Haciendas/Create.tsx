@@ -4,43 +4,43 @@ import { useState, type FormEvent } from 'react';
 import Heading from '@/components/heading';
 import type {
     PlanterRow,
-    LandRow,
+    HaciendaRow,
 } from '@/components/planters/planters-table-types';
-import NewLand from '@/components/planters/ui/new-land';
+import NewHacienda from '@/components/planters/ui/new-hacienda';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
-import { index as landIndex, create, store } from '@/routes/lands';
+import { index as haciendaIndex, create, store } from '@/routes/haciendas';
 import { show as planterShow } from '@/routes/planters';
 import type { BreadcrumbItem } from '@/types';
 
 export default function Create({
     planter,
-    lands,
+    haciendas,
 }: {
     planter: PlanterRow;
-    lands: LandRow[];
+    haciendas: HaciendaRow[];
 }) {
     const breadcrumbs: BreadcrumbItem[] = [
         {
-            title: 'Land Management',
-            href: landIndex.url(),
+            title: 'Hacienda Management',
+            href: haciendaIndex.url(),
         },
         {
-            title: 'Register Land',
+            title: 'Register Hacienda',
             href: create.url(planter.id),
         },
     ];
     const [showModal, setShowModal] = useState(false);
 
-    const [landCount, setlandCount] = useState<number[]>([]);
+    const [haciendaCount, sethaciendaCount] = useState<number[]>([]);
 
     const { data, setData, post, processing } = useForm({
-        lands: [] as {
+        haciendas: [] as {
             name: string;
-            land_code: string;
+            hacienda_code: string;
             address: string;
             area_hectares: string;
             distance_from_urc: string;
@@ -48,12 +48,12 @@ export default function Create({
         }[],
     });
 
-    const addLand = () => {
-        setData('lands', [
-            ...data.lands,
+    const addHacienda = () => {
+        setData('haciendas', [
+            ...data.haciendas,
             {
                 name: '',
-                land_code: '',
+                hacienda_code: '',
                 address: '',
                 area_hectares: '',
                 distance_from_urc: '',
@@ -62,35 +62,37 @@ export default function Create({
         ]);
     };
 
-    const handleOnChangeLand = (
+    const handleOnChangeHacienda = (
         index: number,
         field: string,
         value: string | boolean,
     ) => {
-        const updatedLands = data.lands.map((land, i) => {
+        const updatedHaciendas = data.haciendas.map((hacienda, i) => {
             if (i === index) {
                 return {
-                    ...land,
+                    ...hacienda,
                     [field]: value,
                 };
             }
-            return land;
+            return hacienda;
         });
-        setData('lands', updatedLands);
+        setData('haciendas', updatedHaciendas);
     };
 
-    const handleAddLand = () => {
-        const nextId = landCount.length ? Math.max(...landCount) + 1 : 0;
-        setlandCount((prev) => [...prev, nextId]);
-        addLand();
+    const handleAddHacienda = () => {
+        const nextId = haciendaCount.length
+            ? Math.max(...haciendaCount) + 1
+            : 0;
+        sethaciendaCount((prev) => [...prev, nextId]);
+        addHacienda();
     };
 
-    const handleRemoveLand = (landId: number) => {
-        const idx = landCount.indexOf(landId);
-        setlandCount((prev) => prev.filter((id) => id !== landId));
+    const handleRemoveHacienda = (haciendaId: number) => {
+        const idx = haciendaCount.indexOf(haciendaId);
+        sethaciendaCount((prev) => prev.filter((id) => id !== haciendaId));
         if (idx !== -1) {
-            const updatedLands = data.lands.filter((_, i) => i !== idx);
-            setData('lands', updatedLands);
+            const updatedHaciendas = data.haciendas.filter((_, i) => i !== idx);
+            setData('haciendas', updatedHaciendas);
         }
     };
 
@@ -100,8 +102,8 @@ export default function Create({
         post(store.url(planter.id), {
             onSuccess: () => {
                 setShowModal(true);
-                setlandCount([]);
-                setData('lands', []);
+                sethaciendaCount([]);
+                setData('haciendas', []);
             },
             onError: (errors) => {
                 console.error('Form submission errors:', errors);
@@ -111,18 +113,18 @@ export default function Create({
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Register Land" />
+            <Head title="Register Hacienda" />
             <div className="px-4 py-6">
                 <Heading
                     className="mb-7 flex w-full flex-col justify-center text-center"
-                    title="Register new lands"
-                    description="Add new lands for this planter"
+                    title="Register new haciendas"
+                    description="Add new haciendas for this planter"
                 />
                 {showModal && (
                     <div className="modal-overlay">
                         <div className="modal-content">
                             <h2>Success!</h2>
-                            <p>Land has been registered.</p>
+                            <p>Hacienda has been registered.</p>
                             <button onClick={() => setShowModal(false)}>
                                 Close
                             </button>
@@ -178,45 +180,48 @@ export default function Create({
                         </Field>
                     </div>
 
-                    {lands.length > 0 && (
+                    {haciendas.length > 0 && (
                         <div className="mt-4">
                             <h3 className="text-lg font-semibold">
-                                Existing Lands
+                                Existing Haciendas
                             </h3>
-                            {lands.map((land, index) => (
+                            {haciendas.map((hacienda, index) => (
                                 <div
-                                    key={land.id}
+                                    key={hacienda.id}
                                     className="mt-2 grid grid-cols-1 gap-4 border bg-gray-50 bg-white p-4 md:grid-cols-2"
                                 >
                                     <h4 className="col-span-2 font-medium">
-                                        Land #{index + 1}
+                                        Hacienda #{index + 1}
                                     </h4>
                                     <Field>
-                                        <Label>Land Code</Label>
+                                        <Label>Hacienda Code</Label>
                                         <Input
-                                            value={land.land_code}
+                                            value={hacienda.hacienda_code}
                                             disabled
                                         />
                                     </Field>
                                     <Field>
-                                        <Label>Land Name</Label>
-                                        <Input value={land.name} disabled />
+                                        <Label>Hacienda Name</Label>
+                                        <Input value={hacienda.name} disabled />
                                     </Field>
                                     <Field>
                                         <Label>Address</Label>
-                                        <Input value={land.address} disabled />
+                                        <Input
+                                            value={hacienda.address}
+                                            disabled
+                                        />
                                     </Field>
                                     <Field>
                                         <Label>Area (ha)</Label>
                                         <Input
-                                            value={land.area_hectares}
+                                            value={hacienda.area_hectares}
                                             disabled
                                         />
                                     </Field>
                                     <Field>
                                         <Label>Distance from URC (km)</Label>
                                         <Input
-                                            value={land.distance_from_urc}
+                                            value={hacienda.distance_from_urc}
                                             disabled
                                         />
                                     </Field>
@@ -224,7 +229,7 @@ export default function Create({
                                         <Label>Status</Label>
                                         <Input
                                             value={
-                                                land.is_active
+                                                hacienda.is_active
                                                     ? 'Active'
                                                     : 'Inactive'
                                             }
@@ -236,15 +241,17 @@ export default function Create({
                         </div>
                     )}
 
-                    <h3 className="mt-6 text-lg font-semibold">New Lands</h3>
+                    <h3 className="mt-6 text-lg font-semibold">
+                        New Haciendas
+                    </h3>
 
-                    {landCount.map((landId, idx) => (
-                        <NewLand
-                            key={landId}
-                            landId={idx}
-                            land={data.lands[idx]}
-                            onRemove={() => handleRemoveLand(landId)}
-                            handleOnChangeLand={handleOnChangeLand}
+                    {haciendaCount.map((haciendaId, idx) => (
+                        <NewHacienda
+                            key={haciendaId}
+                            haciendaId={idx}
+                            hacienda={data.haciendas[idx]}
+                            onRemove={() => handleRemoveHacienda(haciendaId)}
+                            handleOnChangeHacienda={handleOnChangeHacienda}
                         />
                     ))}
 
@@ -252,10 +259,10 @@ export default function Create({
                         type="button"
                         variant="outline"
                         className="mt-3"
-                        onClick={handleAddLand}
+                        onClick={handleAddHacienda}
                     >
                         <Plus />
-                        Add Land
+                        Add Hacienda
                     </Button>
 
                     <div className="mt-6 flex justify-end gap-2">
@@ -266,9 +273,9 @@ export default function Create({
                         </Link>
                         <Button
                             type="submit"
-                            disabled={processing || data.lands.length === 0}
+                            disabled={processing || data.haciendas.length === 0}
                         >
-                            {processing ? 'Saving...' : 'Save Lands'}
+                            {processing ? 'Saving...' : 'Save Haciendas'}
                         </Button>
                     </div>
                 </form>

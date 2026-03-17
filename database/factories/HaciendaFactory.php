@@ -6,15 +6,15 @@ use App\Models\Planter;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Land>
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Hacienda>
  */
-class LandFactory extends Factory
+class HaciendaFactory extends Factory
 {
     public function definition(): array
     {
         return [
             'planter_id' => Planter::factory(),
-            'land_code' => strtoupper(fake()->unique()->bothify('LAND-#####')),
+            'hacienda_code' => strtoupper(fake()->unique()->bothify('HACIENDA-#####')),
             'name' => fake()->words(2, true),
             'address' => fake()->address(),
             'area_hectares' => fake()->randomFloat(2, 0.1, 50),

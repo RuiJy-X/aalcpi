@@ -1,6 +1,6 @@
 import type {
     CertificationRow,
-    LandRow,
+    HaciendaRow,
     PlanterRow,
     ProductionRow,
 } from '@/components/planters/planters-table-types';
@@ -23,9 +23,9 @@ export const productionBulkDelete: BulkDeleteConfig<ProductionRow> = {
     getRowId: (row) => row.id,
 };
 
-export const landBulkDelete: BulkDeleteConfig<LandRow> = {
-    endpoint: '/Lands/bulk-delete',
-    entityName: 'land',
+export const haciendaBulkDelete: BulkDeleteConfig<HaciendaRow> = {
+    endpoint: '/HACIENDAS/bulk-delete',
+    entityName: 'HACIENDA',
     getRowId: (row) => row.id,
 };
 
