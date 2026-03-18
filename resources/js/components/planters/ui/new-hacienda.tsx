@@ -7,7 +7,7 @@ import type { HaciendaRow } from '../planters-table-types';
 
 interface Props {
     haciendaId: number;
-    errors?: any;
+    errors?: Record<string, string>;
     onRemove: (haciendaId: number) => void;
     hacienda: HaciendaFormData;
     handleOnChangeHacienda: (
@@ -58,7 +58,7 @@ const NewHacienda = ({
     onRemove,
     hacienda,
     handleOnChangeHacienda,
-    errors,
+    errors = {},
 }: Props) => {
     return (
         <div className="mt-4 flex flex-col gap-4 border bg-white p-4">

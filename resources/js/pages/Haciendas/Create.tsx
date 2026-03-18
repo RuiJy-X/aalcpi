@@ -37,7 +37,7 @@ export default function Create({
 
     const [haciendaCount, sethaciendaCount] = useState<number[]>([]);
 
-    const { data, setData, post, processing } = useForm({
+    const { data, setData, post, processing, errors } = useForm({
         haciendas: [] as {
             name: string;
             hacienda_code: string;
@@ -185,59 +185,68 @@ export default function Create({
                             <h3 className="text-lg font-semibold">
                                 Existing Haciendas
                             </h3>
-                            {haciendas.map((hacienda, index) => (
-                                <div
-                                    key={hacienda.id}
-                                    className="mt-2 grid grid-cols-1 gap-4 border bg-gray-50 bg-white p-4 md:grid-cols-2"
-                                >
-                                    <h4 className="col-span-2 font-medium">
-                                        Hacienda #{index + 1}
-                                    </h4>
-                                    <Field>
-                                        <Label>Hacienda Code</Label>
-                                        <Input
-                                            value={hacienda.hacienda_code}
-                                            disabled
-                                        />
-                                    </Field>
-                                    <Field>
-                                        <Label>Hacienda Name</Label>
-                                        <Input value={hacienda.name} disabled />
-                                    </Field>
-                                    <Field>
-                                        <Label>Address</Label>
-                                        <Input
-                                            value={hacienda.address}
-                                            disabled
-                                        />
-                                    </Field>
-                                    <Field>
-                                        <Label>Area (ha)</Label>
-                                        <Input
-                                            value={hacienda.area_hectares}
-                                            disabled
-                                        />
-                                    </Field>
-                                    <Field>
-                                        <Label>Distance from URC (km)</Label>
-                                        <Input
-                                            value={hacienda.distance_from_urc}
-                                            disabled
-                                        />
-                                    </Field>
-                                    <Field>
-                                        <Label>Status</Label>
-                                        <Input
-                                            value={
-                                                hacienda.is_active
-                                                    ? 'Active'
-                                                    : 'Inactive'
-                                            }
-                                            disabled
-                                        />
-                                    </Field>
-                                </div>
-                            ))}
+                            {haciendas.map((hacienda, index) => {
+                                return (
+                                    <div
+                                        key={hacienda.id}
+                                        className="mt-2 grid grid-cols-1 gap-4 border bg-gray-50 bg-white p-4 md:grid-cols-2"
+                                    >
+                                        <h4 className="col-span-2 font-medium">
+                                            Hacienda #{index + 1}
+                                        </h4>
+                                        <Field>
+                                            <Label>Hacienda Code</Label>
+                                            <Input
+                                                value={hacienda.hacienda_code}
+                                                disabled
+                                            />
+                                        </Field>
+                                        <Field>
+                                            <Label>Hacienda Name</Label>
+                                            <Input
+                                                value={hacienda.name}
+                                                disabled
+                                            />
+                                        </Field>
+                                        <Field>
+                                            <Label>Address</Label>
+                                            <Input
+                                                value={hacienda.address}
+                                                disabled
+                                            />
+                                        </Field>
+                                        <Field>
+                                            <Label>Area (ha)</Label>
+                                            <Input
+                                                value={hacienda.area_hectares}
+                                                disabled
+                                            />
+                                        </Field>
+                                        <Field>
+                                            <Label>
+                                                Distance from URC (km)
+                                            </Label>
+                                            <Input
+                                                value={
+                                                    hacienda.distance_from_urc
+                                                }
+                                                disabled
+                                            />
+                                        </Field>
+                                        <Field>
+                                            <Label>Status</Label>
+                                            <Input
+                                                value={
+                                                    hacienda.is_active
+                                                        ? 'Active'
+                                                        : 'Inactive'
+                                                }
+                                                disabled
+                                            />
+                                        </Field>
+                                    </div>
+                                );
+                            })}
                         </div>
                     )}
 
@@ -250,6 +259,7 @@ export default function Create({
                             key={haciendaId}
                             haciendaId={idx}
                             hacienda={data.haciendas[idx]}
+                            errors={errors}
                             onRemove={() => handleRemoveHacienda(haciendaId)}
                             handleOnChangeHacienda={handleOnChangeHacienda}
                         />
