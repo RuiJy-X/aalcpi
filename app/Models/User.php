@@ -22,6 +22,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
+        'employee_id',
     ];
 
     /**
@@ -48,5 +50,25 @@ class User extends Authenticatable
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
         ];
+    }
+
+    public function employee(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class);
+    }
+
+    public function isManager(): bool
+    {
+        return $this->role === 'manager';
+    }
+
+    public function isCertOfficer(): bool
+    {
+        return $this->role === 'cert_officer';
+    }
+
+    public function isEmployee() 
+    {
+        return $this->role === 'employee';
     }
 }
