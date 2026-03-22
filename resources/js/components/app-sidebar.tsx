@@ -1,4 +1,5 @@
 import { Link } from '@inertiajs/react';
+import { usePage } from '@inertiajs/react';
 import {
     BookOpen,
     Briefcase,
@@ -27,55 +28,63 @@ import { index as employeeIndex } from '@/routes/employees';
 import { index as haciendasIndex } from '@/routes/haciendas';
 import { index as plantersIndex } from '@/routes/planters';
 import { index as productionsIndex } from '@/routes/productions';
-import type { NavItem } from '@/types';
+import { index as userIndex } from '@/routes/users';
+import type { NavItem, SharedData } from '@/types';
 import AppLogo from './app-logo';
 
-const mainNavItems: NavItem[] = [
-    {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-    {
-        title: 'Planters',
-        href: plantersIndex(),
-        icon: User,
-    },
-    {
-        title: 'Haciendas',
-        href: haciendasIndex(),
-        icon: LandPlot,
-    },
-    {
-        title: 'Productions',
-        href: productionsIndex(),
-        icon: BookOpen,
-    },
-    {
-        title: 'Certifications',
-        href: certificationIndex(),
-        icon: ShieldCheck,
-    },
-    {
-        title: 'Employees',
-        href: employeeIndex(),
-        icon: Briefcase,
-    },
-    // {
-    //     title: 'Payroll',
-    //     href: '/', // Replace with actual route
-    //     icon: DollarSign,
-    // },
-    // {
-    //     title: 'Attendance',
-    //     href: '/', // Replace with actual route
-    //     icon: Clipboard,
-    // },
-];
-
-const footerNavItems: NavItem[] = [];
-
 export function AppSidebar() {
+    const { auth } = usePage<SharedData>().props;
+
+    const isAdmin =
+        auth?.user?.role === 'admin' || auth?.user?.role === 'manager';
+
+    const defaultNavItems: NavItem[] = [
+        {
+            title: 'Dashboard',
+            href: dashboard(),
+            icon: LayoutGrid,
+        },
+        {
+            title: 'Planters',
+            href: plantersIndex(),
+            icon: User,
+        },
+        {
+            title: 'Haciendas',
+            href: haciendasIndex(),
+            icon: LandPlot,
+        },
+        {
+            title: 'Productions',
+            href: productionsIndex(),
+            icon: BookOpen,
+        },
+        {
+            title: 'Certifications',
+            href: certificationIndex(),
+            icon: ShieldCheck,
+        },
+        {
+            title: 'Employees',
+            href: employeeIndex(),
+            icon: Briefcase,
+        },
+    ];
+
+    const adminNavItems: NavItem[] = [
+        {
+            title: 'User Management',
+            href: userIndex(),
+            icon: Clipboard,
+        },
+    ];
+
+    const mainNavItems: NavItem[] = [
+        ...defaultNavItems,
+        ...(isAdmin ? adminNavItems : []),
+    ];
+
+    const footerNavItems: NavItem[] = [];
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>

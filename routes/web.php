@@ -6,8 +6,9 @@ use App\Http\Controllers\CertificationController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\PayrollController;
 use App\Http\Controllers\HaciendaController;
-use App\Http\Controllers\UserController; // Import this!
+use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
+
 use Inertia\Inertia;
 
 Route::get('/', function () {
@@ -23,7 +24,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // --- MANAGER ---
     Route::middleware('role:manager')->group(function () {
-        // User Management (This is where you use UserController)
+        // User Management
         Route::get('/Users', [UserController::class, 'index'])->name('users.index');
         Route::post('/Users', [UserController::class, 'store'])->name('users.store');
         Route::delete('/Users/{id}', [UserController::class, 'destroy'])->name('users.destroy');

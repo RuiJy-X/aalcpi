@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Employee;
 use Illuminate\Http\Request;
@@ -12,7 +13,7 @@ class UserController extends Controller
 {
     public function index()
     {
-        return Inertia::render('Admin/UserManagement', [
+        return Inertia::render('Users/Index', [
             'users' => User::all(),
             'employees' => Employee::all(),
         ]);
