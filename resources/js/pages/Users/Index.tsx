@@ -1,22 +1,13 @@
-import { Head, Link } from '@inertiajs/react';
-import { BookOpen, Import, LandPlot, ShieldCheck, User } from 'lucide-react';
-import ActionContainer from '@/components/action-container';
-import { haciendaBulkDelete } from '@/components/data-table/bulk-delete';
+import { Head } from '@inertiajs/react';
 import { DataTable } from '@/components/data-table/data-table';
-import { haciendaColumns } from '@/components/data-table/hacienda-columns';
-import { HaciendaDialog } from '@/components/haciendas/haciendas-dialog';
-import HaciendaStats from '@/components/haciendas/stat-cards/HaciendaStats';
-import type {
-    HaciendaRow,
-    PlanterRow,
-} from '@/components/planters/planters-table-types';
-// import PlantersTabsTable from '@/components/planters/planters-tabs-table';
-import StatsContainer from '@/components/stats-container';
-import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import { index as userIndex } from '@/routes/users';
+import { show as userShow } from '@/routes/users';
 import type { BreadcrumbItem } from '@/types';
 import Container from '@/components/container';
+import CreateUserForm from '@/components/users/create-user-form';
+import { usersColumns } from '@/components/data-table/users-columns';
+import type { UserRow } from '@/components/types/usertypes';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -25,13 +16,23 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function Index() {
+export default function Index({ users }: { users: UserRow[] }) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Users"></Head>
 
             <Container>
                 <h1 className="font-semibold">Create a new User</h1>
+                <CreateUserForm />
+            </Container>
+
+            <Container>
+                <h1 className="mb-5 font-semibold">Users Table</h1>
+                <DataTable
+                    columns={usersColumns}
+                    data={users}
+                    onRowDoubleClick={(user) => userShow(user.id).url}
+                />
             </Container>
         </AppLayout>
     );

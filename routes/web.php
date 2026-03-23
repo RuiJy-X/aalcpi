@@ -28,6 +28,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/Users', [UserController::class, 'index'])->name('users.index');
         Route::post('/Users', [UserController::class, 'store'])->name('users.store');
         Route::delete('/Users/{id}', [UserController::class, 'destroy'])->name('users.destroy');
+        Route::get('/Users/{id}', [UserController::class, 'show'])->name('users.show');
 
         Route::get('/Employees', [EmployeeController::class, 'index'])->name('employees.index');
         // Add later the other routes like payroll, attendance, ... of all the employees records

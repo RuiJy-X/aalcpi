@@ -39,4 +39,11 @@ class UserController extends Controller
 
         return back()->with('success', 'User created successfully!');
     }
+
+    public function show($id){
+        $user = User::findOrFail($id);
+        return Inertia::render('Users/Show', [
+            'user' => $user,
+        ]);
+    }
 }
