@@ -40,6 +40,7 @@ class PlanterController extends Controller
     {
         $planters = Planter::with('haciendas')->get();
 
+
         return response()->json($planters);
     }
 

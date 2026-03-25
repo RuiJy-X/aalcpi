@@ -8,6 +8,7 @@ import { Field } from '@/components/ui/field';
 import { FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { update as plantersViewUpdate } from '@/routes/planters';
+import PlanterCard from './planter-card';
 
 const PersonalInfo = ({ planter }: { planter: PlanterRow }) => {
     const [isEditing, setIsEditing] = useState(false);
@@ -148,37 +149,7 @@ const PersonalInfo = ({ planter }: { planter: PlanterRow }) => {
                     </form>
                 ) : (
                     <div className="flex flex-col gap-6">
-                        <div className="flex flex-row flex-wrap gap-4">
-                            {fields.slice(0, 4).map((field) => (
-                                <div
-                                    key={field.key}
-                                    className="flex w-full flex-col md:w-[calc(50%-0.5rem)]"
-                                >
-                                    <span className="text-sm font-medium text-gray-500">
-                                        {field.label}
-                                    </span>
-                                    <span className="text-sm">
-                                        {field.value}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                        <hr />
-                        <div className="flex flex-row flex-wrap gap-4">
-                            {fields.slice(4).map((field) => (
-                                <div
-                                    key={field.key}
-                                    className="flex w-full flex-col md:w-[calc(50%-0.5rem)]"
-                                >
-                                    <span className="text-sm font-medium text-gray-500">
-                                        {field.label}
-                                    </span>
-                                    <span className="text-sm">
-                                        {field.value}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
+                        <PlanterCard planter={planter} />
                     </div>
                 )}
             </CardContent>

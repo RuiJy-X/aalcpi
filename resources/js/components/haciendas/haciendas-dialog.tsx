@@ -42,7 +42,7 @@ export function HaciendaDialog({
                     Add Haciendas
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-sm">
+            <DialogContent className="bg-card sm:max-w-sm">
                 <DialogHeader>
                     <DialogTitle>Choose Planter</DialogTitle>
                     <DialogDescription>

@@ -21,6 +21,7 @@ import { show as productionShow } from '@/routes/productions';
 import type { BreadcrumbItem } from '@/types';
 import { ImportDialog } from '@/components/import/import-dialog';
 import { productionsImportConfig } from '@/components/import/import-config';
+import { Container, ContainerHeader } from '@/components/container';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -50,7 +51,8 @@ export default function Index({
                 />
             </StatsContainer>
 
-            <div className="container-full px-3 py-2">
+            <Container>
+                <ContainerHeader>Planters Table</ContainerHeader>
                 <DataTable
                     columns={productionColumns}
                     data={productions}
@@ -60,7 +62,7 @@ export default function Index({
                         productionShow(production.id).url
                     }
                 />
-            </div>
+            </Container>
         </AppLayout>
     );
 }

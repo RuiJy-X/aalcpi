@@ -17,6 +17,7 @@ import AppLayout from '@/layouts/app-layout';
 import { index as haciendasIndex } from '@/routes/haciendas';
 import { show as haciendaShow } from '@/routes/haciendas';
 import type { BreadcrumbItem } from '@/types';
+import { Container, ContainerHeader } from '@/components/container';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -93,7 +94,8 @@ export default function Index({
                 <HaciendaStats haciendas={haciendas} />
             </StatsContainer>
 
-            <div className="container-full px-3 py-2">
+            <Container>
+                <ContainerHeader>Hacienda Table</ContainerHeader>
                 <DataTable
                     columns={haciendaColumns}
                     data={haciendas}
@@ -102,7 +104,7 @@ export default function Index({
                         haciendaShow(hacienda.id).url
                     }
                 />
-            </div>
+            </Container>
         </AppLayout>
     );
 }

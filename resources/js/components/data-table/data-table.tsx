@@ -223,7 +223,7 @@ export function DataTable<TData, TValue>({
         selectedCount === 1 ? entityLabel : `${entityLabel}s`;
 
     return (
-        <div className="rounded-md border bg-white">
+        <div className="bg-white">
             {successMessage && (
                 <div className="border-b border-emerald-100 bg-emerald-50/80 px-4 py-4">
                     <Card className="gap-3 border-emerald-200 bg-emerald-50 py-4 shadow-none">
@@ -239,7 +239,7 @@ export function DataTable<TData, TValue>({
                     </Card>
                 </div>
             )}
-            <div className="align-center flex items-center gap-2 px-4 py-4">
+            <div className="align-center flex items-center gap-2 py-4">
                 <div className="w-full bg-white sm:w-72">
                     <SearchInput
                         placeholder="Search all columns..."
@@ -378,14 +378,14 @@ export function DataTable<TData, TValue>({
             </div>
             <div className="overflow-x-auto rounded-md border">
                 <Table style={{ width: table.getTotalSize() }}>
-                    <TableHeader className="bg-gray-100">
+                    <TableHeader className="bg-slate-100">
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
                                 {headerGroup.headers.map((header) => {
                                     return (
                                         <TableHead
                                             key={header.id}
-                                            className="relative border border-gray-300"
+                                            className="relative border"
                                             style={{ width: header.getSize() }}
                                         >
                                             {header.isPlaceholder

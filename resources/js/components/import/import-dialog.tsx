@@ -62,7 +62,7 @@ export function ImportDialog({ config }: { config: ImportConfig }) {
                     Import Data
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-sm">
+            <DialogContent className="bg-card sm:max-w-sm">
                 <DialogHeader>
                     <DialogTitle>Import Data</DialogTitle>
                     <DialogDescription>

@@ -19,6 +19,7 @@ import type {
     CertificationRow,
     HaciendaRow,
     PlanterRow,
+    PlanterWithRelations,
     ProductionRow,
 } from '@/components/planters/planters-table-types';
 import { Button } from '@/components/ui/button';
@@ -40,6 +41,9 @@ import HaciendasInfo from '@/components/planters/planter-view/haciendas-info';
 import { show as planterShow } from '@/routes/planters';
 import ViewLayout from '@/components/planters/planter-view/view-layout';
 import { haciendaColumns } from '@/components/data-table/hacienda-columns';
+import PlanterViewPage from '@/components/planters/planter-view/planter-view-page';
+import PlanterViewProductions from '@/components/planters/planter-view/planter-view-productions';
+import PlanterViewHaciendas from '@/components/planters/planter-view/planter-view-haciendas';
 
 export default function Index({
     planter,
@@ -47,7 +51,7 @@ export default function Index({
     productions,
     certifications,
 }: {
-    planter: PlanterRow;
+    planter: PlanterWithRelations;
     haciendas: HaciendaRow[];
     productions: ProductionRow[];
     certifications: CertificationRow[];
@@ -110,30 +114,17 @@ export default function Index({
                 </Button>
             </ActionContainer>
             <ViewLayout>
-                <Heading
-                    title="View Planter Details"
-                    description="Viewing planter details of a specific planter"
-                />
-                {activeTab === 'planters' && <PersonalInfo planter={planter} />}
-                {activeTab === 'haciendas' && (
-                    <DataTable
-                        data={haciendas}
-                        columns={haciendaColumns}
-                        bulkDelete={haciendaBulkDelete}
-                        onRowDoubleClick={(hacienda) =>
-                            haciendaShow(hacienda.id).url
-                        }
+                {activeTab === 'planters' && (
+                    <PlanterViewPage
+                        planter={planter}
+                        setActiveTab={setActiveTab}
                     />
                 )}
+                {activeTab === 'haciendas' && (
+                    <PlanterViewHaciendas haciendas={haciendas} />
+                )}
                 {activeTab === 'productions' && (
-                    <DataTable
-                        columns={productionColumns}
-                        data={productions}
-                        bulkDelete={productionBulkDelete}
-                        onRowDoubleClick={(production) =>
-                            productionShow(production.id).url
-                        }
-                    />
+                    <PlanterViewProductions productions={productions} />
                 )}
                 {activeTab === 'certifications' && (
                     <DataTable

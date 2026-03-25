@@ -15,6 +15,12 @@ export type PlanterRow = {
     updated_at?: string;
 };
 
+export type PlanterWithRelations = PlanterRow & {
+    haciendas: HaciendaRow[];
+    productions: ProductionRow[];
+    certifications: CertificationRow[];
+};
+
 export type HaciendaRow = {
     id: string;
     planter_name: string; // Temporary field to hold planter name for display purposes

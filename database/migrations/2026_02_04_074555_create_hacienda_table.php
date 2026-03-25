@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('name');
             $table->text('address')->nullable();
             $table->decimal('area_hectares', 8, 2)->nullable();
-            $table->integer('distance_from_urc')->nullable();
+            $table->decimal('distance_from_urc', 10, 2)->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
