@@ -3,7 +3,7 @@ import { router } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
 import ActionContainer from '@/components/action-container';
 import Heading from '@/components/heading';
-import HaciendasInfo from '@/components/planters/planter-view/haciendas-info';
+import HaciendasInfo from '@/components/haciendas/haciendas-info';
 import PersonalInfo from '@/components/planters/planter-view/personal-info';
 import ViewLayout from '@/components/planters/planter-view/view-layout';
 import type {
@@ -17,6 +17,8 @@ import { show as haciendaShow } from '@/routes/haciendas';
 import { create as createHacienda } from '@/routes/haciendas';
 import { show as planterShow } from '@/routes/planters';
 import type { BreadcrumbItem } from '@/types';
+import PlanterCard from '@/components/planters/planter-view/planter-card';
+import HaciendaCard from '@/components/planters/planter-view/haciendas/hacienda-card';
 
 export default function Index({
     planter,
@@ -60,11 +62,13 @@ export default function Index({
                 </Button>
             </ActionContainer>
             <ViewLayout>
-                <Heading
-                    title="View a Planter's Hacienda Details"
-                    description="Viewing planter details of a specific planter"
-                />
-                <PersonalInfo planter={planter} />
+                <div className="mb-2 border-green-900 py-2 text-3xl font-semibold tracking-tight text-[var(--dark)]">
+                    Hacienda Details
+                </div>
+                <div className="flex gap-3">
+                    <PlanterCard planter={planter} className="flex-1" />
+                    <HaciendaCard hacienda={hacienda} className="flex-1" />
+                </div>
                 <HaciendasInfo hacienda={hacienda} />
             </ViewLayout>
         </AppLayout>

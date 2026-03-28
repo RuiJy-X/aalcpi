@@ -58,15 +58,14 @@ export default function Index({
                 </Button>
             </ActionContainer>
 
-            <StatsContainer label="Planter Stats">
+            <div className="m-3 flex flex-grow gap-2">
                 <PlanterStats
                     planters={planters}
                     productions={productions}
                     certifications={certifications}
                     haciendas={haciendas}
                 />
-            </StatsContainer>
-
+            </div>
             <Container>
                 <ContainerHeader>Planters Table</ContainerHeader>
                 <DataTable

@@ -44,7 +44,7 @@ export type ProductionRow = {
     hacienda_name: string;
     hacienda_address: string;
     production_year: number;
-    production_month: number;
+    production_month: number | string;
     gross_cw: number;
     net_cw: number;
     trucks: number;
@@ -59,6 +59,7 @@ export type ProductionRow = {
     association_dues_mol: number;
     trans_code?: string | null;
     transloading?: boolean | null;
+    updated_at?: string;
 };
 
 export type CertificationRow = {

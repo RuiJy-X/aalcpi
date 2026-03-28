@@ -44,12 +44,12 @@ export default function Index({
                 <ImportDialog config={productionsImportConfig} />
             </ActionContainer>
 
-            <StatsContainer label="Production Statistics">
+            <div className="m-3 flex flex-grow gap-2 overflow-x-auto">
                 <ProductionStats
                     productions={productions}
                     planters={planters}
                 />
-            </StatsContainer>
+            </div>
 
             <Container>
                 <ContainerHeader>Planters Table</ContainerHeader>

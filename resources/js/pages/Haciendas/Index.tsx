@@ -87,12 +87,9 @@ export default function Index({
                 />
             </ActionContainer>
 
-            <StatsContainer
-                className="flex-wrap bg-card"
-                label="Hacienda Stats"
-            >
+            <div className="m-3 flex flex-grow gap-2">
                 <HaciendaStats haciendas={haciendas} />
-            </StatsContainer>
+            </div>
 
             <Container>
                 <ContainerHeader>Hacienda Table</ContainerHeader>

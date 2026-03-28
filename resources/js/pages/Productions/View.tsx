@@ -13,8 +13,11 @@ import { index as productionsIndex } from '@/routes/productions';
 import { show as haciendaShow } from '@/routes/haciendas';
 import { show as productionShow } from '@/routes/productions';
 import type { BreadcrumbItem } from '@/types';
-import ProductionInfo from '@/components/planters/planter-view/production-info';
+import ProductionInfo from '@/components/productions/production-info';
 import PersonalInfo from '@/components/planters/planter-view/personal-info';
+import PlanterCard from '@/components/planters/planter-view/planter-card';
+import HaciendaCard from '@/components/planters/planter-view/haciendas/hacienda-card';
+import { Container, ContainerHeader } from '@/components/container';
 
 export default function Index({
     production,
@@ -51,15 +54,17 @@ export default function Index({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Products">
-                <title>Planters</title>
+                <title>Production Details</title>
             </Head>
-            <div className="mx-5 my-5">
-                <Heading
-                    title={planter.name}
-                    description="View a Planter's Production Details"
-                />
+            <div className="mx-5 my-5 flex flex-col gap-3">
+                <div className="mb-2 border-green-900 py-2 text-3xl font-semibold tracking-tight text-[var(--dark)]">
+                    Production Details
+                </div>
+                <div className="flex gap-3">
+                    <PlanterCard planter={planter} className="flex-1" />
+                    <HaciendaCard hacienda={hacienda} className="flex-1" />
+                </div>
                 <div className="flex flex-col gap-3">
-                    <PersonalInfo planter={planter} />
                     <ProductionInfo production={production} />
                 </div>
             </div>

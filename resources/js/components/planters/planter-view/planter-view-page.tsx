@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { PlanterWithRelations } from '../planters-table-types';
 import PlanterCard from './planter-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LandPlot } from 'lucide-react';
+import { Calendar, LandPlot, Pencil } from 'lucide-react';
 import PlanterInfo from './planter-info';
-import ActiveHaciendas from './active-haciendas';
+import ActiveHaciendas from './haciendas/active-haciendas';
+import { Button } from '@/components/ui/button';
+import UpdatePlanterDialog from './update-planter-dialog';
+import DisplayDate from '@/components/display-date';
 
 const PlanterViewPage = ({
     planter,
@@ -13,6 +16,8 @@ const PlanterViewPage = ({
     planter: PlanterWithRelations;
     setActiveTab: (tab: string) => void;
 }) => {
+    const [isEditing, setIsEditing] = useState(false);
+
     const totalHaciendaArea = planter.haciendas.reduce((total, hacienda) => {
         return total + Number(hacienda.area_hectares ?? 0);
     }, 0);
@@ -43,13 +48,23 @@ const PlanterViewPage = ({
     ];
     return (
         <div className="flex flex-col gap-5">
-            <div>
+            <div className="flex items-center justify-between">
                 <div className="mb-2 border-green-900 py-2 text-3xl font-semibold tracking-tight text-[var(--dark)]">
                     Planter Details
                 </div>
+                <div className="flex gap-5">
+                    <DisplayDate
+                        label="Last Updated"
+                        date={planter.updated_at?.split('T')[0] || 'N/A'}
+                    />
+                    <UpdatePlanterDialog
+                        planter={planter}
+                        setIsEditing={setIsEditing}
+                    />
+                </div>
             </div>
-            <div className="flex flex-row flex-wrap gap-4">
-                <div>
+            <div className="flex flex-grow flex-row flex-wrap gap-4">
+                <div className="flex-1">
                     <PlanterCard planter={planter} />
                 </div>
                 {cards.map((card, index) => (

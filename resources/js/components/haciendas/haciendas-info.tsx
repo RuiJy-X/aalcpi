@@ -141,11 +141,17 @@ const HaciendasInfo = ({ hacienda }: { hacienda: HaciendaRow }) => {
                 ) : (
                     <div className="grid grid-cols-2 gap-4">
                         {details.map((detail) => (
-                            <div key={detail.key} className="flex flex-col">
-                                <span className="text-sm font-medium text-gray-500">
+                            <div
+                                key={detail.key}
+                                className="flex w-full flex-col gap-2 py-4 md:px-5 md:py-2"
+                            >
+                                <div className="text-sm font-semibold tracking-wide text-gray-500">
                                     {detail.label}
-                                </span>
-                                <span className="text-sm">{detail.value}</span>
+                                </div>
+
+                                <div className="flex text-base font-medium text-gray-700">
+                                    {detail.value}
+                                </div>
                             </div>
                         ))}
                     </div>

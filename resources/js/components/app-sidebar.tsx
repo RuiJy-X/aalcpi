@@ -55,7 +55,7 @@ export function AppSidebar() {
             icon: LandPlot,
         },
         {
-            title: 'Productions',
+            title: 'Milling',
             href: productionsIndex(),
             icon: BookOpen,
         },
@@ -65,7 +65,7 @@ export function AppSidebar() {
             icon: ShieldCheck,
         },
         {
-            title: 'Employees',
+            title: 'HR',
             href: employeeIndex(),
             icon: Briefcase,
         },

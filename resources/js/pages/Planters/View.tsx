@@ -37,7 +37,7 @@ import { show as productionShow } from '@/routes/productions';
 import type { BreadcrumbItem } from '@/types';
 import { useState } from 'react';
 import PersonalInfo from '@/components/planters/planter-view/personal-info';
-import HaciendasInfo from '@/components/planters/planter-view/haciendas-info';
+import HaciendasInfo from '@/components/haciendas/haciendas-info';
 import { show as planterShow } from '@/routes/planters';
 import ViewLayout from '@/components/planters/planter-view/view-layout';
 import { haciendaColumns } from '@/components/data-table/hacienda-columns';

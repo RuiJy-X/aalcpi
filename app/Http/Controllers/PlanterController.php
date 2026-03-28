@@ -96,6 +96,7 @@ class PlanterController extends Controller
             'address' => 'required|string',
             'contact_number' => 'required|string',
             'tin_number' => 'required|string',
+            'registration_date' => (now()->toDateString() >= $request->registration_date) ? 'required|date' : 'required|date|before_or_equal:today',
             'updated_at' => [(now()->toDateString() >= $request->updated_at) , 'nullable|date']
         ]);
 

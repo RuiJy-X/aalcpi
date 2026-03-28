@@ -1,6 +1,7 @@
 <?php
 use App\Http\Controllers\PlanterController;
 use App\Http\Controllers\ProductionController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\CertificationController;
 use App\Http\Controllers\AttendanceController;
@@ -9,18 +10,14 @@ use App\Http\Controllers\HaciendaController;
 use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
 
-use Inertia\Inertia;
-
 Route::get('/', function () {
     return redirect()->route('login');
 })->name('home');
 
 // Authenticated Routes
 Route::middleware(['auth', 'verified'])->group(function () {
-    
-    Route::get('dashboard', function () {
-        return Inertia::render('dashboard');
-    })->name('dashboard');
+
+    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // --- MANAGER ---
     Route::middleware('role:manager')->group(function () {
@@ -36,7 +33,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // --- MANAGER & CERTIFICATION OFFICER ---
     Route::middleware('role:manager,cert_officer')->group(function () {
-        
+
         // Planters
         Route::prefix('Planters')->name('planters.')->group(function () {
             Route::get('/', [PlanterController::class, 'index'])->name('index');

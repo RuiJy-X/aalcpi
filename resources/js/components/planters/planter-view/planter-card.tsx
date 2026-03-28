@@ -4,13 +4,24 @@ import { Calendar, Captions, Code, Mail, Phone, User } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import image from '/storage/images/user-vector.jpg';
 
-const PlanterCard = ({ planter }: { planter: PlanterRow }) => {
+const PlanterCard = ({
+    planter,
+    className,
+}: {
+    planter: PlanterRow;
+    className?: string;
+}) => {
     return (
-        <div className="flex w-auto items-stretch gap-2 overflow-hidden rounded-md border-l-4 border-primary bg-white px-5 py-4 shadow-sm">
+        <div
+            className={`flex w-auto items-stretch gap-2 overflow-hidden rounded-md border-l-4 border-primary bg-white px-5 py-4 shadow-sm ${className || ''}`}
+        >
             <div className="">
                 <img src={image} alt="" className="size-32" />
             </div>
             <div className="flex h-full flex-col items-start justify-center gap-1 self-center">
+                <div className="text-xs font-semibold tracking-wide text-gray-500">
+                    PLANTER
+                </div>
                 <div className="text-dark mb-1 truncate text-2xl font-bold tracking-tight">
                     {planter.name}
                     {/* <Badge className="position-absolute ml-5 -translate-y-1">
@@ -19,6 +30,10 @@ const PlanterCard = ({ planter }: { planter: PlanterRow }) => {
                 </div>
                 <div className="text-xs text-gray-500">
                     Code: {planter.planter_code}
+                </div>
+                <div className="inline-flex items-center gap-1 text-xs text-gray-500">
+                    <Calendar size={13} />
+                    {planter.registration_date}
                 </div>
             </div>
         </div>

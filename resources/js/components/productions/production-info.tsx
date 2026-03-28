@@ -10,6 +10,11 @@ import { Input } from '@/components/ui/input';
 import { update as productionUpdate } from '@/routes/productions';
 import { Printer } from 'lucide-react';
 import { final_data as finalData } from '@/routes/productions';
+import ProductionRawData from './components/production-raw-data';
+import ProductionPerformance from './components/production-performance';
+import ProductionShare from './components/production-share';
+import DisplayDate from '../display-date';
+import ProductionBasic from './components/production-basic';
 
 const ProductionInfo = ({ production }: { production: ProductionRow }) => {
     const initialData = {
@@ -141,6 +146,10 @@ const ProductionInfo = ({ production }: { production: ProductionRow }) => {
             <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Production Details</CardTitle>
                 <div className="flex gap-2">
+                    <DisplayDate
+                        label="Last Updated"
+                        date={production.updated_at?.split('T')[0] || 'N/A'}
+                    />
                     <Button
                         variant="outline"
                         onClick={() =>
@@ -254,70 +263,11 @@ const ProductionInfo = ({ production }: { production: ProductionRow }) => {
                         </div>
                     </form>
                 ) : (
-                    <div className="flex flex-col gap-6">
-                        <div className="flex flex-row flex-wrap gap-4">
-                            {details.slice(0, 4).map((detail, index) => (
-                                <div
-                                    key={index}
-                                    className="flex w-full flex-col md:w-[calc(50%-0.5rem)]"
-                                >
-                                    <span className="text-sm font-medium text-gray-500">
-                                        {detail.label}
-                                    </span>
-                                    <span className="text-sm">
-                                        {detail.value}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                        <hr />
-                        <div className="flex flex-row flex-wrap gap-4">
-                            {details.slice(4, 10).map((detail, index) => (
-                                <div
-                                    key={index}
-                                    className="flex w-full flex-col md:w-[calc(33.33%-0.5rem)]"
-                                >
-                                    <span className="text-sm font-medium text-gray-500">
-                                        {detail.label}
-                                    </span>
-                                    <span className="text-sm">
-                                        {detail.value}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                        <hr />
-                        <div className="flex flex-row flex-wrap gap-4">
-                            {details.slice(10, 16).map((detail, index) => (
-                                <div
-                                    key={index}
-                                    className="flex w-full flex-col md:w-[calc(33.33%-0.5rem)]"
-                                >
-                                    <span className="text-sm font-medium text-gray-500">
-                                        {detail.label}
-                                    </span>
-                                    <span className="text-sm">
-                                        {detail.value}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                        <hr />
-                        <div className="flex flex-row flex-wrap gap-4">
-                            {details.slice(16).map((detail, index) => (
-                                <div
-                                    key={index}
-                                    className="flex w-full flex-col md:w-[calc(50%-0.5rem)]"
-                                >
-                                    <span className="text-sm font-medium text-gray-500">
-                                        {detail.label}
-                                    </span>
-                                    <span className="text-sm">
-                                        {detail.value}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
+                    <div className="flex flex-col gap-15">
+                        <ProductionBasic productions={production} />
+                        <ProductionRawData productions={production} />
+                        <ProductionPerformance productions={production} />
+                        <ProductionShare productions={production} />
                     </div>
                 )}
             </CardContent>
