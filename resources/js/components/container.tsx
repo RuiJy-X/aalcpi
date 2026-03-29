@@ -11,7 +11,25 @@ export const ContainerHeader = ({
     return (
         <div
             className={cn(
-                'my-2 flex items-center justify-between gap-3 pb-2 text-lg font-semibold tracking-tight',
+                'my-2 flex items-center justify-between gap-3 text-xl font-semibold tracking-tight',
+                className,
+            )}
+        >
+            {children}
+        </div>
+    );
+};
+export const ContainerHeaderTitle = ({
+    children,
+    className,
+}: {
+    children?: React.ReactNode;
+    className?: string;
+}) => {
+    return (
+        <div
+            className={cn(
+                'flex items-center justify-between text-lg font-semibold tracking-tight',
                 className,
             )}
         >
@@ -36,6 +54,25 @@ export const Container = ({
         >
             <div className="pointer-events-none absolute inset-x-0 top-0 h-16 from-primary/10 via-primary/5 to-transparent dark:from-primary/20 dark:via-primary/10" />
             <div className="relative z-10">{children}</div>
+        </div>
+    );
+};
+
+export const ContainerHeaderEnd = ({
+    children,
+    className,
+}: {
+    children?: React.ReactNode;
+    className?: string;
+}) => {
+    return (
+        <div
+            className={cn(
+                'flex items-center justify-end gap-2 text-lg font-semibold tracking-tight',
+                className,
+            )}
+        >
+            {children}
         </div>
     );
 };

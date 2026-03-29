@@ -22,7 +22,11 @@ import { show as planterShow } from '@/routes/planters';
 import type { BreadcrumbItem } from '@/types';
 import { ImportDialog } from '@/components/import/import-dialog';
 import { plantersImportConfig } from '@/components/import/import-config';
-import { Container, ContainerHeader } from '@/components/container';
+import {
+    Container,
+    ContainerHeader,
+    ContainerHeaderEnd,
+} from '@/components/container';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -47,18 +51,8 @@ export default function Index({
             <Head title="Planters">
                 <title>Planters</title>
             </Head>
-            <ActionContainer className="">
-                <ImportDialog config={plantersImportConfig} />
-                <Button
-                    variant="outline"
-                    onClick={() => router.get(createPage().url)}
-                >
-                    <User />
-                    Register Planter
-                </Button>
-            </ActionContainer>
 
-            <div className="m-3 flex flex-grow gap-2">
+            <div className="m-3 flex gap-2">
                 <PlanterStats
                     planters={planters}
                     productions={productions}
@@ -67,7 +61,19 @@ export default function Index({
                 />
             </div>
             <Container>
-                <ContainerHeader>Planters Table</ContainerHeader>
+                <ContainerHeader>
+                    Planters Table
+                    <ContainerHeaderEnd>
+                        <ImportDialog config={plantersImportConfig} />
+                        <Button
+                            variant="outline"
+                            onClick={() => router.get(createPage().url)}
+                        >
+                            <User />
+                            Register Planter
+                        </Button>
+                    </ContainerHeaderEnd>
+                </ContainerHeader>
                 <DataTable
                     columns={planterColumns}
                     data={planters}

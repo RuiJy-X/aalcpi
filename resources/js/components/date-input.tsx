@@ -16,6 +16,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
+import { Button } from './ui/button';
 
 function formatDate(date: Date | undefined) {
     if (!date) {
@@ -160,5 +161,60 @@ export function DatePickerInput({
             value={value}
             onChange={onChange}
         />
+    );
+}
+
+export function DatePickerSimple({
+    id,
+    label,
+    value,
+    onChange,
+    placeholder = 'YYYY-MM-DD',
+    className = 'w-full',
+    disabled = false,
+    required = false,
+}: DateInputProps) {
+    const [open, setOpen] = React.useState(false);
+    const selectedDate = React.useMemo(() => parseDate(value), [value]);
+    const [month, setMonth] = React.useState<Date | undefined>(selectedDate);
+
+    React.useEffect(() => {
+        if (selectedDate) {
+            setMonth(selectedDate);
+        }
+    }, [selectedDate]);
+
+    return (
+        <Field className={`mx-auto w-44 ${className}`}>
+            <FieldLabel htmlFor="date">Date of birth</FieldLabel>
+            <Popover open={open} onOpenChange={setOpen}>
+                <PopoverTrigger asChild>
+                    <Button
+                        variant="outline"
+                        id="date"
+                        className="justify-start font-normal"
+                    >
+                        {selectedDate
+                            ? selectedDate.toLocaleDateString()
+                            : 'Select date'}
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                    className="w-auto overflow-hidden p-0"
+                    align="start"
+                >
+                    <Calendar
+                        mode="single"
+                        selected={selectedDate}
+                        defaultMonth={month}
+                        captionLayout="dropdown"
+                        onSelect={(date) => {
+                            onChange(formatDate(date));
+                            setOpen(false);
+                        }}
+                    />
+                </PopoverContent>
+            </Popover>
+        </Field>
     );
 }

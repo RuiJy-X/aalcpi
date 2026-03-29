@@ -17,7 +17,7 @@ import React, { useEffect } from 'react';
 import { PlanterWithRelations } from '../planters-table-types';
 import { Input } from '@/components/ui/input';
 import { update as plantersViewUpdate } from '@/routes/planters';
-import { DateInput } from '@/components/date-input';
+import { DateInput, DatePickerSimple } from '@/components/date-input';
 
 const UpdatePlanterDialog = ({
     planter,
@@ -114,21 +114,28 @@ const UpdatePlanterDialog = ({
                                 {fields.map((field) => {
                                     if (field.key === 'registration_date') {
                                         return (
-                                            <DateInput
+                                            <Field
                                                 key={field.key}
-                                                id="registration_date"
-                                                label={field.label}
-                                                value={String(
-                                                    data.registration_date,
-                                                )}
-                                                onChange={(value) =>
-                                                    handleChange(
-                                                        field.key,
-                                                        value,
-                                                    )
-                                                }
                                                 className="w-full"
-                                            />
+                                            >
+                                                <FieldLabel>
+                                                    {field.label}
+                                                </FieldLabel>
+
+                                                <Input
+                                                    type="date"
+                                                    placeholder={field.label}
+                                                    value={String(
+                                                        data[field.key],
+                                                    )}
+                                                    onChange={(e) =>
+                                                        handleChange(
+                                                            field.key,
+                                                            e.target.value,
+                                                        )
+                                                    }
+                                                />
+                                            </Field>
                                         );
                                     }
 

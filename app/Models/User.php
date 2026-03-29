@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
@@ -67,7 +68,7 @@ class User extends Authenticatable
         return $this->role === 'cert_officer';
     }
 
-    public function isEmployee() 
+    public function isEmployee()
     {
         return $this->role === 'employee';
     }

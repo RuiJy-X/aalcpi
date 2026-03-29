@@ -6,6 +6,7 @@ use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\CertificationController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\PayrollController;
+use App\Http\Controllers\MillingPeriodsController;
 use App\Http\Controllers\HaciendaController;
 use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
@@ -29,6 +30,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::get('/Employees', [EmployeeController::class, 'index'])->name('employees.index');
         // Add later the other routes like payroll, attendance, ... of all the employees records
+
+        Route::delete('/MillingPeriods/bulk-delete', [MillingPeriodsController::class, 'bulkDestroy'])->name('milling-periods.bulk-destroy');
+
+        Route::resource('/MillingPeriods', MillingPeriodsController::class)
+            ->whereNumber('MillingPeriod');
     });
 
     // --- MANAGER & CERTIFICATION OFFICER ---

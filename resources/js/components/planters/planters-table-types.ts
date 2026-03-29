@@ -31,6 +31,7 @@ export type HaciendaRow = {
     area_hectares: number;
     distance_from_urc: number;
     is_active: boolean;
+    registered_date: string;
     created_at?: string;
     updated_at?: string;
 };
@@ -59,6 +60,7 @@ export type ProductionRow = {
     association_dues_mol: number;
     trans_code?: string | null;
     transloading?: boolean | null;
+    created_at?: string;
     updated_at?: string;
 };
 

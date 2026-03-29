@@ -3,10 +3,10 @@
 import { router } from '@inertiajs/react';
 import type { ColumnDef, FilterFn } from '@tanstack/react-table';
 import { ArrowUpDown, Eye, Pencil, Trash2 } from 'lucide-react';
-import type { HaciendaRow } from '@/components/planters/planters-table-types';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { show as haciendaShow } from '@/routes/haciendas';
+import type { HaciendaRow } from '@/components/planters/planters-table-types';
 
 const booleanStringFilter: FilterFn<HaciendaRow> = (
     row,
@@ -202,6 +202,32 @@ export const haciendaColumns: ColumnDef<HaciendaRow>[] = [
                 { label: 'Active', value: 'true' },
                 { label: 'Inactive', value: 'false' },
             ],
+        },
+    },
+    {
+        accessorKey: 'created_at',
+        header: ({ column }) => {
+            return (
+                <Button
+                    variant="ghost"
+                    onClick={() =>
+                        column.toggleSorting(column.getIsSorted() === 'asc')
+                    }
+                >
+                    Created At
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                </Button>
+            );
+        },
+        cell: ({ row }) => {
+            const hacienda = row.original;
+            return (
+                <div className="flex items-center">
+                    <div className="ml-2 truncate">
+                        {hacienda.created_at?.split('T')[0]}
+                    </div>
+                </div>
+            );
         },
     },
     {

@@ -66,6 +66,10 @@ export default function Filter<TData, TValue>({
             : `${selectedOptions.length} selected`
         : 'Filter';
 
+    const isDateLikeColumn = /date|timestamp|created|updated/.test(
+        column.id.toLowerCase(),
+    );
+
     if (filterOptions?.length) {
         return (
             <div className="flex flex-col gap-2 py-4">
@@ -132,6 +136,7 @@ export default function Filter<TData, TValue>({
                 {column.id.replaceAll('_', ' ')}
             </Label>
             <Input
+                type={isDateLikeColumn ? 'date' : 'text'}
                 placeholder={`Filter ${column.id.replaceAll('_', ' ')}...`}
                 value={
                     typeof columnFilterValue === 'string'

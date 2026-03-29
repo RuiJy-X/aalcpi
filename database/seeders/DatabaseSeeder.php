@@ -57,5 +57,10 @@ class DatabaseSeeder extends Seeder
         //     Attendance::factory()->count(5)->forEmployee($employee)->create();
         //     Payroll::factory()->count(5)->forEmployee($employee)->create();
         // }
+        $this->call([
+            AdminSeeder::class,
+            UserSeeder::class,
+            MillingPeriodSeeder::class,
+        ]);
     }
 }

@@ -29,6 +29,7 @@ import { index as haciendasIndex } from '@/routes/haciendas';
 import { index as plantersIndex } from '@/routes/planters';
 import { index as productionsIndex } from '@/routes/productions';
 import { index as userIndex } from '@/routes/users';
+import { index as millingPeriodsIndex } from '@/routes/MillingPeriods';
 import type { NavItem, SharedData } from '@/types';
 import AppLogo from './app-logo';
 
@@ -55,7 +56,7 @@ export function AppSidebar() {
             icon: LandPlot,
         },
         {
-            title: 'Milling',
+            title: 'Productions Final',
             href: productionsIndex(),
             icon: BookOpen,
         },
@@ -76,6 +77,11 @@ export function AppSidebar() {
             title: 'User Management',
             href: userIndex(),
             icon: Clipboard,
+        },
+        {
+            title: 'Milling Periods',
+            href: millingPeriodsIndex(),
+            icon: DollarSign,
         },
     ];
 

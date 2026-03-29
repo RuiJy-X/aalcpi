@@ -15,6 +15,7 @@ import ProductionPerformance from './components/production-performance';
 import ProductionShare from './components/production-share';
 import DisplayDate from '../display-date';
 import ProductionBasic from './components/production-basic';
+import MonthComboBox from '../month-combobox';
 
 const ProductionInfo = ({ production }: { production: ProductionRow }) => {
     const initialData = {
@@ -181,13 +182,14 @@ const ProductionInfo = ({ production }: { production: ProductionRow }) => {
                     <form onSubmit={submit} id="production-info-form">
                         <div className="flex flex-col gap-6">
                             <div className="flex flex-row flex-wrap gap-4">
-                                {details.slice(0, 4).map((detail) => (
+                                {details.slice(2, 3).map((detail) => (
                                     <Field
                                         key={detail.key}
                                         className="w-full md:w-[calc(50%-0.5rem)]"
                                     >
                                         <FieldLabel>{detail.label}</FieldLabel>
                                         <Input
+                                            type="number"
                                             placeholder={detail.label}
                                             value={String(data[detail.key])}
                                             onChange={(e) =>
@@ -197,6 +199,21 @@ const ProductionInfo = ({ production }: { production: ProductionRow }) => {
                                                 )
                                             }
                                         />
+                                    </Field>
+                                ))}
+                                {details.slice(3, 4).map((detail) => (
+                                    <Field
+                                        key={detail.key}
+                                        className="w-full md:w-[calc(50%-0.5rem)]"
+                                    >
+                                        <FieldLabel>{detail.label}</FieldLabel>
+
+                                        <MonthComboBox
+                                            value={String(data[detail.key])}
+                                            onValueChange={(value) =>
+                                                handleChange(detail.key, value)
+                                            }
+                                        ></MonthComboBox>
                                     </Field>
                                 ))}
                             </div>

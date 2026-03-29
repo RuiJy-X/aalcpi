@@ -4,6 +4,7 @@ import type {
     PlanterRow,
     ProductionRow,
 } from '@/components/planters/planters-table-types';
+import { MillingPeriodRow } from '../milling-periods/milling-periods-types';
 
 export interface BulkDeleteConfig<TData> {
     endpoint: string;
@@ -32,5 +33,11 @@ export const haciendaBulkDelete: BulkDeleteConfig<HaciendaRow> = {
 export const certificationBulkDelete: BulkDeleteConfig<CertificationRow> = {
     endpoint: '/Certifications/bulk-delete',
     entityName: 'certification',
+    getRowId: (row) => row.id,
+};
+
+export const millingPeriodBulkDelete: BulkDeleteConfig<MillingPeriodRow> = {
+    endpoint: '/MillingPeriods/bulk-delete',
+    entityName: 'milling period',
     getRowId: (row) => row.id,
 };

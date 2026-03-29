@@ -122,7 +122,7 @@ const StatCard = ({
 
     return (
         <div
-            className="flex-1 rounded-[10px] border border-gray-100 bg-white px-5 py-4 shadow-md"
+            className="h-24 flex-1 rounded-[10px] border border-gray-100 bg-white px-5 py-4 shadow-md"
             style={{ borderLeft: `3px solid ${accent}` }}
         >
             {/* Header row */}

@@ -4,7 +4,11 @@ import AppLayout from '@/layouts/app-layout';
 import { index as userIndex } from '@/routes/users';
 import { show as userShow } from '@/routes/users';
 import type { BreadcrumbItem } from '@/types';
-import { Container, ContainerHeader } from '@/components/container';
+import {
+    Container,
+    ContainerHeader,
+    ContainerHeaderEnd,
+} from '@/components/container';
 import CreateUserForm from '@/components/users/create-user-form';
 import { usersColumns } from '@/components/data-table/users-columns';
 import type { UserRow } from '@/components/types/usertypes';
@@ -27,7 +31,10 @@ export default function Index({ users }: { users: UserRow[] }) {
             </Container>
 
             <Container>
-                <ContainerHeader>Users Table</ContainerHeader>
+                <ContainerHeader>
+                    Users Table
+                    <ContainerHeaderEnd></ContainerHeaderEnd>
+                </ContainerHeader>
                 <DataTable
                     columns={usersColumns}
                     data={users}

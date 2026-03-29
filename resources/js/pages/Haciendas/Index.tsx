@@ -17,7 +17,11 @@ import AppLayout from '@/layouts/app-layout';
 import { index as haciendasIndex } from '@/routes/haciendas';
 import { show as haciendaShow } from '@/routes/haciendas';
 import type { BreadcrumbItem } from '@/types';
-import { Container, ContainerHeader } from '@/components/container';
+import {
+    Container,
+    ContainerHeader,
+    ContainerHeaderEnd,
+} from '@/components/container';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -69,30 +73,32 @@ export default function Index({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Haciendas"></Head>
-            <ActionContainer className="">
-                {actions.map((action) => (
-                    <Link key={action.title} href={action.href}>
-                        <Button variant={'outline'}>
-                            <span>
-                                <action.icon />
-                            </span>
-                            {action.title}
-                        </Button>
-                    </Link>
-                ))}
 
-                <HaciendaDialog
-                    planterNames={planterNames}
-                    planters={planters}
-                />
-            </ActionContainer>
-
-            <div className="m-3 flex flex-grow gap-2">
+            <div className="m-3 flex gap-2">
                 <HaciendaStats haciendas={haciendas} />
             </div>
 
             <Container>
-                <ContainerHeader>Hacienda Table</ContainerHeader>
+                <ContainerHeader>
+                    Hacienda Table
+                    <ContainerHeaderEnd>
+                        {actions.map((action) => (
+                            <Link key={action.title} href={action.href}>
+                                <Button variant={'outline'}>
+                                    <span>
+                                        <action.icon />
+                                    </span>
+                                    {action.title}
+                                </Button>
+                            </Link>
+                        ))}
+
+                        <HaciendaDialog
+                            planterNames={planterNames}
+                            planters={planters}
+                        />
+                    </ContainerHeaderEnd>
+                </ContainerHeader>
                 <DataTable
                     columns={haciendaColumns}
                     data={haciendas}

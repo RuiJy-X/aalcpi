@@ -9,6 +9,59 @@ import { Checkbox } from '@/components/ui/checkbox';
 import ProductionActions from './production-actions';
 import type { ProductionRow } from '@/components/planters/planters-table-types';
 
+const MONTH_PRECEDENCE: Record<string, number> = {
+    january: 1,
+    jan: 1,
+    february: 2,
+    feb: 2,
+    march: 3,
+    mar: 3,
+    april: 4,
+    apr: 4,
+    may: 5,
+    june: 6,
+    jun: 6,
+    july: 7,
+    jul: 7,
+    august: 8,
+    aug: 8,
+    september: 9,
+    sep: 9,
+    sept: 9,
+    october: 10,
+    oct: 10,
+    november: 11,
+    nov: 11,
+    december: 12,
+    dec: 12,
+};
+
+function getMonthRank(value: unknown): number {
+    if (typeof value === 'number') {
+        return value >= 1 && value <= 12 ? value : Number.MAX_SAFE_INTEGER;
+    }
+
+    if (typeof value !== 'string') {
+        return Number.MAX_SAFE_INTEGER;
+    }
+
+    const normalized = value.trim().toLowerCase();
+    if (!normalized) {
+        return Number.MAX_SAFE_INTEGER;
+    }
+
+    const numericMonth = Number.parseInt(normalized, 10);
+    if (
+        !Number.isNaN(numericMonth) &&
+        numericMonth >= 1 &&
+        numericMonth <= 12
+    ) {
+        return numericMonth;
+    }
+
+    return MONTH_PRECEDENCE[normalized] ?? Number.MAX_SAFE_INTEGER;
+}
+
 export const productionColumns: ColumnDef<ProductionRow>[] = [
     {
         id: 'select',
@@ -210,6 +263,11 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
     },
     {
         accessorKey: 'production_month',
+        sortingFn: (rowA, rowB, columnId) => {
+            const monthA = getMonthRank(rowA.getValue(columnId));
+            const monthB = getMonthRank(rowB.getValue(columnId));
+            return monthA - monthB;
+        },
         header: ({ column }) => {
             return (
                 <Button
@@ -569,6 +627,32 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
                 { label: 'Yes', value: 'true' },
                 { label: 'No', value: 'false' },
             ],
+        },
+    },
+    {
+        accessorKey: 'created_at',
+        header: ({ column }) => {
+            return (
+                <Button
+                    variant="ghost"
+                    onClick={() =>
+                        column.toggleSorting(column.getIsSorted() === 'asc')
+                    }
+                >
+                    Created At
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                </Button>
+            );
+        },
+        cell: ({ row }) => {
+            const production = row.original;
+            return (
+                <div className="flex items-center">
+                    <div className="ml-2 truncate">
+                        {production.created_at?.split('T')[0]}
+                    </div>
+                </div>
+            );
         },
     },
 
