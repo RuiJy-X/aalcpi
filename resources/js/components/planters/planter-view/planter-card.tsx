@@ -3,6 +3,8 @@ import { PlanterRow } from '../planters-table-types';
 import { Calendar, Captions, Code, Mail, Phone, User } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import image from '/storage/images/user-vector.jpg';
+import { show as planterShow } from '@/routes/planters';
+import { router } from '@inertiajs/react';
 
 const PlanterCard = ({
     planter,
@@ -13,7 +15,8 @@ const PlanterCard = ({
 }) => {
     return (
         <div
-            className={`flex w-auto items-stretch gap-2 overflow-hidden rounded-md border-l-4 border-primary bg-white px-5 py-4 shadow-sm ${className || ''}`}
+            onClick={() => router.get(planterShow(planter.id))}
+            className={`m-3 flex w-auto items-stretch gap-2 overflow-hidden rounded-md border border-l-4 border-primary bg-white px-5 py-4 shadow-lg transition-all delay-50 hover:-translate-y-1 ${className || ''}`}
         >
             <div className="">
                 <img src={image} alt="" className="size-32" />

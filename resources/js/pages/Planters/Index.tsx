@@ -27,6 +27,8 @@ import {
     ContainerHeader,
     ContainerHeaderEnd,
 } from '@/components/container';
+import PlanterCard from '@/components/planters/planter-view/planter-card';
+import PlanterCardsDisplay from '@/components/planters/planter-card-display';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -60,6 +62,8 @@ export default function Index({
                     haciendas={haciendas}
                 />
             </div>
+            <PlanterCardsDisplay planters={planters} />
+
             <Container>
                 <ContainerHeader>
                     Planters Table

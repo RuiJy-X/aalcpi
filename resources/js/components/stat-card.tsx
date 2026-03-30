@@ -122,24 +122,24 @@ const StatCard = ({
 
     return (
         <div
-            className="h-24 flex-1 rounded-[10px] border border-gray-100 bg-white px-5 py-4 shadow-md"
+            className="h-32 flex-1 rounded-[10px] border border-gray-100 bg-white px-5 py-4 shadow-md"
             style={{ borderLeft: `3px solid ${accent}` }}
         >
             {/* Header row */}
-            <div className="mb-3.5 flex items-start justify-between">
+            <div className="mb-3 flex items-start justify-between">
                 <span className="text-[11px] leading-none font-medium tracking-[0.07em] text-gray-400 uppercase">
                     {title}
                 </span>
                 <span
                     className={`flex h-7 w-7 items-center justify-center rounded-md ${badgeBg}`}
                 >
-                    <Icon size={14} strokeWidth={2.5} className={iconColor} />
+                    <Icon size={32} strokeWidth={2.5} className={iconColor} />
                 </span>
             </div>
 
             {/* Value */}
             <div
-                className="text-[26px] leading-none font-medium tracking-tight text-gray-900"
+                className="text-dark mb-1 truncate text-4xl font-bold tracking-tight"
                 title={value}
             >
                 {formatValue(value)}
@@ -147,7 +147,7 @@ const StatCard = ({
 
             {/* Optional subtitle */}
             {subtitle && (
-                <p className="mt-1.5 text-[11px] tracking-wide text-gray-400">
+                <p className="text-dark mt-1.5 text-[11px] tracking-wide">
                     {subtitle}
                 </p>
             )}
