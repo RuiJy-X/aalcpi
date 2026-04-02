@@ -38,7 +38,7 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                     </SidebarMenuItem>
                 ))}
                 <hr />
-                {items.slice(1, 5).map((item) => (
+                {items.slice(1, 6).map((item) => (
                     <SidebarMenuItem key={item.title}>
                         <SidebarMenuButton
                             asChild
@@ -57,7 +57,7 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                     </SidebarMenuItem>
                 ))}
                 <hr />
-                {items.slice(5).map((item) => (
+                {items.slice(6).map((item) => (
                     <SidebarMenuItem key={item.title}>
                         <SidebarMenuButton
                             asChild

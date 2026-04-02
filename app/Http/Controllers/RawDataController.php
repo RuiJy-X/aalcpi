@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\RawData;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Maatwebsite\Excel\Facades\Excel;
 
 class RawDataController extends Controller
 {
@@ -13,7 +15,10 @@ class RawDataController extends Controller
      */
     public function index()
     {
-        //
+        $rawData = RawData::all();
+        return Inertia::render('RawData/Index', [
+            'rawData' => $rawData,
+        ]);
     }
 
     /**

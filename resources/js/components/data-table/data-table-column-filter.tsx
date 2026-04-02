@@ -12,6 +12,8 @@ import { Label } from '../ui/label';
 
 type FilterValue = string | number | boolean;
 type FilterSelection = FilterValue | FilterValue[] | '';
+const CROP_YEAR_TYPING_PATTERN = /^\d{0,4}(-\d{0,4})?$/;
+const CROP_YEAR_COMPLETE_PATTERN = /^\d{4}-\d{4}$/;
 
 interface FilterProps<TData, TValue> {
     column: Column<TData, TValue>;
@@ -69,6 +71,7 @@ export default function Filter<TData, TValue>({
     const isDateLikeColumn = /date|timestamp|created|updated/.test(
         column.id.toLowerCase(),
     );
+    const isCropYearColumn = column.id.toLowerCase() === 'crop_year';
 
     if (filterOptions?.length) {
         return (
@@ -137,15 +140,46 @@ export default function Filter<TData, TValue>({
             </Label>
             <Input
                 type={isDateLikeColumn ? 'date' : 'text'}
-                placeholder={`Filter ${column.id.replaceAll('_', ' ')}...`}
+                placeholder={
+                    isCropYearColumn
+                        ? 'Filter crop year (YYYY-YYYY)...'
+                        : `Filter ${column.id.replaceAll('_', ' ')}...`
+                }
                 value={
                     typeof columnFilterValue === 'string'
                         ? columnFilterValue
                         : ''
                 }
-                onChange={(event) =>
-                    onFilterChange(column.id, event.target.value)
-                }
+                maxLength={isCropYearColumn ? 9 : undefined}
+                onChange={(event) => {
+                    const nextValue = event.target.value;
+
+                    if (!isCropYearColumn) {
+                        onFilterChange(column.id, nextValue);
+                        return;
+                    }
+
+                    if (
+                        nextValue === '' ||
+                        CROP_YEAR_TYPING_PATTERN.test(nextValue)
+                    ) {
+                        onFilterChange(column.id, nextValue);
+                    }
+                }}
+                onBlur={(event) => {
+                    if (!isCropYearColumn) {
+                        return;
+                    }
+
+                    const value = event.target.value;
+
+                    if (
+                        value !== '' &&
+                        !CROP_YEAR_COMPLETE_PATTERN.test(value)
+                    ) {
+                        onFilterChange(column.id, '');
+                    }
+                }}
                 className="max-w-sm"
             />
         </div>

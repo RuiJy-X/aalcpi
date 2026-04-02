@@ -61,6 +61,7 @@ class DatabaseSeeder extends Seeder
             AdminSeeder::class,
             UserSeeder::class,
             MillingPeriodSeeder::class,
+            RawDataSeeder::class,
         ]);
     }
 }

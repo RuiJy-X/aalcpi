@@ -18,7 +18,7 @@ class ProductionController extends Controller
         $productions = Production::with(['planter', 'hacienda'])->get()->map(function ($production) {
             $production->planter_name = $production->planter ? $production->planter->name : null;
             $production->hacienda_address = $production->hacienda ? $production->hacienda->address : null;
-            $production->hacienda_name = $production->hacienda ? $production->hacienda->name : null;
+        $production->hacienda_name = $production->hacienda ? $production->hacienda->name : null;
             return $production;
         });
         return Inertia::render('Productions/Index', ['productions' => $productions]);

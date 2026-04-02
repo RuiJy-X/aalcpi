@@ -10,6 +10,7 @@ use App\Http\Controllers\MillingPeriodsController;
 use App\Http\Controllers\HaciendaController;
 use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\RawDataController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -19,6 +20,8 @@ Route::get('/', function () {
 Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    Route::resource('/RawData', RawDataController::class)->whereNumber('RawData');
 
     // --- MANAGER ---
     Route::middleware('role:manager')->group(function () {

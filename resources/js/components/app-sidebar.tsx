@@ -8,6 +8,7 @@ import {
     LandPlot,
     LayoutGrid,
     ShieldCheck,
+    Truck,
     User,
 } from 'lucide-react';
 import { NavFooter } from '@/components/nav-footer';
@@ -30,6 +31,7 @@ import { index as plantersIndex } from '@/routes/planters';
 import { index as productionsIndex } from '@/routes/productions';
 import { index as userIndex } from '@/routes/users';
 import { index as millingPeriodsIndex } from '@/routes/MillingPeriods';
+import { index as rawDataIndex } from '@/routes/RawData';
 import type { NavItem, SharedData } from '@/types';
 import AppLogo from './app-logo';
 
@@ -56,6 +58,11 @@ export function AppSidebar() {
             icon: LandPlot,
         },
         {
+            title: 'Raw Data',
+            href: rawDataIndex(),
+            icon: Truck,
+        },
+        {
             title: 'Productions Final',
             href: productionsIndex(),
             icon: BookOpen,
@@ -65,14 +72,14 @@ export function AppSidebar() {
             href: certificationIndex(),
             icon: ShieldCheck,
         },
+    ];
+
+    const adminNavItems: NavItem[] = [
         {
             title: 'HR',
             href: employeeIndex(),
             icon: Briefcase,
         },
-    ];
-
-    const adminNavItems: NavItem[] = [
         {
             title: 'User Management',
             href: userIndex(),
