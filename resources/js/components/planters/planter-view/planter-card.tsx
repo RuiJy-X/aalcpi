@@ -16,7 +16,7 @@ const PlanterCard = ({
     return (
         <div
             onClick={() => router.get(planterShow(planter.id))}
-            className={`m-3 flex w-auto items-stretch gap-2 overflow-hidden rounded-md border border-l-4 border-primary bg-white px-5 py-4 shadow-lg transition-all delay-50 hover:-translate-y-1 ${className || ''}`}
+            className={`flex w-auto items-stretch gap-2 overflow-hidden rounded-md border border-l-4 bg-white px-5 py-4 shadow-lg transition-all delay-50 hover:-translate-y-1 ${className || ''}`}
         >
             <div className="">
                 <img src={image} alt="" className="size-32" />

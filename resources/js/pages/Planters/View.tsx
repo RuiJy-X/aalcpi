@@ -27,8 +27,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
 import { FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { TabsTrigger, TabsList, Tabs } from '@/components/ui/tabs';
 import AppLayout from '@/layouts/app-layout';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { index as plantersIndex } from '@/routes/planters';
 import { create as createPage } from '@/routes/planters';
 import { create as createHacienda } from '@/routes/haciendas';
@@ -44,6 +44,8 @@ import { haciendaColumns } from '@/components/data-table/hacienda-columns';
 import PlanterViewPage from '@/components/planters/planter-view/planter-view-page';
 import PlanterViewProductions from '@/components/planters/planter-view/planter-view-productions';
 import PlanterViewHaciendas from '@/components/planters/planter-view/planter-view-haciendas';
+import ContentLayout from '@/layouts/app/content-layout';
+
 
 export default function Index({
     planter,
@@ -74,66 +76,59 @@ export default function Index({
     ];
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Products">
-                <title>Planters</title>
-            </Head>
-            <ActionContainer className="flex gap-2">
-                <Tabs
-                    value={activeTab}
-                    defaultValue="planters"
-                    className="w-fit"
-                    onValueChange={setActiveTab}
-                >
-                    <TabsList className="">
-                        <TabsTrigger value="planters">
-                            <User />
-                            Planter Info
-                        </TabsTrigger>
-                        <TabsTrigger value="productions">
-                            <User />
-                            Productions
-                        </TabsTrigger>
-                        <TabsTrigger value="haciendas">
-                            <User />
-                            Haciendas
-                        </TabsTrigger>
-                        <TabsTrigger value="certifications">
-                            <User />
-                            Certifications
-                        </TabsTrigger>
-                    </TabsList>
-                </Tabs>
-                <Button
-                    variant="outline"
-                    onClick={() => router.get(createHacienda(planter.id).url)}
-                >
-                    <i>
-                        <Plus />
-                    </i>
-                    Add Hacienda
-                </Button>
-            </ActionContainer>
-            <ViewLayout>
-                {activeTab === 'planters' && (
-                    <PlanterViewPage
-                        planter={planter}
-                        setActiveTab={setActiveTab}
-                    />
-                )}
-                {activeTab === 'haciendas' && (
-                    <PlanterViewHaciendas haciendas={haciendas} />
-                )}
-                {activeTab === 'productions' && (
-                    <PlanterViewProductions productions={productions} />
-                )}
-                {activeTab === 'certifications' && (
-                    <DataTable
-                        columns={certificationColumns}
-                        data={certifications}
-                        bulkDelete={certificationBulkDelete}
-                    />
-                )}
-            </ViewLayout>
+            <ContentLayout>
+                <Head title="Products">
+                    <title>Planters</title>
+                </Head>
+                <div className="flex gap-2">
+                    <Tabs
+                        value={activeTab}
+                        defaultValue="planters"
+                        className="w-fit"
+                        onValueChange={setActiveTab}
+                    >
+                        <TabsList className="" variant="line">
+                            <TabsTrigger value="planters">
+                                <User />
+                                Planter Info
+                            </TabsTrigger>
+                            <TabsTrigger value="productions">
+                                <User />
+                                Productions
+                            </TabsTrigger>
+                            <TabsTrigger value="haciendas">
+                                <User />
+                                Haciendas
+                            </TabsTrigger>
+                            <TabsTrigger value="certifications">
+                                <User />
+                                Certifications
+                            </TabsTrigger>
+                        </TabsList>
+                    </Tabs>
+                </div>
+                <ViewLayout>
+                    {activeTab === 'planters' && (
+                        <PlanterViewPage
+                            planter={planter}
+                            setActiveTab={setActiveTab}
+                        />
+                    )}
+                    {activeTab === 'haciendas' && (
+                        <PlanterViewHaciendas haciendas={haciendas} />
+                    )}
+                    {activeTab === 'productions' && (
+                        <PlanterViewProductions productions={productions} />
+                    )}
+                    {activeTab === 'certifications' && (
+                        <DataTable
+                            columns={certificationColumns}
+                            data={certifications}
+                            bulkDelete={certificationBulkDelete}
+                        />
+                    )}
+                </ViewLayout>
+            </ContentLayout>
         </AppLayout>
     );
 }

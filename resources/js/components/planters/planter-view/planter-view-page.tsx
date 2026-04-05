@@ -63,14 +63,14 @@ const PlanterViewPage = ({
                     />
                 </div>
             </div>
+            <div className="flex-1">
+                <PlanterCard planter={planter} />
+            </div>
             <div className="flex flex-grow flex-row flex-wrap gap-4">
-                <div className="flex-1">
-                    <PlanterCard planter={planter} />
-                </div>
                 {cards.map((card, index) => (
                     <Card
                         key={index}
-                        className="overflow-hidden bg-gradient-to-br from-green-100 to-white"
+                        className="flex-1 overflow-hidden bg-white shadow-lg"
                     >
                         <CardHeader>
                             <CardTitle className="font-regular text-sm tracking-wider text-gray-500">

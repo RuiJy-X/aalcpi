@@ -29,6 +29,7 @@ import {
 } from '@/components/container';
 import PlanterCard from '@/components/planters/planter-view/planter-card';
 import PlanterCardsDisplay from '@/components/planters/planter-card-display';
+import ContentLayout from '@/layouts/app/content-layout';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -50,41 +51,45 @@ export default function Index({
 }) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Planters">
-                <title>Planters</title>
-            </Head>
+            <ContentLayout>
+                <Head title="Planters">
+                    <title>Planters</title>
+                </Head>
 
-            <div className="m-3 flex gap-2">
-                <PlanterStats
-                    planters={planters}
-                    productions={productions}
-                    certifications={certifications}
-                    haciendas={haciendas}
-                />
-            </div>
-            <PlanterCardsDisplay planters={planters} />
+                <div className="m-3 flex gap-2">
+                    <PlanterStats
+                        planters={planters}
+                        productions={productions}
+                        certifications={certifications}
+                        haciendas={haciendas}
+                    />
+                </div>
+                <PlanterCardsDisplay planters={planters} />
 
-            <Container>
-                <ContainerHeader>
-                    Planters Table
-                    <ContainerHeaderEnd>
-                        <ImportDialog config={plantersImportConfig} />
-                        <Button
-                            variant="outline"
-                            onClick={() => router.get(createPage().url)}
-                        >
-                            <User />
-                            Register Planter
-                        </Button>
-                    </ContainerHeaderEnd>
-                </ContainerHeader>
-                <DataTable
-                    columns={planterColumns}
-                    data={planters}
-                    bulkDelete={planterBulkDelete}
-                    onRowDoubleClick={(planter) => planterShow(planter.id).url}
-                />
-            </Container>
+                <Container>
+                    <ContainerHeader>
+                        Planters Table
+                        <ContainerHeaderEnd>
+                            <ImportDialog config={plantersImportConfig} />
+                            <Button
+                                variant="outline"
+                                onClick={() => router.get(createPage().url)}
+                            >
+                                <User />
+                                Register Planter
+                            </Button>
+                        </ContainerHeaderEnd>
+                    </ContainerHeader>
+                    <DataTable
+                        columns={planterColumns}
+                        data={planters}
+                        bulkDelete={planterBulkDelete}
+                        onRowDoubleClick={(planter) =>
+                            planterShow(planter.id).url
+                        }
+                    />
+                </Container>
+            </ContentLayout>
         </AppLayout>
     );
 }

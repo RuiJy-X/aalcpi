@@ -20,32 +20,35 @@ const PlanterCardsDisplay = ({planters}: {planters:PlanterRow[]}) => {
         planter.planter_code.toLowerCase().includes(search.toLowerCase())
     );
   return (
-    <Container>
-                <ContainerHeader>
-                    Planters
-                    <ContainerHeaderEnd>
-                        <ContainerHeaderEnd>
-                        <ImportDialog config={plantersImportConfig} />
-                        <Button
-                            variant="outline"
-                            onClick={() => router.get(createPage().url)}
-                        >
-                            <User />
-                            Register Planter
-                        </Button>
-                    </ContainerHeaderEnd>   
-                        <SearchInput placeholder='Search...' value={search} onChange={(e) => setSearch(e.target.value)} />
-                        
-                    </ContainerHeaderEnd>
-                </ContainerHeader>
+      <Container>
+          <ContainerHeader>
+              Planters
+              <ContainerHeaderEnd>
+                  <ContainerHeaderEnd>
+                      <ImportDialog config={plantersImportConfig} />
+                      <Button
+                          variant="outline"
+                          onClick={() => router.get(createPage().url)}
+                      >
+                          <User />
+                          Register Planter
+                      </Button>
+                  </ContainerHeaderEnd>
+                  <SearchInput
+                      placeholder="Search..."
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                  />
+              </ContainerHeaderEnd>
+          </ContainerHeader>
 
-                <div className="grid max-h-[600px] grid-cols-1 gap-2 overflow-y-auto md:grid-cols-1 xl:grid-cols-3">
-                    {filteredPlanters.map((planter) => (
-                        <PlanterCard key={planter.id} planter={planter} />
-                    ))}
-                </div>
-            </Container>
-  )
+          <div className="grid max-h-[600px] grid-cols-1 gap-3 overflow-y-auto p-3 md:grid-cols-1 xl:grid-cols-3">
+              {filteredPlanters.map((planter) => (
+                  <PlanterCard key={planter.id} planter={planter} />
+              ))}
+          </div>
+      </Container>
+  );
 }
 
 export default PlanterCardsDisplay

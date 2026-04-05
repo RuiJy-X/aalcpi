@@ -11,7 +11,7 @@ export const ContainerHeader = ({
     return (
         <div
             className={cn(
-                'my-2 flex items-center justify-between gap-3 text-xl font-semibold tracking-tight',
+                'my-2 flex items-center justify-between gap-3 text-2xl font-semibold tracking-tight',
                 className,
             )}
         >
