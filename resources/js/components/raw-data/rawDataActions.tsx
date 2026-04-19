@@ -13,12 +13,10 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
-import {show as rawDataShow} from '@/routes/RawData';
-import {destroy as rawDataDelete} from '@/routes/RawData';
+import { show as rawDataShow } from '@/routes/RawData';
+import { edit as rawDataEdit } from '@/routes/RawData';
+import { destroy as rawDataDelete } from '@/routes/RawData';
 import type { RawDataRow } from './raw-data-types';
-import { show as productionShow } from '@/routes/productions';
-import { destroy as productionDelete } from '@/routes/productions';
-import type { ProductionRow } from '../planters/planters-table-types';
 import { Button } from '../ui/button';
 
 function RawDataActions({ rawData }: { rawData: RawDataRow }) {
@@ -39,14 +37,19 @@ function RawDataActions({ rawData }: { rawData: RawDataRow }) {
             className="flex justify-end gap-2"
             onClick={(e) => e.stopPropagation()}
         >
-            <Button variant="secondary" size="xs" aria-label="Preview">
+            <Button
+                variant="secondary"
+                size="xs"
+                aria-label="Preview"
+                onClick={() => router.get(rawDataShow(rawData.id).url)}
+            >
                 <Eye className="size-4" />
             </Button>
             <Button
                 variant="blue"
                 size="xs"
                 aria-label="Edit"
-                onClick={() => router.get(rawDataShow(rawData.id).url)}
+                onClick={() => router.get(rawDataEdit(rawData.id).url)}
             >
                 <Pencil className="size-4" />
             </Button>

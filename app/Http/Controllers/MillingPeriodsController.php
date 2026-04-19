@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\MillingPeriod;
 use Inertia\Inertia;
 use Illuminate\Validation\Rule;
+use Carbon\Carbon;
 
 class MillingPeriodsController extends Controller
 {
@@ -144,5 +145,43 @@ class MillingPeriodsController extends Controller
         MillingPeriod::whereIn('id', $validated['ids'])->delete();
 
         return redirect()->back()->with('success', 'Selected milling periods deleted successfully.');
+    }
+
+    /**
+     * Return the sugar factor for a given date.
+     */
+    public function sugarFactor(Request $request)
+    {
+        $validated = $request->validate([
+            'date' => ['required', 'date'],
+            'crop_year' => ['nullable', 'string'],
+        ]);
+
+        $date = Carbon::parse($validated['date']);
+
+        // First, try to find a milling period that contains the date
+        $m = MillingPeriod::whereDate('start_date', '<=', $date->toDateString())
+            ->whereDate('end_date', '>=', $date->toDateString())
+            ->first();
+
+        if ($m) {
+            return response()->json(['sugar_factor' => $m->sugar_factor]);
+        }
+
+        // If none found by date, try by ISO week number (optionally matching crop_year)
+        $weekNo = (int) $date->isoWeek();
+
+        $query = MillingPeriod::where('week_no', $weekNo);
+        if (!empty($validated['crop_year'])) {
+            $query->where('crop_year', $validated['crop_year']);
+        }
+
+        $m2 = $query->first();
+        if ($m2) {
+            return response()->json(['sugar_factor' => $m2->sugar_factor]);
+        }
+
+        // Default sugar factor
+        return response()->json(['sugar_factor' => 1]);
     }
 }

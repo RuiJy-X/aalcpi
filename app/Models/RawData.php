@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class RawData extends Model
 {   
@@ -20,5 +21,13 @@ class RawData extends Model
         'trucks',
         'theoretical_lkg',
         'actual_lkg',
+        'calculated_sugar',
+        'trash',
+        'Lkg_per_TC',
     ];
+
+    public function planter(): BelongsTo
+    {
+        return $this->belongsTo(Planter::class, 'planter_code', 'planter_code');
+    }
 }

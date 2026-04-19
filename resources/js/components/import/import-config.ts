@@ -15,3 +15,8 @@ export const productionsImportConfig = {
     route: productions.import.url(),
     label: 'Productions Data',
 };
+
+export const rawDataImportConfig = {
+    route: '/RawData/import',
+    label: 'Raw Data',
+};

@@ -8,9 +8,6 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RawDataRow } from './raw-data-types';
 import RawDataActions from './rawDataActions';
-import { rawDataRowKeys } from './raw-data-types';
-
-
 
 export const rawDataColumns: ColumnDef<RawDataRow>[] = [
     {
@@ -62,9 +59,8 @@ export const rawDataColumns: ColumnDef<RawDataRow>[] = [
                 </div>
             );
         },
-
     },
-    
+
     {
         accessorKey: 'planter_code',
         header: ({ column }) => (
@@ -84,6 +80,31 @@ export const rawDataColumns: ColumnDef<RawDataRow>[] = [
                 <div className="flex items-center">
                     <div className="ml-2 truncate">
                         {rawData.planter_code ?? '-'}
+                        
+                    </div>
+                </div>
+            );
+        },
+    },
+    {
+        accessorKey: 'planter.name',
+        header: ({ column }) => (
+            <Button
+                variant="ghost"
+                onClick={() =>
+                    column.toggleSorting(column.getIsSorted() === 'asc')
+                }
+            >
+                Planter Name
+                <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+        ),
+        cell: ({ row }) => {
+            const rawData = row.original;
+            return (
+                <div className="flex items-center">
+                    <div className="ml-2 truncate">
+                        {rawData.planter?.name ?? '-'}
                     </div>
                 </div>
             );
@@ -106,13 +127,104 @@ export const rawDataColumns: ColumnDef<RawDataRow>[] = [
             const rawData = row.original;
             return (
                 <div className="flex items-center">
+                    <div className="ml-2 truncate">{rawData.date ?? '-'}</div>
+                </div>
+            );
+        },
+    },
+    {
+        accessorKey: 'trucks',
+        header: ({ column }) => (
+            <Button
+                variant="ghost"
+                onClick={() =>
+                    column.toggleSorting(column.getIsSorted() === 'asc')
+                }
+            >
+                Trucks
+                <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+        ),
+        cell: ({ row }) => {
+            const rawData = row.original;
+            return (
+                <div className="flex items-center">
+                    <div className="ml-2 truncate">{rawData.trucks ?? '-'}</div>
+                </div>
+            );
+        },
+    },
+    {
+        accessorKey: 'trash',
+        header: ({ column }) => (
+            <Button
+                variant="ghost"
+                onClick={() =>
+                    column.toggleSorting(column.getIsSorted() === 'asc')
+                }
+            >
+                Trash
+                <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+        ),
+        cell: ({ row }) => {
+            const rawData = row.original;
+            return (
+                <div className="flex items-center">
+                    <div className="ml-2 truncate">{rawData.trash ?? '-'}</div>
+                </div>
+            );
+        },
+    },
+    {
+        accessorKey: 'Lkg_per_TC',
+        header: ({ column }) => (
+            <Button
+                variant="ghost"
+                onClick={() =>
+                    column.toggleSorting(column.getIsSorted() === 'asc')
+                }
+            >
+                Lkg/TC
+                <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+        ),
+        cell: ({ row }) => {
+            const rawData = row.original;
+            return (
+                <div className="flex items-center">
                     <div className="ml-2 truncate">
-                        {rawData.date ?? '-'}
+                        {rawData.Lkg_per_TC ?? '-'}
                     </div>
                 </div>
             );
         },
     },
+    {
+        accessorKey: 'calculated_sugar',
+        header: ({ column }) => (
+            <Button
+                variant="ghost"
+                onClick={() =>
+                    column.toggleSorting(column.getIsSorted() === 'asc')
+                }
+            >
+                Calculated Sugar
+                <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+        ),
+        cell: ({ row }) => {
+            const rawData = row.original;
+            return (
+                <div className="flex items-center">
+                    <div className="ml-2 truncate">
+                        {rawData.calculated_sugar ?? '-'}
+                    </div>
+                </div>
+            );
+        },
+    },
+
     {
         accessorKey: 'gross_cw',
         header: ({ column }) => (
@@ -141,7 +253,7 @@ export const rawDataColumns: ColumnDef<RawDataRow>[] = [
         accessorKey: 'net_cw',
         header: ({ column }) => (
             <Button
-            variant="ghost"
+                variant="ghost"
                 onClick={() =>
                     column.toggleSorting(column.getIsSorted() === 'asc')
                 }
@@ -154,42 +266,17 @@ export const rawDataColumns: ColumnDef<RawDataRow>[] = [
             const rawData = row.original;
             return (
                 <div className="flex items-center">
-                    <div className="ml-2 truncate">
-                        {rawData.net_cw ?? '-'}
-                    </div>
+                    <div className="ml-2 truncate">{rawData.net_cw ?? '-'}</div>
                 </div>
             );
         },
     },
-    {
-        accessorKey: 'trucks',
-        header: ({ column }) => (
-            <Button
-            variant="ghost"
-                onClick={() =>
-                    column.toggleSorting(column.getIsSorted() === 'asc')
-                }
-            >
-                Trucks
-                <ArrowUpDown className="ml-2 h-4 w-4" />
-            </Button>
-        ),
-        cell: ({ row }) => {
-            const rawData = row.original;
-            return (
-                <div className="flex items-center">
-                    <div className="ml-2 truncate">
-                        {rawData.trucks ?? '-'}
-                    </div>
-                </div>
-            );
-        },
-    },
+
     {
         accessorKey: 'theoretical_lkg',
         header: ({ column }) => (
             <Button
-            variant="ghost"
+                variant="ghost"
                 onClick={() =>
                     column.toggleSorting(column.getIsSorted() === 'asc')
                 }
@@ -213,7 +300,7 @@ export const rawDataColumns: ColumnDef<RawDataRow>[] = [
         accessorKey: 'actual_lkg',
         header: ({ column }) => (
             <Button
-            variant="ghost"
+                variant="ghost"
                 onClick={() =>
                     column.toggleSorting(column.getIsSorted() === 'asc')
                 }

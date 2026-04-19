@@ -21,6 +21,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
+    Route::post('/RawData/import', [RawDataController::class, 'import'])->name('RawData.import');
+    Route::delete('/RawData/bulk-delete', [RawDataController::class, 'bulkDestroy'])->name('RawData.bulk-destroy');
     Route::resource('/RawData', RawDataController::class)->whereNumber('RawData');
 
     // --- MANAGER ---
@@ -35,6 +37,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Add later the other routes like payroll, attendance, ... of all the employees records
 
         Route::delete('/MillingPeriods/bulk-delete', [MillingPeriodsController::class, 'bulkDestroy'])->name('milling-periods.bulk-destroy');
+
+        Route::get('/MillingPeriods/sugar-factor', [MillingPeriodsController::class, 'sugarFactor'])->name('milling-periods.sugar-factor');
 
         Route::resource('/MillingPeriods', MillingPeriodsController::class)
             ->whereNumber('MillingPeriod');

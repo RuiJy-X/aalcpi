@@ -17,11 +17,16 @@ return new class extends Migration
             $table->string('crop_year');
             $table->date('date');
             $table->string('planter_code');
-            $table->string('gross_cw');
-            $table->string('net_cw');
-            $table->string('trucks');
-            $table->string('theoretical_lkg');
-            $table->string('actual_lkg');
+            $table->decimal('gross_cw', 10, 3);
+            $table->decimal('net_cw', 10, 3);
+            $table->decimal('trucks', 10, 3);
+            $table->decimal('theoretical_lkg', 10, 3);
+            $table->decimal('actual_lkg', 10, 3);
+            $table->decimal('calculated_sugar', 10, 3); //example: 10.65
+            $table->decimal('trash', 6, 3); //example: 3.00
+            $table->decimal('Lkg_per_TC', 6, 3); //example: 1.325
+
+            $table->unique(['crop_year', 'date', 'planter_code']);
         });
     }
 
