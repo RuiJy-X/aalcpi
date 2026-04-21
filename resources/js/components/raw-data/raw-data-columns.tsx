@@ -6,6 +6,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { ArrowUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 import { RawDataRow } from './raw-data-types';
 import RawDataActions from './rawDataActions';
 
@@ -80,9 +81,35 @@ export const rawDataColumns: ColumnDef<RawDataRow>[] = [
                 <div className="flex items-center">
                     <div className="ml-2 truncate">
                         {rawData.planter_code ?? '-'}
-                        
                     </div>
                 </div>
+            );
+        },
+    },
+    {
+        accessorKey: 'processing_status',
+        header: ({ column }) => (
+            <Button
+                variant="ghost"
+                onClick={() =>
+                    column.toggleSorting(column.getIsSorted() === 'asc')
+                }
+            >
+                Status
+                <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+        ),
+        cell: ({ row }) => {
+            const status = (row.original.processing_status ?? 'pending')
+                .toString()
+                .toLowerCase();
+
+            return (
+                <Badge
+                    variant={status === 'processed' ? 'secondary' : 'outline'}
+                >
+                    {status === 'processed' ? 'Processed' : 'Pending'}
+                </Badge>
             );
         },
     },

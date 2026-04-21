@@ -11,6 +11,7 @@ use App\Http\Controllers\HaciendaController;
 use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\RawDataController;
+use App\Http\Controllers\QuedanController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -22,6 +23,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::post('/RawData/import', [RawDataController::class, 'import'])->name('RawData.import');
+    Route::post('/RawData/{id}/process-and-enrich', [RawDataController::class, 'processAndEnrich'])
+        ->whereNumber('id')
+        ->name('RawData.process-and-enrich');
     Route::delete('/RawData/bulk-delete', [RawDataController::class, 'bulkDestroy'])->name('RawData.bulk-destroy');
     Route::resource('/RawData', RawDataController::class)->whereNumber('RawData');
 
@@ -70,6 +74,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('/import', [ProductionController::class,'import'])->name('import');
             Route::delete('/bulk-delete', [ProductionController::class, 'bulkDestroy'])->name('bulk-destroy');
             Route::delete('/delete/{productionId}', [ProductionController::class, 'destroy'])->name('destroy');
+        });
+
+        // Quedans
+        Route::prefix('Quedans')->name('quedans.')->group(function () {
+            Route::get('/', [QuedanController::class, 'index'])->name('index');
+            Route::patch('/update-serial/{productionId}', [QuedanController::class, 'updateSerial'])
+                ->whereNumber('productionId')
+                ->name('update_serial');
         });
 
         // Haciendas

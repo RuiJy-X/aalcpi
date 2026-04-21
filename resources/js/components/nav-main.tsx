@@ -38,7 +38,26 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                     </SidebarMenuItem>
                 ))}
                 <hr />
-                {items.slice(1, 6).map((item) => (
+                {items.slice(1, 3).map((item) => (
+                    <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton
+                            asChild
+                            isActive={
+                                currentUrlPath.includes(
+                                    String(toUrl(item.href)),
+                                ) || isCurrentUrl(item.href, currentUrlPath)
+                            }
+                            tooltip={{ children: item.title }}
+                        >
+                            <Link href={item.href} prefetch>
+                                {item.icon && <item.icon />}
+                                <span>{item.title}</span>
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                ))}
+                <hr />
+                {items.slice(3, 6).map((item) => (
                     <SidebarMenuItem key={item.title}>
                         <SidebarMenuButton
                             asChild

@@ -1,5 +1,5 @@
-import { Head, Link } from '@inertiajs/react';
-import { Clipboard, Import, Minimize2 } from 'lucide-react';
+import { Head } from '@inertiajs/react';
+import { Import, Minimize2 } from 'lucide-react';
 import ActionContainer from '@/components/action-container';
 
 import { productionBulkDelete } from '@/components/data-table/bulk-delete';
@@ -26,6 +26,7 @@ import {
     ContainerHeader,
     ContainerHeaderEnd,
 } from '@/components/container';
+import ProductionCard from '@/components/productions/production-card';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -69,6 +70,19 @@ export default function Index({
                         productionShow(production.id).url
                     }
                 />
+            </Container>
+
+            <Container>
+                <ContainerHeader>Production Cards</ContainerHeader>
+                <br />
+                <div className="flex flex-col gap-2">
+                    {productions.map((production) => (
+                        <ProductionCard
+                            key={production.id}
+                            production={production}
+                        />
+                    ))}
+                </div>
             </Container>
         </AppLayout>
     );

@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Imports\RawDataImport;
 use App\Models\RawData;
+use App\Services\DataTransformationService;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Maatwebsite\Excel\Facades\Excel;
+use Throwable;
 
 class RawDataController extends Controller
 {
@@ -33,7 +35,7 @@ class RawDataController extends Controller
      */
     public function index()
     {
-        $rawData = RawData::with('planter')->orderBy('date', 'desc')->get();
+        $rawData = RawData::with(['planter', 'production'])->orderBy('date', 'desc')->get();
 
         return Inertia::render('RawData/Index', [
             'rawData' => $rawData,
@@ -131,5 +133,29 @@ class RawDataController extends Controller
         Excel::import(new RawDataImport, $request->file('file'));
 
         return redirect()->back()->with('success', 'Raw data imported successfully.');
+    }
+
+    public function processAndEnrich(int $id, DataTransformationService $transformationService)
+    {
+        $rawData = RawData::findOrFail($id);
+
+        if ($rawData->processing_status === RawData::STATUS_PROCESSED) {
+            return redirect()->back()->with('success', 'Raw data record already processed.');
+        }
+
+        try {
+            $production = $transformationService->processRawData($rawData);
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return redirect()->back()->withErrors([
+                'process' => 'Unable to process and enrich this raw data record right now.',
+            ]);
+        }
+
+        return redirect()->back()->with(
+            'success',
+            "Raw data record processed successfully. Linked Production ID: {$production->id}."
+        );
     }
 }

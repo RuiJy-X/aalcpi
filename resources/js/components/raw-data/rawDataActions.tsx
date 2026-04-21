@@ -1,6 +1,6 @@
 import { router } from '@inertiajs/react';
 
-import { Eye, Pencil, Trash2 } from 'lucide-react';
+import { Cog, Eye, Pencil, Trash2 } from 'lucide-react';
 import React from 'react';
 
 import {
@@ -16,11 +16,16 @@ import {
 import { show as rawDataShow } from '@/routes/RawData';
 import { edit as rawDataEdit } from '@/routes/RawData';
 import { destroy as rawDataDelete } from '@/routes/RawData';
+import { processAndEnrich as rawDataProcessAndEnrich } from '@/routes/RawData';
 import type { RawDataRow } from './raw-data-types';
 import { Button } from '../ui/button';
 
 function RawDataActions({ rawData }: { rawData: RawDataRow }) {
     const [isDeleteOpen, setDeleteOpen] = React.useState(false);
+    const [isProcessing, setIsProcessing] = React.useState(false);
+    const isProcessed =
+        (rawData.processing_status ?? 'pending').toString().toLowerCase() ===
+        'processed';
 
     const handleDelete = () => {
         router.delete(rawDataDelete(rawData.id).url, {
@@ -28,6 +33,31 @@ function RawDataActions({ rawData }: { rawData: RawDataRow }) {
             onSuccess: () => {
                 setDeleteOpen(false);
                 window.alert('Raw data record deleted successfully.');
+            },
+        });
+    };
+
+    const handleProcessAndEnrich = () => {
+        if (isProcessed || isProcessing) {
+            return;
+        }
+
+        setIsProcessing(true);
+
+        router.post(rawDataProcessAndEnrich(rawData.id).url, undefined, {
+            preserveScroll: true,
+            onSuccess: () => {
+                window.alert(
+                    'Raw data record processed and enriched successfully.',
+                );
+            },
+            onError: () => {
+                window.alert(
+                    'Unable to process and enrich this record right now.',
+                );
+            },
+            onFinish: () => {
+                setIsProcessing(false);
             },
         });
     };
@@ -44,6 +74,20 @@ function RawDataActions({ rawData }: { rawData: RawDataRow }) {
                 onClick={() => router.get(rawDataShow(rawData.id).url)}
             >
                 <Eye className="size-4" />
+            </Button>
+            <Button
+                variant="blue"
+                size="xs"
+                aria-label="Process and Enrich"
+                disabled={isProcessed || isProcessing}
+                onClick={handleProcessAndEnrich}
+            >
+                <Cog className="size-4" />
+                {isProcessed
+                    ? 'Processed'
+                    : isProcessing
+                      ? 'Processing...'
+                      : 'Process and Enrich'}
             </Button>
             <Button
                 variant="blue"

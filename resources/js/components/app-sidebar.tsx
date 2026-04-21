@@ -31,6 +31,7 @@ import { index as plantersIndex } from '@/routes/planters';
 import { index as productionsIndex } from '@/routes/productions';
 import { index as userIndex } from '@/routes/users';
 import { index as millingPeriodsIndex } from '@/routes/MillingPeriods';
+import { index as quedansIndex } from '@/routes/quedans';
 import { index as rawDataIndex } from '@/routes/RawData';
 import type { NavItem, SharedData } from '@/types';
 import AppLogo from './app-logo';
@@ -63,9 +64,14 @@ export function AppSidebar() {
             icon: Truck,
         },
         {
-            title: 'Productions Final',
+            title: 'Productions',
             href: productionsIndex(),
             icon: BookOpen,
+        },
+        {
+            title: 'Quedan Management',
+            href: quedansIndex(),
+            icon: Clipboard,
         },
         {
             title: 'Certifications',

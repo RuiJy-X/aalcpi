@@ -2,6 +2,16 @@ export type PlanterStatus = 'Active' | 'Inactive';
 
 export type OwnershipType = 'Owned' | 'Leased' | 'Tenant';
 
+export type QuedanStatus = 'pending' | 'vaulted' | 'pledged' | 'released';
+
+export type QuedanRow = {
+    id: string | number;
+    production_id: string | number;
+    serial_number: string | null;
+    status: QuedanStatus;
+    remarks?: string | null;
+};
+
 export type PlanterRow = {
     id: string;
     planter_code: string;
@@ -60,6 +70,7 @@ export type ProductionRow = {
     association_dues_mol: number;
     trans_code?: string | null;
     transloading?: boolean | null;
+    quedan?: QuedanRow | null;
     created_at?: string;
     updated_at?: string;
 };

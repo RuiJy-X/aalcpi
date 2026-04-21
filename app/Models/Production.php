@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Production extends Model
 {
@@ -19,4 +20,5 @@ class Production extends Model
     public function planter() { return $this->belongsTo(Planter::class); }
     public function hacienda() { return $this->belongsTo(Hacienda::class); }
     public function certification() { return $this->hasOne(Certification::class); }
+    public function quedan(): HasOne { return $this->hasOne(Quedan::class); }
 }
