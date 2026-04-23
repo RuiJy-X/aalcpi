@@ -51,19 +51,20 @@ export default function Index({
             <Head title="Haciendas">
                 <title>Haciendas</title>
             </Head>
-            <ActionContainer>
-                <Button
-                    onClick={() => router.get(createHacienda(planter.id).url)}
-                >
-                    <i>
-                        <Plus />
-                    </i>
-                    Add Hacienda
-                </Button>
-            </ActionContainer>
+
             <ViewLayout>
-                <div className="mb-2 border-green-900 py-2 text-3xl font-semibold tracking-tight text-[var(--dark)]">
+                <div className="mb-2 flex justify-between border-green-900 py-2 text-3xl font-semibold tracking-tight text-[var(--dark)]">
                     Hacienda Details
+                    <Button
+                        onClick={() =>
+                            router.get(createHacienda(planter.id).url)
+                        }
+                    >
+                        <i>
+                            <Plus />
+                        </i>
+                        Add Hacienda
+                    </Button>
                 </div>
                 <div className="flex gap-3">
                     <PlanterCard planter={planter} className="flex-1" />

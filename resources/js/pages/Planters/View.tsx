@@ -46,17 +46,26 @@ import PlanterViewProductions from '@/components/planters/planter-view/planter-v
 import PlanterViewHaciendas from '@/components/planters/planter-view/planter-view-haciendas';
 import ContentLayout from '@/layouts/app/content-layout';
 
-
 export default function Index({
     planter,
     haciendas,
     productions,
     certifications,
+    crop_years,
+    weeks_by_crop_year,
+    filters,
 }: {
     planter: PlanterWithRelations;
     haciendas: HaciendaRow[];
     productions: ProductionRow[];
     certifications: CertificationRow[];
+    crop_years: string[];
+    weeks_by_crop_year: Record<string, number[]>;
+    filters: {
+        crop_year: string;
+        week_no: string;
+        view_mode: string;
+    };
 }) {
     const [activeTab, setActiveTab] = useState('planters');
     const viewHref = planterShow(planter.id).url;
@@ -118,7 +127,13 @@ export default function Index({
                         <PlanterViewHaciendas haciendas={haciendas} />
                     )}
                     {activeTab === 'productions' && (
-                        <PlanterViewProductions productions={productions} />
+                        <PlanterViewProductions
+                            productions={productions}
+                            crop_years={crop_years}
+                            weeks_by_crop_year={weeks_by_crop_year}
+                            filters={filters}
+                            planter_id={planter.id}
+                        />
                     )}
                     {activeTab === 'certifications' && (
                         <DataTable

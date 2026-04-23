@@ -53,14 +53,6 @@ const tabs = [
     },
 ];
 
-const actions = [
-    {
-        title: 'Import Data',
-        href: '#',
-        icon: Import,
-    },
-];
-
 export default function Index({
     haciendas,
     planterNames,
@@ -82,17 +74,6 @@ export default function Index({
                 <ContainerHeader>
                     Hacienda Table
                     <ContainerHeaderEnd>
-                        {actions.map((action) => (
-                            <Link key={action.title} href={action.href}>
-                                <Button variant={'outline'}>
-                                    <span>
-                                        <action.icon />
-                                    </span>
-                                    {action.title}
-                                </Button>
-                            </Link>
-                        ))}
-
                         <HaciendaDialog
                             planterNames={planterNames}
                             planters={planters}

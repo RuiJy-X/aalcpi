@@ -29,6 +29,7 @@ import { index as employeeIndex } from '@/routes/employees';
 import { index as haciendasIndex } from '@/routes/haciendas';
 import { index as plantersIndex } from '@/routes/planters';
 import { index as productionsIndex } from '@/routes/productions';
+import { index as productionDistributionsIndex } from '@/routes/distributions';
 import { index as userIndex } from '@/routes/users';
 import { index as millingPeriodsIndex } from '@/routes/MillingPeriods';
 import { index as rawDataIndex } from '@/routes/RawData';
@@ -57,34 +58,35 @@ export function AppSidebar() {
             href: haciendasIndex(),
             icon: LandPlot,
         },
+
         {
-            title: 'Raw Data',
-            href: rawDataIndex(),
-            icon: Truck,
-        },
-        {
-            title: 'Productions Final',
+            title: 'Productions',
             href: productionsIndex(),
             icon: BookOpen,
         },
         {
-            title: 'Certifications',
-            href: certificationIndex(),
-            icon: ShieldCheck,
+            title: 'Financial Distributions',
+            href: productionDistributionsIndex(),
+            icon: DollarSign,
         },
+        // {
+        //     title: 'Certifications',
+        //     href: certificationIndex(),
+        //     icon: ShieldCheck,
+        // },
     ];
 
     const adminNavItems: NavItem[] = [
-        {
-            title: 'HR',
-            href: employeeIndex(),
-            icon: Briefcase,
-        },
-        {
-            title: 'User Management',
-            href: userIndex(),
-            icon: Clipboard,
-        },
+        // {
+        //     title: 'HR',
+        //     href: employeeIndex(),
+        //     icon: Briefcase,
+        // },
+        // {
+        //     title: 'User Management',
+        //     href: userIndex(),
+        //     icon: Clipboard,
+        // },
         {
             title: 'Milling Periods',
             href: millingPeriodsIndex(),

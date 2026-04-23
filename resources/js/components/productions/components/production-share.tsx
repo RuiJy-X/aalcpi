@@ -41,7 +41,9 @@ const ProductionShare = ({ productions }: { productions: ProductionRow }) => {
                             <div className="text-md flex-1 font-medium text-gray-500">
                                 {card.label}
                             </div>
-                            <div className="text-xl font-semibold text-[var(--dark)]">
+                            <div
+                                className={`text-xl font-semibold text-[var(--dark)] ${card.label === 'PDPA LKG' || card.label === 'Association Dues LKG' ? 'text-red-500' : ''}`}
+                            >
                                 {card.value ?? 'N/A'}
                             </div>
                         </div>
@@ -61,7 +63,9 @@ const ProductionShare = ({ productions }: { productions: ProductionRow }) => {
                             <div className="text-md flex-1 font-medium text-gray-500">
                                 {card.label}
                             </div>
-                            <div className="text-xl font-semibold text-[var(--dark)]">
+                            <div
+                                className={`text-xl font-semibold text-[var(--dark)] ${card.label === 'PDPA MOL' || card.label === 'Association Dues MOL' ? 'text-red-500' : ''} `}
+                            >
                                 {card.value ?? 'N/A'}
                             </div>
                         </div>

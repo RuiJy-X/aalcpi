@@ -12,10 +12,11 @@ class DashboardController extends Controller
 {
     public function index(): Response
     {
-        $seasonYear = Production::query()->max('production_year') ?? (int) Carbon::now()->year;
+        $currentYear = (int) Carbon::now()->year;
+        $seasonYear = Production::query()->max('crop_year') ?? sprintf('%04d-%04d', $currentYear, $currentYear + 1);
 
         $seasonProductions = Production::query()
-            ->where('production_year', $seasonYear)
+            ->where('crop_year', $seasonYear)
             ->get([
                 'id',
                 'net_cw',
@@ -37,7 +38,7 @@ class DashboardController extends Controller
         $pendingCount = static fn (string $type): int => Certification::query()
             ->where('certification_type', $type)
             ->whereHas('production', static function ($query) use ($seasonYear) {
-                $query->where('production_year', $seasonYear);
+                $query->where('crop_year', $seasonYear);
             })
             ->whereRaw('LOWER(status) NOT IN (?, ?, ?, ?)', $completedStatuses)
             ->count();

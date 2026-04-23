@@ -15,7 +15,6 @@ import ProductionPerformance from './components/production-performance';
 import ProductionShare from './components/production-share';
 import DisplayDate from '../display-date';
 import ProductionBasic from './components/production-basic';
-import MonthComboBox from '../month-combobox';
 
 const ProductionInfo = ({ production }: { production: ProductionRow }) => {
     const initialData = {
@@ -23,8 +22,8 @@ const ProductionInfo = ({ production }: { production: ProductionRow }) => {
         planter_code: production.planter_code,
         hacienda_code: production.hacienda_code,
         hacienda_id: production.hacienda_id,
-        production_year: production.production_year,
-        production_month: production.production_month,
+        production_date: production.production_date?.split('T')[0] ?? '',
+        crop_year: production.crop_year ?? '',
         gross_cw: production.gross_cw,
         net_cw: production.net_cw,
         trucks: production.trucks,
@@ -82,14 +81,14 @@ const ProductionInfo = ({ production }: { production: ProductionRow }) => {
             value: production.hacienda_code,
         },
         {
-            label: 'Year',
-            key: 'production_year',
-            value: production.production_year,
+            label: 'Date',
+            key: 'production_date',
+            value: production.production_date?.split('T')[0],
         },
         {
-            label: 'Month',
-            key: 'production_month',
-            value: production.production_month,
+            label: 'Crop Year',
+            key: 'crop_year',
+            value: production.crop_year,
         },
         { label: 'Gross CW', key: 'gross_cw', value: production.gross_cw },
         { label: 'Net CW', key: 'net_cw', value: production.net_cw },
@@ -182,16 +181,23 @@ const ProductionInfo = ({ production }: { production: ProductionRow }) => {
                     <form onSubmit={submit} id="production-info-form">
                         <div className="flex flex-col gap-6">
                             <div className="flex flex-row flex-wrap gap-4">
-                                {details.slice(2, 3).map((detail) => (
+                                {details.slice(2, 4).map((detail) => (
                                     <Field
                                         key={detail.key}
                                         className="w-full md:w-[calc(50%-0.5rem)]"
                                     >
                                         <FieldLabel>{detail.label}</FieldLabel>
+
                                         <Input
-                                            type="number"
+                                            type={
+                                                detail.key === 'production_date'
+                                                    ? 'date'
+                                                    : 'text'
+                                            }
                                             placeholder={detail.label}
-                                            value={String(data[detail.key])}
+                                            value={String(
+                                                data[detail.key] ?? '',
+                                            )}
                                             onChange={(e) =>
                                                 handleChange(
                                                     detail.key,
@@ -199,21 +205,6 @@ const ProductionInfo = ({ production }: { production: ProductionRow }) => {
                                                 )
                                             }
                                         />
-                                    </Field>
-                                ))}
-                                {details.slice(3, 4).map((detail) => (
-                                    <Field
-                                        key={detail.key}
-                                        className="w-full md:w-[calc(50%-0.5rem)]"
-                                    >
-                                        <FieldLabel>{detail.label}</FieldLabel>
-
-                                        <MonthComboBox
-                                            value={String(data[detail.key])}
-                                            onValueChange={(value) =>
-                                                handleChange(detail.key, value)
-                                            }
-                                        ></MonthComboBox>
                                     </Field>
                                 ))}
                             </div>

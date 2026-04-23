@@ -4,24 +4,63 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\MillingPeriod;
+use App\Services\FinancialDistributionService;
 use Inertia\Inertia;
 use Illuminate\Validation\Rule;
 use Carbon\Carbon;
 
 class MillingPeriodsController extends Controller
 {
+    public function __construct(private readonly FinancialDistributionService $distributionService)
+    {
+    }
+
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $milling_periods = MillingPeriod::query()
+        $selectedCropYear = $request->string('crop_year')->toString();
+        $selectedWeek = $request->string('week_no')->toString();
+
+        $query = MillingPeriod::query()
             ->orderByDesc('crop_year')
-            ->orderByDesc('week_no')
+            ->orderBy('week_no');
+
+        if ($selectedCropYear !== '' && $selectedCropYear !== 'all') {
+            $query->where('crop_year', $selectedCropYear);
+        }
+
+        if ($selectedWeek !== '' && $selectedWeek !== 'all') {
+            $query->where('week_no', (int) $selectedWeek);
+        }
+
+        $milling_periods = $query->get();
+
+        $allPeriods = MillingPeriod::query()
+            ->orderByDesc('crop_year')
+            ->orderBy('week_no')
             ->get();
 
+        $cropYears = $allPeriods
+            ->pluck('crop_year')
+            ->filter()
+            ->unique()
+            ->values();
+
+        $weeksByCropYear = $allPeriods
+            ->groupBy('crop_year')
+            ->map(fn ($periods) => $periods->pluck('week_no')->unique()->sort()->values())
+            ->toArray();
+
         return Inertia::render('MillingPeriods/Index', [
-            'milling_periods' => $milling_periods
+            'milling_periods' => $milling_periods,
+            'crop_years' => $cropYears,
+            'weeks_by_crop_year' => $weeksByCropYear,
+            'filters' => [
+                'crop_year' => $selectedCropYear,
+                'week_no' => $selectedWeek,
+            ],
         ]);
     }
 
@@ -58,9 +97,11 @@ class MillingPeriodsController extends Controller
 
         $millingPeriod = MillingPeriod::create($validated);
 
+        $noticeMessage = $this->buildFinancialUpdateNotice($millingPeriod);
+
         return redirect()
             ->route('MillingPeriods.show', $millingPeriod->id)
-            ->with('success', 'Milling period created successfully.');
+            ->with('success', 'Milling period created successfully.' . $noticeMessage);
     }
 
     /**
@@ -117,9 +158,26 @@ class MillingPeriodsController extends Controller
 
         $millingPeriod->update($validated);
 
+        $noticeMessage = $this->buildFinancialUpdateNotice($millingPeriod->fresh());
+
         return redirect()
             ->route('MillingPeriods.show', $millingPeriod->id)
-            ->with('success', 'Milling period updated successfully.');
+            ->with('success', 'Milling period updated successfully.' . $noticeMessage);
+    }
+
+    private function buildFinancialUpdateNotice(MillingPeriod $millingPeriod): string
+    {
+        if ($millingPeriod->sugar_price === null || $millingPeriod->mol_price === null) {
+            return '';
+        }
+
+        $affectedCount = $this->distributionService->estimateAffectedProductionCount($millingPeriod);
+
+        if ($affectedCount < 1) {
+            return '';
+        }
+
+        return " {$affectedCount} production records have been updated with the new weekly auction price. Please review and accept the totals.";
     }
 
     /**

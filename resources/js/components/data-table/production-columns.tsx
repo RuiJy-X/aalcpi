@@ -9,59 +9,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import ProductionActions from './production-actions';
 import type { ProductionRow } from '@/components/planters/planters-table-types';
 
-const MONTH_PRECEDENCE: Record<string, number> = {
-    january: 1,
-    jan: 1,
-    february: 2,
-    feb: 2,
-    march: 3,
-    mar: 3,
-    april: 4,
-    apr: 4,
-    may: 5,
-    june: 6,
-    jun: 6,
-    july: 7,
-    jul: 7,
-    august: 8,
-    aug: 8,
-    september: 9,
-    sep: 9,
-    sept: 9,
-    october: 10,
-    oct: 10,
-    november: 11,
-    nov: 11,
-    december: 12,
-    dec: 12,
-};
-
-function getMonthRank(value: unknown): number {
-    if (typeof value === 'number') {
-        return value >= 1 && value <= 12 ? value : Number.MAX_SAFE_INTEGER;
-    }
-
-    if (typeof value !== 'string') {
-        return Number.MAX_SAFE_INTEGER;
-    }
-
-    const normalized = value.trim().toLowerCase();
-    if (!normalized) {
-        return Number.MAX_SAFE_INTEGER;
-    }
-
-    const numericMonth = Number.parseInt(normalized, 10);
-    if (
-        !Number.isNaN(numericMonth) &&
-        numericMonth >= 1 &&
-        numericMonth <= 12
-    ) {
-        return numericMonth;
-    }
-
-    return MONTH_PRECEDENCE[normalized] ?? Number.MAX_SAFE_INTEGER;
-}
-
 export const productionColumns: ColumnDef<ProductionRow>[] = [
     {
         id: 'select',
@@ -235,7 +182,7 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
     },
 
     {
-        accessorKey: 'production_year',
+        accessorKey: 'crop_year',
         header: ({ column }) => {
             return (
                 <Button
@@ -244,7 +191,7 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
                         column.toggleSorting(column.getIsSorted() === 'asc')
                     }
                 >
-                    Year
+                    Crop Year
                     <ArrowUpDown className="ml-2 h-4 w-4" />
                 </Button>
             );
@@ -254,20 +201,18 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
 
             return (
                 <div className="flex items-center">
-                    <div className="ml-2 truncate">
-                        {production.production_year}
+                    <div
+                        className={`ml-2 truncate ${production.crop_year ? '' : 'text-red-500'}`}
+                    >
+                        {production.crop_year ??
+                            'No milling period set for this date'}
                     </div>
                 </div>
             );
         },
     },
     {
-        accessorKey: 'production_month',
-        sortingFn: (rowA, rowB, columnId) => {
-            const monthA = getMonthRank(rowA.getValue(columnId));
-            const monthB = getMonthRank(rowB.getValue(columnId));
-            return monthA - monthB;
-        },
+        accessorKey: 'week_no',
         header: ({ column }) => {
             return (
                 <Button
@@ -276,7 +221,36 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
                         column.toggleSorting(column.getIsSorted() === 'asc')
                     }
                 >
-                    Month
+                    Week No.
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                </Button>
+            );
+        },
+        cell: ({ row }) => {
+            const production = row.original;
+
+            return (
+                <div className="flex items-center">
+                    <div
+                        className={`ml-2 truncate ${production.week_no ? '' : 'text-red-500'}`}
+                    >
+                        {production.week_no ?? 'No milling record on this date'}
+                    </div>
+                </div>
+            );
+        },
+    },
+    {
+        accessorKey: 'production_date',
+        header: ({ column }) => {
+            return (
+                <Button
+                    variant="ghost"
+                    onClick={() =>
+                        column.toggleSorting(column.getIsSorted() === 'asc')
+                    }
+                >
+                    Date
                     <ArrowUpDown className="ml-2 h-4 w-4" />
                 </Button>
             );
@@ -287,7 +261,7 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
             return (
                 <div className="flex items-center">
                     <div className="ml-2 truncate">
-                        {production.production_month}
+                        {production.production_date?.split('T')[0] ?? '-'}
                     </div>
                 </div>
             );
@@ -312,7 +286,9 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
             const production = row.original;
             return (
                 <div className="flex items-center">
-                    <div className="ml-2 truncate">{production.gross_cw}</div>
+                    <div className="ml-2 truncate">
+                        {Number(production.gross_cw).toFixed(2)}
+                    </div>
                 </div>
             );
         },
@@ -336,7 +312,9 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
             const production = row.original;
             return (
                 <div className="flex items-center">
-                    <div className="ml-2 truncate">{production.net_cw}</div>
+                    <div className="ml-2 truncate">
+                        {Number(production.net_cw).toFixed(2)}
+                    </div>
                 </div>
             );
         },
@@ -385,7 +363,7 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
             return (
                 <div className="flex items-center">
                     <div className="ml-2 truncate">
-                        {production.theoretical_lkg}
+                        {Number(production.theoretical_lkg).toFixed(2)}
                     </div>
                 </div>
             );
@@ -409,7 +387,9 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
             const production = row.original;
             return (
                 <div className="flex items-center">
-                    <div className="ml-2 truncate">{production.actual_lkg}</div>
+                    <div className="ml-2 truncate">
+                        {Number(production.actual_lkg).toFixed(2)}
+                    </div>
                 </div>
             );
         },
@@ -432,7 +412,7 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
             return (
                 <div className="flex items-center">
                     <div className="ml-2 truncate">
-                        {production.pshr_net_lkg}
+                        {Number(production.pshr_net_lkg).toFixed(2)}
                     </div>
                 </div>
             );
@@ -455,7 +435,9 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
             const production = row.original;
             return (
                 <div className="flex items-center">
-                    <div className="ml-2 truncate">{production.pdpa_lkg}</div>
+                    <div className="ml-2 truncate">
+                        {Number(production.pdpa_lkg).toFixed(2)}
+                    </div>
                 </div>
             );
         },
@@ -478,7 +460,7 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
             return (
                 <div className="flex items-center">
                     <div className="ml-2 truncate">
-                        {production.association_dues_lkg}
+                        {Number(production.association_dues_lkg).toFixed(2)}
                     </div>
                 </div>
             );
@@ -501,7 +483,9 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
             const production = row.original;
             return (
                 <div className="flex items-center">
-                    <div className="ml-2 truncate">{production.actual_mol}</div>
+                    <div className="ml-2 truncate">
+                        {Number(production.actual_mol).toFixed(2)}
+                    </div>
                 </div>
             );
         },
@@ -524,7 +508,7 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
             return (
                 <div className="flex items-center">
                     <div className="ml-2 truncate">
-                        {production.pshr_net_mol}
+                        {Number(production.pshr_net_mol).toFixed(2)}
                     </div>
                 </div>
             );
@@ -547,7 +531,9 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
             const production = row.original;
             return (
                 <div className="flex items-center">
-                    <div className="ml-2 truncate">{production.pdpa_mol}</div>
+                    <div className="ml-2 truncate">
+                        {Number(production.pdpa_mol).toFixed(2)}
+                    </div>
                 </div>
             );
         },
@@ -570,7 +556,7 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
             return (
                 <div className="flex items-center">
                     <div className="ml-2 truncate">
-                        {production.association_dues_mol}
+                        {Number(production.association_dues_mol).toFixed(2)}
                     </div>
                 </div>
             );

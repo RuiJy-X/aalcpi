@@ -1,6 +1,6 @@
 import { router } from '@inertiajs/react';
 
-import { Eye, Pencil, Trash2 } from 'lucide-react';
+import { Eye, Pencil, Printer, Trash2 } from 'lucide-react';
 import React from 'react';
 
 import {
@@ -37,7 +37,7 @@ function ProductionActions({ production }: { production: ProductionRow }) {
             onClick={(e) => e.stopPropagation()}
         >
             <Button variant="secondary" size="xs" aria-label="Preview">
-                <Eye className="size-4" />
+                <Printer className="size-4" />
             </Button>
             <Button
                 variant="blue"

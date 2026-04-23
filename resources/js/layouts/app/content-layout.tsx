@@ -1,9 +1,7 @@
-import React from 'react'
+import React from 'react';
 
-const ContentLayout = ({children} : {children: React.ReactNode}) => {
-  return (
-    <div className='p-10'>{children}</div>
-  )
-}
+const ContentLayout = ({ children }: { children: React.ReactNode }) => {
+    return <div className="px-10 py-6">{children}</div>;
+};
 
-export default ContentLayout
+export default ContentLayout;

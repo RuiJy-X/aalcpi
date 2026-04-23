@@ -12,4 +12,9 @@ class MillingPeriod extends Model
     protected $fillable = [
         'week_no', 'crop_year', 'start_date', 'end_date', 'sugar_factor', 'mol_factor', 'sugar_price', 'mol_price'
     ];
+
+    public function productions()
+    {
+        return $this->hasMany(Production::class);
+    }
 }

@@ -70,8 +70,8 @@ $productionHeaders = [
     'planter_name',
     'hacienda_code',
     'hacienda_name',
-    'production_year',
-    'production_month',
+    'production_date',
+    'crop_year',
     'gross_cw',
     'net_cw',
     'trucks',
@@ -88,31 +88,46 @@ $productionHeaders = [
     'transloading',
 ];
 
+$productionCount = 10;
 $productionRows = [];
-for ($i = 1; $i <= $rowCount; $i++) {
+
+for ($j = 1; $j <= $productionCount; $j++){
+    for ($i = 1; $i <= $rowCount; $i++) {
+
+        $counter = ((($j -1) * 10) + $i);
+        $day = ((($j -1) * 10) + $i) % 31 + 1; // Ensure day is between 1 and 31
+        $month = round($counter / 30,0, PHP_ROUND_HALF_UP);
+        $year = 2026 + floor(($counter - 1) / 120);
+
+    $productionDate = date('Y-m-d', strtotime('2026-01-'. (($j -1) * 10) + $i . '+' . ($i - 1) . ' days'));
+    $productionDate = date('Y-m-d', strtotime($year.'-'.$month.'-'.$day . '+' . ($i - 1) . ' days'));
+    $startYear = (int) date('Y', strtotime($productionDate));
+
     $productionRows[] = [
         'PLN-' . str_pad((string) $i, 3, '0', STR_PAD_LEFT),
         'Planter ' . $i,
         'HAC-' . str_pad((string) $i, 3, '0', STR_PAD_LEFT),
         'Hacienda ' . $i,
-        2025,
-        'January',
-        120 + $i,
-        115 + $i,
-        2 + ($i % 3),
-        450 + ($i * 2),
-        440 + ($i * 2),
-        430 + ($i * 2),
-        10 + ($i * 0.5),
-        5 + ($i * 0.25),
-        200 + ($i * 1.5),
-        195 + ($i * 1.25),
-        3 + ($i * 0.2),
-        2 + ($i * 0.15),
-        'TRX' . str_pad((string) $i, 4, '0', STR_PAD_LEFT),
+        $productionDate,
+        sprintf('%04d-%04d', $startYear, $startYear + 1),
+        10 + $i,
+        8 + $i,
+        1 + ($i % 3),
+        11 + ($i * 2),
+        11 + ($i * 2),
+        7 + ($i * 2),
+        2 + ($i * 0.5),
+        2 + ($i * 0.25),
+        2 + ($i * 1.5),
+        1 + ($i * 1.25),
+        1 + ($i * 0.2),
+        1 + ($i * 0.15),
+        'TRX' . str_pad((string)$j *10 + $i , 4, '0', STR_PAD_LEFT),
         $i % 2 === 0 ? 'true' : 'false',
     ];
+    }
 }
+
 
 $planterFile = $targetDir . '/planter_sample.xlsx';
 $productionFile = $targetDir . '/productions_sample.xlsx';
