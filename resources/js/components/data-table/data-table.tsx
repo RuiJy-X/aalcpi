@@ -104,6 +104,7 @@ interface DataTableProps<TData, TValue> {
     bulkDownload?: BulkDownloadConfig<TData>;
     bulkDelete?: BulkDeleteConfig<TData>;
     onRowDoubleClick?: (row: TData) => string | null | undefined;
+    excludedDateFilterColumns?: string[];
 }
 
 export function DataTable<TData, TValue>({
@@ -112,6 +113,7 @@ export function DataTable<TData, TValue>({
     bulkDownload,
     bulkDelete,
     onRowDoubleClick,
+    excludedDateFilterColumns = [],
 }: DataTableProps<TData, TValue>) {
     // ======== Sorting ========
     const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -135,12 +137,17 @@ export function DataTable<TData, TValue>({
     const dateFilterableColumns = React.useMemo(() => {
         return columns
             .map((column) => deriveColumnId(column))
-            .filter(
-                (columnId): columnId is string =>
-                    Boolean(columnId) &&
-                    DATE_COLUMN_PATTERN.test(columnId as string),
-            );
-    }, [columns]);
+            .filter((columnId): columnId is string => {
+                if (!columnId) {
+                    return false;
+                }
+
+                return (
+                    DATE_COLUMN_PATTERN.test(columnId) &&
+                    !excludedDateFilterColumns.includes(columnId)
+                );
+            });
+    }, [columns, excludedDateFilterColumns]);
 
     const [dateFilterColumnId, setDateFilterColumnId] =
         React.useState<string>('');

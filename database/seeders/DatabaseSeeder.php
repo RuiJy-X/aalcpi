@@ -2,17 +2,16 @@
 
 namespace Database\Seeders;
 
-use App\Models\Attendance;
 use App\Models\Certification;
-use App\Models\Employee;
 use App\Models\Hacienda;
-use App\Models\Payroll;
+use App\Models\MillingPeriod;
 use App\Models\Planter;
 use App\Models\Production;
 use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Carbon;
 
 class DatabaseSeeder extends Seeder
 {
@@ -28,6 +27,10 @@ class DatabaseSeeder extends Seeder
             'password' => Hash::make('admin'),
         ]);
 
+        $this->call([
+            MillingPeriodSeeder::class,
+        ]);
+
 
         // Planters / haciendas / Production / Certifications
         $planters = Planter::factory()->count(50)->create();
@@ -37,11 +40,31 @@ class DatabaseSeeder extends Seeder
             $haciendas->push(Hacienda::factory()->for($planter)->create());
         }
 
+        $millingPeriods = MillingPeriod::query()
+            ->orderBy('start_date')
+            ->take(4)
+            ->get();
+
         $productions = collect();
-        foreach ($haciendas as $hacienda) {
-            for ($i = 0; $i < 5; $i++) {
+        foreach ($millingPeriods as $millingPeriod) {
+            for ($i = 0; $i < 10; $i++) {
+                $hacienda = $haciendas->random();
+                $productionDate = Carbon::parse($millingPeriod->start_date)
+                    ->addDays(fake()->numberBetween(0, 6));
+
                 $productions->push(
-                    Production::factory()->forPlanterhacienda($hacienda->planter, $hacienda)->create()
+                    Production::factory()
+                        ->forPlanterhacienda($hacienda->planter, $hacienda)
+                        ->state([
+                            'milling_period_id' => $millingPeriod->id,
+                            'production_date' => $productionDate->toDateString(),
+                            'crop_year' => sprintf(
+                                '%04d-%04d',
+                                (int) $productionDate->format('Y'),
+                                (int) $productionDate->format('Y') + 1,
+                            ),
+                        ])
+                        ->create()
                 );
             }
         }
@@ -60,7 +83,6 @@ class DatabaseSeeder extends Seeder
         $this->call([
             AdminSeeder::class,
             UserSeeder::class,
-            MillingPeriodSeeder::class,
             RawDataSeeder::class,
         ]);
     }

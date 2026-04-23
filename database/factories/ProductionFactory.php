@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Hacienda;
+use App\Models\MillingPeriod;
 use App\Models\Planter;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -13,33 +14,45 @@ class ProductionFactory extends Factory
 {
     public function definition(): array
     {
-        $grossCw = fake()->randomFloat(2, 10, 5000);
-        $netCw = max(0, $grossCw - fake()->randomFloat(2, 0, 50));
+        // Use realistic production relationships so seeded records look like operational data.
+        $netCw = fake()->randomFloat(3, 5, 20);
+        $grossCw = round($netCw + fake()->randomFloat(3, 0.2, 1.5), 3);
 
-        $actualLkg = fake()->randomFloat(2, 0, 5000);
-        $pshrNetLkg = fake()->randomFloat(2, 0, $actualLkg);
-        $pdpaLkg = fake()->randomFloat(2, 0, max(0, $actualLkg - $pshrNetLkg));
-        $associationDuesLkg = fake()->randomFloat(2, 0, max(0, $actualLkg - $pshrNetLkg - $pdpaLkg));
+        $lkgPerTcFactor = fake()->randomFloat(4, 1.3, 1.8);
+        $actualLkg = round($netCw * $lkgPerTcFactor, 4);
+        $pshrNetLkg = round($actualLkg * 0.64, 4);
+        $pdpaLkg = round($pshrNetLkg * 0.02, 4);
+        $associationDuesLkg = round($pshrNetLkg * 0.01, 4);
 
-        $actualMol = fake()->randomFloat(2, 0, 5000);
-        $pshrNetMol = fake()->randomFloat(2, 0, $actualMol);
-        $pdpaMol = fake()->randomFloat(2, 0, max(0, $actualMol - $pshrNetMol));
-        $associationDuesMol = fake()->randomFloat(2, 0, max(0, $actualMol - $pshrNetMol - $pdpaMol));
+        $actualMol = round($netCw * 35, 4);
+        $pshrNetMol = round($actualMol * 0.64, 4);
+        $pdpaMol = round($pshrNetMol * 0.02, 4);
+        $associationDuesMol = round($pshrNetMol * 0.01, 4);
 
         $planter = Planter::factory();
         $hacienda = Hacienda::factory()->for($planter);
 
+        $millingPeriod = MillingPeriod::query()->inRandomOrder()->first();
+
+        if ($millingPeriod) {
+            $startDate = \Illuminate\Support\Carbon::parse($millingPeriod->start_date);
+            $endDate = \Illuminate\Support\Carbon::parse($millingPeriod->end_date);
+            $productionDate = fake()->dateTimeBetween($startDate, $endDate);
+        } else {
+            $productionDate = fake()->dateTimeBetween('-2 years', 'now');
+        }
+
         return [
             'planter_id' => $planter,
             'hacienda_id' => $hacienda,
-            'production_year' => fake()->numberBetween(2015, (int) date('Y')),
-            'production_month' => fake()->monthName(),
+            'production_date' => $productionDate->format('Y-m-d'),
+            'crop_year' => $this->formatCropYear((int) $productionDate->format('Y')),
             'planter_code' => fn (array $attributes) => Planter::query()->whereKey($attributes['planter_id'])->value('planter_code'),
             'hacienda_code' => fn (array $attributes) => Hacienda::query()->whereKey($attributes['hacienda_id'])->value('hacienda_code'),
             'gross_cw' => $grossCw,
             'net_cw' => $netCw,
-            'trucks' => fake()->numberBetween(1, 50),
-            'theoretical_lkg' => fake()->randomFloat(2, 0, 5000),
+            'trucks' => fake()->numberBetween(1, 3),
+            'theoretical_lkg' => round($actualLkg * fake()->randomFloat(4, 0.97, 1.03), 4),
             'actual_lkg' => $actualLkg,
             'pshr_net_lkg' => $pshrNetLkg,
             'pdpa_lkg' => $pdpaLkg,
@@ -65,5 +78,10 @@ class ProductionFactory extends Factory
             'planter_code' => $planter->planter_code,
             'hacienda_code' => $hacienda->hacienda_code,
         ]);
+    }
+
+    private function formatCropYear(int $startYear): string
+    {
+        return sprintf('%04d-%04d', $startYear, $startYear + 1);
     }
 }

@@ -7,6 +7,7 @@ use App\Http\Controllers\CertificationController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\PayrollController;
 use App\Http\Controllers\MillingPeriodsController;
+use App\Http\Controllers\ProductionDistributionController;
 use App\Http\Controllers\HaciendaController;
 use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
@@ -59,8 +60,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Productions
         Route::prefix('Productions')->name('productions.')->group(function () {
             Route::get('/', [ProductionController::class, 'index'])->name('index');
+
             Route::get('/view/{productionId}', [ProductionController::class,'show'])->name('show');
             Route::get('/{id}/final-data', [ProductionController::class,'finalData'])->name('final_data');
+            Route::get('/certification', [ProductionController::class,'certification'])->name('certification');
             Route::get('/bulk-download', [ProductionController::class,'bulkDownload'])->name('bulk_download');
             Route::patch('/view/update/{productionId}', [ProductionController::class,'update'])->name('update');
             Route::post('/import', [ProductionController::class,'import'])->name('import');
@@ -68,6 +71,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::delete('/delete/{productionId}', [ProductionController::class, 'destroy'])->name('destroy');
         });
 
+        Route::prefix("Distributions")->name("distributions.")->group(function () {
+            Route::get('/', [ProductionDistributionController::class, 'index'])->name('index');
+            Route::get('/{productionId}/voucher', [ProductionDistributionController::class, 'voucher'])->name('voucher');
+            Route::patch('/{productionId}/accept', [ProductionDistributionController::class, 'accept'])->name('accept');
+            Route::patch('/{productionId}/reject', [ProductionDistributionController::class, 'reject'])->name('reject');
+            Route::patch('/{productionId}/cancel-acceptance', [ProductionDistributionController::class, 'cancelAcceptance'])->name('cancel_acceptance');
+        });
         // Haciendas
         Route::prefix('Haciendas')->name('haciendas.')->group(function () {
             Route::get('/', [HaciendaController::class, 'index'])->name('index');

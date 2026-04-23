@@ -6,7 +6,7 @@ const ProductionBasic = ({ productions }: { productions: ProductionRow }) => {
     const cards = [
         {
             label: 'Date',
-            value: `${productions.production_month}, ${productions.production_year}`,
+            value: productions.production_date?.split('T')[0],
         },
         { label: 'Trans Code', value: productions.trans_code },
     ];

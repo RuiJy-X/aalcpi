@@ -1,16 +1,13 @@
-import { Head } from '@inertiajs/react';
-import { DataTable } from '@/components/data-table/data-table';
-import AppLayout from '@/layouts/app-layout';
-import type { BreadcrumbItem } from '@/types';
+import { Head, router } from '@inertiajs/react';
 import { useMemo } from 'react';
 import {
     Container,
     ContainerHeader,
     ContainerHeaderEnd,
 } from '@/components/container';
-import { millingPeriodColumns } from '@/components/milling-periods/milling-periods-columns';
-import type { MillingPeriodRow } from '@/components/milling-periods/milling-periods-types';
-import { Button } from '@/components/ui/button';
+import { DataTable } from '@/components/data-table/data-table';
+import type { ProductionRow } from '@/components/planters/planters-table-types';
+import { distributionColumns } from '@/components/productions/distribution-columns';
 import {
     Select,
     SelectContent,
@@ -18,34 +15,39 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Plus } from 'lucide-react';
-import { create as millingPeriodCreate } from '@/routes/MillingPeriods';
-import { index as millingPeriodIndex } from '@/routes/MillingPeriods';
-import { router } from '@inertiajs/react';
-import { show as millingPeriodShow } from '@/routes/MillingPeriods';
-import { millingPeriodBulkDelete } from '@/components/data-table/bulk-delete';
-import type { EventInput } from '@fullcalendar/core';
-import MillingPeriodsCalendar from '@/components/milling-periods/milling-periods-calendar';
+import AppLayout from '@/layouts/app-layout';
+import { index as distributionsIndex } from '@/routes/distributions';
+import { show as productionShow } from '@/routes/productions';
+import type { BreadcrumbItem } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Milling Periods Management',
-        href: '#',
+        title: 'Financial Distributions',
+        href: distributionsIndex().url,
     },
 ];
 
+const statusLabelMap: Record<string, string> = {
+    pending_price: 'Pending Price',
+    calculated_pending_review: 'Calculated / Pending Review',
+    accepted: 'Accepted',
+};
+
 export default function Index({
-    milling_periods,
+    productions,
     crop_years,
     weeks_by_crop_year,
+    status_options,
     filters,
 }: {
-    milling_periods: MillingPeriodRow[];
+    productions: ProductionRow[];
     crop_years: string[];
     weeks_by_crop_year: Record<string, number[]>;
+    status_options: string[];
     filters: {
         crop_year?: string;
         week_no?: string;
+        financial_status?: string;
     };
 }) {
     const selectedCropYear =
@@ -54,13 +56,30 @@ export default function Index({
             : 'all';
     const selectedWeekNo =
         filters?.week_no && filters.week_no !== '' ? filters.week_no : 'all';
+    const selectedStatus =
+        filters?.financial_status && filters.financial_status !== ''
+            ? filters.financial_status
+            : 'all';
 
     const weekOptions =
         selectedCropYear === 'all'
             ? []
             : (weeks_by_crop_year[selectedCropYear] ?? []);
 
-    const applyFilters = (cropYear: string, weekNo: string) => {
+    const pendingReviewCount = useMemo(
+        () =>
+            productions.filter(
+                (production) =>
+                    production.financial_status === 'calculated_pending_review',
+            ).length,
+        [productions],
+    );
+
+    const applyFilters = (
+        cropYear: string,
+        weekNo: string,
+        financialStatus: string,
+    ) => {
         const query: Record<string, string> = {};
 
         if (cropYear !== 'all') {
@@ -71,62 +90,42 @@ export default function Index({
             query.week_no = weekNo;
         }
 
-        router.get(millingPeriodIndex().url, query, {
+        if (financialStatus !== 'all') {
+            query.financial_status = financialStatus;
+        }
+
+        router.get(distributionsIndex().url, query, {
             preserveState: true,
             preserveScroll: true,
             replace: true,
         });
     };
 
-    const calendarEvents = useMemo<EventInput[]>(() => {
-        return milling_periods.map((period) => ({
-            id: String(period.id),
-            title: `Week ${period.week_no} (${period.crop_year}) -  ₱/LKG: ${Number(period.sugar_price).toFixed(2)},  ₱/MOL: ${Number(period.mol_price).toFixed(2)}`,
-            start: period.start_date,
-            end: period.end_date,
-            allDay: true,
-            extendedProps: {
-                sugar_factor: period.sugar_factor,
-                mol_factor: period.mol_factor,
-            },
-        }));
-    }, [milling_periods]);
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Milling Periods"></Head>
+            <Head title="Financial Distributions" />
+
+            {pendingReviewCount > 0 && (
+                <div className="mx-3 mt-3 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                    {pendingReviewCount} production records have been updated
+                    with the new weekly auction price. Please review and accept
+                    the totals.
+                </div>
+            )}
 
             <Container>
                 <ContainerHeader>
-                    Milling Periods Calendar
-                    <ContainerHeaderEnd>
-                        <Button
-                            onClick={() =>
-                                router.get(millingPeriodCreate().url)
-                            }
-                        >
-                            <Plus />
-                            Add Week
-                        </Button>
-                    </ContainerHeaderEnd>
-                </ContainerHeader>
-
-                <MillingPeriodsCalendar
-                    events={calendarEvents}
-                    onEventClick={(info) => {
-                        router.get(millingPeriodShow(info.event.id).url);
-                    }}
-                />
-            </Container>
-            <Container>
-                <ContainerHeader>
-                    Milling Periods Table
+                    Financial Distribution Review
                     <ContainerHeaderEnd>
                         <div className="flex items-center gap-2">
                             <Select
                                 value={selectedCropYear}
                                 onValueChange={(nextCropYear) =>
-                                    applyFilters(nextCropYear, 'all')
+                                    applyFilters(
+                                        nextCropYear,
+                                        'all',
+                                        selectedStatus,
+                                    )
                                 }
                             >
                                 <SelectTrigger className="w-44">
@@ -150,7 +149,11 @@ export default function Index({
                             <Select
                                 value={selectedWeekNo}
                                 onValueChange={(nextWeekNo) =>
-                                    applyFilters(selectedCropYear, nextWeekNo)
+                                    applyFilters(
+                                        selectedCropYear,
+                                        nextWeekNo,
+                                        selectedStatus,
+                                    )
                                 }
                                 disabled={selectedCropYear === 'all'}
                             >
@@ -175,26 +178,42 @@ export default function Index({
                                     })}
                                 </SelectContent>
                             </Select>
+
+                            <Select
+                                value={selectedStatus}
+                                onValueChange={(nextStatus) =>
+                                    applyFilters(
+                                        selectedCropYear,
+                                        selectedWeekNo,
+                                        nextStatus,
+                                    )
+                                }
+                            >
+                                <SelectTrigger className="w-56">
+                                    <SelectValue placeholder="Financial Status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">
+                                        All Statuses
+                                    </SelectItem>
+                                    {status_options.map((status) => (
+                                        <SelectItem key={status} value={status}>
+                                            {statusLabelMap[status] ?? status}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
-                        <Button
-                            onClick={() =>
-                                router.get(millingPeriodCreate().url)
-                            }
-                        >
-                            <Plus />
-                            Add
-                        </Button>
                     </ContainerHeaderEnd>
                 </ContainerHeader>
+
                 <DataTable
-                    onRowDoubleClick={(milling_period) =>
-                        millingPeriodShow(milling_period.id).url
+                    columns={distributionColumns}
+                    data={productions}
+                    onRowDoubleClick={(production) =>
+                        productionShow(production.id).url
                     }
-                    bulkDelete={millingPeriodBulkDelete}
-                    data={milling_periods}
-                    columns={millingPeriodColumns}
-                    excludedDateFilterColumns={['start_date', 'end_date']}
-                ></DataTable>
+                />
             </Container>
         </AppLayout>
     );

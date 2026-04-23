@@ -4,7 +4,7 @@ import AppLayout from '@/layouts/app-layout';
 import { index as userIndex } from '@/routes/users';
 import { show as userShow } from '@/routes/users';
 import type { BreadcrumbItem } from '@/types';
-import Container from '@/components/container';
+import { Container } from '@/components/container';
 import CreateUserForm from '@/components/users/create-user-form';
 import { usersColumns } from '@/components/data-table/users-columns';
 import type { UserRow } from '@/components/types/usertypes';

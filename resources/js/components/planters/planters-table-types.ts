@@ -44,8 +44,9 @@ export type ProductionRow = {
     planter_name: string;
     hacienda_name: string;
     hacienda_address: string;
-    production_year: number;
-    production_month: number | string;
+    production_date?: string | null;
+    crop_year?: string | null;
+    week_no?: number | null;
     gross_cw: number;
     net_cw: number;
     trucks: number;
@@ -60,6 +61,24 @@ export type ProductionRow = {
     association_dues_mol: number;
     trans_code?: string | null;
     transloading?: boolean | null;
+    milling_period_id?: string | number | null;
+    financial_status?:
+        | 'pending_price'
+        | 'calculated_pending_review'
+        | 'accepted'
+        | null;
+    distribution_total?: number | string | null;
+    molasses_total?: number | string | null;
+    planter_lkg_money?: number | string | null;
+    pdpa_lkg_money?: number | string | null;
+    association_dues_lkg_money?: number | string | null;
+    planter_mol_money?: number | string | null;
+    pdpa_mol_money?: number | string | null;
+    association_dues_mol_money?: number | string | null;
+    financial_calculated_at?: string | null;
+    financial_reviewed_at?: string | null;
+    financial_reviewed_by?: string | number | null;
+    financial_rejection_reason?: string | null;
     created_at?: string;
     updated_at?: string;
 };

@@ -4,9 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Imports\ProductionsImport;
+use App\Models\MillingPeriod;
 use App\Models\Production;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Maatwebsite\Excel\Facades\Excel;
@@ -14,15 +17,144 @@ use Maatwebsite\Excel\Facades\Excel;
 class ProductionController extends Controller
 {
 
-    public function index(){
-        $productions = Production::with(['planter', 'hacienda'])->get()->map(function ($production) {
-            $production->planter_name = $production->planter ? $production->planter->name : null;
-            $production->hacienda_address = $production->hacienda ? $production->hacienda->address : null;
-        $production->hacienda_name = $production->hacienda ? $production->hacienda->name : null;
-            return $production;
-        });
-        return Inertia::render('Productions/Index', ['productions' => $productions]);
+    public function index(Request $request)
+    {
+        $selectedCropYear = $request->string('crop_year')->toString();
+        $selectedWeek = $request->string('week_no')->toString();
+        $selectedViewMode = $request->string('view_mode')->toString();
 
+        if (!in_array($selectedViewMode, ['weekly', 'yearly'], true)) {
+            $selectedViewMode = 'weekly';
+        }
+
+
+
+        $millingPeriods = MillingPeriod::query()
+            ->orderByDesc('crop_year')
+            ->orderBy('week_no')
+            ->get();
+
+        $productions = Production::with(['planter', 'hacienda'])
+            ->get()
+            ->map(function ($production) use ($millingPeriods) {
+                $productionDate = $this->resolveProductionDate($production);
+                $matchingPeriod = $millingPeriods->first(function ($period) use ($productionDate) {
+                    if (!$productionDate) {
+                        return false;
+                    }
+
+                    $start = Carbon::parse($period->start_date)->startOfDay();
+                    $end = Carbon::parse($period->end_date)->endOfDay();
+
+                    return $productionDate->between($start, $end, true);
+                });
+
+                $production->planter_name = $production->planter ? $production->planter->name : null;
+                $production->hacienda_address = $production->hacienda ? $production->hacienda->address : null;
+                $production->hacienda_name = $production->hacienda ? $production->hacienda->name : null;
+                $production->production_date = $productionDate ? $productionDate->toDateString() : null;
+                $production->crop_year = $production->crop_year ?? $matchingPeriod?->crop_year;
+                $production->week_no = $matchingPeriod?->week_no;
+
+                return $production;
+            });
+
+        if ($selectedCropYear !== '' && $selectedCropYear !== 'all') {
+            $productions = $productions->where('crop_year', $selectedCropYear);
+        }
+
+        if ($selectedWeek !== '' && $selectedWeek !== 'all') {
+            $selectedWeekInt = (int) $selectedWeek;
+            $productions = $productions->where('week_no', $selectedWeekInt);
+        }
+
+        if ($selectedViewMode === 'yearly') {
+            $productions = $this->aggregateYearlyProductions($productions);
+        }
+
+        $cropYears = $millingPeriods
+            ->pluck('crop_year')
+            ->filter()
+            ->unique()
+            ->values();
+
+        $weeksByCropYear = $millingPeriods
+            ->groupBy('crop_year')
+            ->map(fn ($periods) => $periods->pluck('week_no')->unique()->sort()->values())
+            ->toArray();
+
+
+
+        return Inertia::render('Productions/Index', [
+            'productions' => $productions->values(),
+            'crop_years' => $cropYears,
+            'weeks_by_crop_year' => $weeksByCropYear,
+            'filters' => [
+                'crop_year' => $selectedCropYear,
+                'week_no' => $selectedWeek,
+                'view_mode' => $selectedViewMode,
+            ],
+        ]);
+
+    }
+
+    private function aggregateYearlyProductions(Collection $productions): Collection
+    {
+        $numericFields = [
+            'gross_cw',
+            'net_cw',
+            'trucks',
+            'theoretical_lkg',
+            'actual_lkg',
+            'pshr_net_lkg',
+            'pdpa_lkg',
+            'association_dues_lkg',
+            'actual_mol',
+            'pshr_net_mol',
+            'pdpa_mol',
+            'association_dues_mol',
+            'distribution_total',
+            'molasses_total',
+            'planter_lkg_money',
+            'pdpa_lkg_money',
+            'association_dues_lkg_money',
+            'planter_mol_money',
+            'pdpa_mol_money',
+            'association_dues_mol_money',
+        ];
+
+        return $productions
+            ->groupBy(function ($production) {
+                $cropYear = $production->crop_year ?: 'Unknown Crop Year';
+
+                return $production->planter_id . '::' . $cropYear;
+            })
+            ->map(function (Collection $groupedProductions) use ($numericFields) {
+                $baseProduction = $groupedProductions->first();
+                $cropYear = $baseProduction->crop_year ?: 'Unknown Crop Year';
+
+                $baseProduction->id = 'yearly-' . $baseProduction->planter_id . '-' . $cropYear;
+                $baseProduction->crop_year = $cropYear;
+                $baseProduction->week_no = null;
+                $baseProduction->production_date = null;
+                $baseProduction->trans_code = null;
+                $baseProduction->transloading = null;
+                $baseProduction->hacienda_id = '';
+                $baseProduction->hacienda_code = '-';
+                $baseProduction->hacienda_name = 'All haciendas';
+                $baseProduction->hacienda_address = '-';
+
+                foreach ($numericFields as $field) {
+                    $baseProduction->{$field} = $groupedProductions->sum(function ($row) use ($field) {
+                        $value = $row->{$field} ?? 0;
+
+                        return is_numeric($value) ? (float) $value : 0;
+                    });
+                }
+
+                return $baseProduction;
+            })
+            ->values();
     }
 
     public function show($productionId)
@@ -44,7 +176,7 @@ class ProductionController extends Controller
 
         $file = $request->file('file');
 
-        Excel::import(new ProductionsImport, $file);
+        Excel::import(app(ProductionsImport::class), $file);
 
         return back()->with('success', 'Productions imported successfully.');
 
@@ -65,8 +197,8 @@ class ProductionController extends Controller
         $validated = $request->validate([
             'planter_id' => 'required|exists:planters,id',
             'hacienda_id' => 'required|exists:haciendas,id',
-            'production_year' => 'required|integer',
-            'production_month' => 'required|string',
+            'production_date' => 'required|date',
+            'crop_year' => ['required', 'regex:/^\d{4}-\d{4}$/'],
             'gross_cw' => 'required|numeric',
             'net_cw' => 'required|numeric',
             'trucks' => 'required|integer',
@@ -111,12 +243,15 @@ class ProductionController extends Controller
     {
         $production = Production::findOrFail($productionId);
 
+        if ($production->financial_status === Production::FINANCIAL_STATUS_ACCEPTED) {
+            return redirect()->back()->with('success', 'This production is financially accepted and read-only.');
+        }
+
         $validated = $request->validate([
             'planter_id' => 'required|exists:planters,id',
             'hacienda_id' => 'required|exists:haciendas,id',
-            'production_year' => 'required|integer',
-            'production_month' => 'required|string|
-            max:255',
+            'production_date' => 'required|date',
+            'crop_year' => ['required', 'regex:/^\d{4}-\d{4}$/'],
             'gross_cw' => 'required|numeric',
             'net_cw' => 'required|numeric',
             'trucks' => 'required|integer',
@@ -144,9 +279,40 @@ class ProductionController extends Controller
     {
         $production = Production::with(['planter', 'hacienda'])->findOrFail($id);
 
-        $pdf = Pdf::loadView('pdfs.certification_final_data', compact('production'))->setPaper('a4', 'portrait');
+        $pdf = Pdf::loadView('pdfs.weekly_data', compact('production'))->setPaper('a4', 'landscape');
 
-        return $pdf->stream("{$production->planter->name}_final_data.pdf");
+    return $pdf->stream("{$production->planter->name}_weekly_data.pdf");
+    }
+
+    public function certification(Request $request)
+    {
+
+        $planter_code = $request->query('planter_code');
+        $crop_year = $request->query('crop_year');
+
+
+        $productions = Production::with(['planter', 'hacienda'])
+            ->when($planter_code, function ($query, $planter_code) {
+                $query->whereHas('planter', function ($q) use ($planter_code) {
+                    $q->where('planter_code', $planter_code);
+                });
+            })
+            ->when($crop_year, function ($query, $crop_year) {
+                $query->where('crop_year', $crop_year);
+            })
+            ->get();
+
+        $aggregated_collection = $this->aggregateYearlyProductions($productions);
+        $aggregate_production = $aggregated_collection->first();
+
+        if (!$aggregate_production) {
+        return back()->with('error', 'No production data found for the selected criteria.');
+        }
+
+         $pdf = Pdf::loadView('pdfs.certification_final_data', ['production' => $aggregate_production])->setPaper('a4', 'portrait');
+
+         return $pdf->stream("{$aggregate_production->planter->name}_final_data.pdf");
+
     }
 
     public function bulkDownload(Request $request)
@@ -168,6 +334,15 @@ class ProductionController extends Controller
 
         return $pdf->download('productions_final_data_' . now()->format('Ymd_His') . '.pdf');
 
+    }
+
+    private function resolveProductionDate(Production $production): ?Carbon
+    {
+        if (empty($production->production_date)) {
+            return null;
+        }
+
+        return Carbon::parse($production->production_date)->startOfDay();
     }
 
 }

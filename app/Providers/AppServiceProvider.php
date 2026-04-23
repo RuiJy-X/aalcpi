@@ -2,6 +2,10 @@
 
 namespace App\Providers;
 
+use App\Models\MillingPeriod;
+use App\Models\Production;
+use App\Observers\MillingPeriodObserver;
+use App\Observers\ProductionObserver;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -24,6 +28,9 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+
+        MillingPeriod::observe(MillingPeriodObserver::class);
+        Production::observe(ProductionObserver::class);
     }
 
     protected function configureDefaults(): void

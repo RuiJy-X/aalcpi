@@ -1,4 +1,4 @@
-import { Head, Link, router, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import {
     Container,
@@ -18,6 +18,7 @@ import {
 } from '@/routes/MillingPeriods';
 import type { BreadcrumbItem } from '@/types';
 import type { MillingPeriodRow } from '@/components/milling-periods/milling-periods-types';
+import type { SharedData } from '@/types';
 
 type MillingPeriodFormData = {
     week_no: string;
@@ -37,6 +38,9 @@ export default function Show({
     milling_period: MillingPeriodRow;
     isEditing: boolean;
 }) {
+    const page = usePage<SharedData>();
+    const successMessage = page.props.flash?.success;
+
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: 'Milling Periods Management',
@@ -71,6 +75,12 @@ export default function Show({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Milling Period Details" />
+
+            {successMessage && (
+                <div className="mx-3 mt-3 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                    {successMessage}
+                </div>
+            )}
 
             <Container>
                 <ContainerHeader>
@@ -176,7 +186,7 @@ export default function Show({
                             type="number"
                             step="any"
                             min={0}
-                            value={data.sugar_factor}
+                            value={Number(data.sugar_factor)}
                             disabled={!isEditing}
                             onChange={(event) =>
                                 setData('sugar_factor', event.target.value)
@@ -196,7 +206,7 @@ export default function Show({
                             type="number"
                             step="any"
                             min={0}
-                            value={data.mol_factor}
+                            value={Number(data.mol_factor)}
                             disabled={!isEditing}
                             onChange={(event) =>
                                 setData('mol_factor', event.target.value)
@@ -210,15 +220,13 @@ export default function Show({
                     </Field>
 
                     <Field>
-                        <Label htmlFor="sugar_price">
-                            Sugar Composite Price
-                        </Label>
+                        <Label htmlFor="sugar_price">Sugar Price</Label>
                         <Input
                             id="sugar_price"
                             type="number"
-                            step="0.0001"
+                            step="0.001"
                             min={0}
-                            value={data.sugar_price}
+                            value={Number(data.sugar_price)}
                             disabled={!isEditing}
                             onChange={(event) =>
                                 setData('sugar_price', event.target.value)
@@ -232,15 +240,13 @@ export default function Show({
                     </Field>
 
                     <Field>
-                        <Label htmlFor="mol_price">
-                            Molasses Composite Price
-                        </Label>
+                        <Label htmlFor="mol_price">Molasses Price</Label>
                         <Input
                             id="mol_price"
                             type="number"
-                            step="0.0001"
+                            step="0.001"
                             min={0}
-                            value={data.mol_price}
+                            value={Number(data.mol_price)}
                             disabled={!isEditing}
                             onChange={(event) =>
                                 setData('mol_price', event.target.value)

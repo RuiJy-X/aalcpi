@@ -60,7 +60,7 @@ export default function ProductionStats({
     const stats = [
         {
             title: 'Total Productions',
-            value: totalProductions,
+            value: Number(totalProductions).toFixed(0),
             icon: BookOpen,
             color: 'green',
         },
@@ -78,7 +78,7 @@ export default function ProductionStats({
         // },
         {
             title: 'Total Net CW',
-            value: totalNet,
+            value: Number(totalNet).toFixed(2),
             icon: LandPlot,
             color: 'orange',
         },
@@ -90,13 +90,13 @@ export default function ProductionStats({
         // },
         {
             title: 'Total Actual LKG',
-            value: totalActualLKG,
+            value: Number(totalActualLKG).toFixed(2),
             icon: Clipboard,
             color: 'teal',
         },
         {
             title: 'Total PSHR Net LKG',
-            value: totalPSHR,
+            value: Number(totalPSHR).toFixed(2),
             icon: Clipboard,
             color: 'indigo',
         },
@@ -114,13 +114,13 @@ export default function ProductionStats({
         // },
         {
             title: 'Total Actual MOL',
-            value: totalActualMOL,
+            value: Number(totalActualMOL).toFixed(2),
             icon: Clipboard,
             color: 'gray',
         },
         {
             title: 'Total PSHR Net MOL',
-            value: totalPSHRMOL,
+            value: Number(totalPSHRMOL).toFixed(2),
             icon: Clipboard,
             color: 'brown',
         },
@@ -144,7 +144,7 @@ export default function ProductionStats({
                 <StatCard
                     key={index}
                     title={stat.title}
-                    value={String(stat.value)}
+                    value={String(Number(stat.value))}
                     icon={stat.icon}
                     color={String(stat.color) as any}
                 />
