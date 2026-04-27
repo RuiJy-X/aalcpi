@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { show as productionShow } from '@/routes/productions';
 import { destroy as productionDelete } from '@/routes/productions';
+import { certification as productionCertification } from '@/routes/productions';
 import type { ProductionRow } from '../planters/planters-table-types';
 import { Button } from '../ui/button';
 
@@ -31,12 +32,28 @@ function ProductionActions({ production }: { production: ProductionRow }) {
         });
     };
 
+    const handlePrint = () => {
+        const params = new URLSearchParams({
+            planter_code: production.planter_code ?? '',
+            crop_year: production.crop_year ?? '',
+        }).toString();
+
+        const url = `${productionCertification().url}?${params}`;
+
+        window.open(url, '_blank');
+    };
+
     return (
         <div
             className="flex justify-end gap-2"
             onClick={(e) => e.stopPropagation()}
         >
-            <Button variant="secondary" size="xs" aria-label="Preview">
+            <Button
+                variant="secondary"
+                size="xs"
+                aria-label="Print yearly PDF"
+                onClick={handlePrint}
+            >
                 <Printer className="size-4" />
             </Button>
             <Button

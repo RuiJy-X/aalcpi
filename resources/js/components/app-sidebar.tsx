@@ -25,15 +25,12 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
-import { index as certificationIndex } from '@/routes/certifications';
 import { index as employeeIndex } from '@/routes/employees';
 import { index as haciendasIndex } from '@/routes/haciendas';
 import { index as plantersIndex } from '@/routes/planters';
 import { index as productionsIndex } from '@/routes/productions';
-import { index as productionDistributionsIndex } from '@/routes/distributions';
 import { index as userIndex } from '@/routes/users';
 import { index as millingPeriodsIndex } from '@/routes/MillingPeriods';
-import { index as rawDataIndex } from '@/routes/RawData';
 import type { NavItem, SharedData } from '@/types';
 import AppLogo from './app-logo';
 
@@ -70,16 +67,6 @@ export function AppSidebar() {
             href: '/Weekly',
             icon: CalendarDays,
         },
-        {
-            title: 'Financial Distributions',
-            href: productionDistributionsIndex(),
-            icon: DollarSign,
-        },
-        // {
-        //     title: 'Certifications',
-        //     href: certificationIndex(),
-        //     icon: ShieldCheck,
-        // },
     ];
 
     const adminNavItems: NavItem[] = [

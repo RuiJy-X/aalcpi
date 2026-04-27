@@ -20,6 +20,7 @@ import {
     ChevronLeft,
     ChevronRight,
     ChevronsRight,
+    CircleAlert,
     CircleCheckBig,
     FilterIcon,
     DownloadIcon,
@@ -203,8 +204,12 @@ export function DataTable<TData, TValue>({
     const [isDeleting, setIsDeleting] = React.useState(false);
     const page = usePage<SharedData>();
     const flashSuccess = page.props.flash?.success;
+    const flashError = page.props.flash?.error;
     const [successMessage, setSuccessMessage] = React.useState<string | null>(
         flashSuccess ?? null,
+    );
+    const [errorMessage, setErrorMessage] = React.useState<string | null>(
+        flashError ?? null,
     );
 
     React.useEffect(() => {
@@ -220,6 +225,20 @@ export function DataTable<TData, TValue>({
 
         return () => window.clearTimeout(timeout);
     }, [flashSuccess]);
+
+    React.useEffect(() => {
+        if (!flashError) {
+            return;
+        }
+
+        setErrorMessage(flashError);
+
+        const timeout = window.setTimeout(() => {
+            setErrorMessage(null);
+        }, 7000);
+
+        return () => window.clearTimeout(timeout);
+    }, [flashError]);
 
     const table = useReactTable({
         data: filteredByDateData,
@@ -315,6 +334,21 @@ export function DataTable<TData, TValue>({
 
     return (
         <div className="bg-white">
+            {errorMessage && (
+                <div className="border-b border-red-100 bg-red-50/80 px-4 py-4">
+                    <Card className="gap-3 border-red-200 bg-red-50 py-4 shadow-none">
+                        <CardHeader className="flex flex-row items-center gap-3 px-4">
+                            <CircleAlert className="size-5 text-red-600" />
+                            <CardTitle className="text-sm text-red-900">
+                                Error
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="px-4 text-sm text-red-800">
+                            {errorMessage}
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
             {successMessage && (
                 <div className="border-b border-emerald-100 bg-emerald-50/80 px-4 py-4">
                     <Card className="gap-3 border-emerald-200 bg-emerald-50 py-4 shadow-none">

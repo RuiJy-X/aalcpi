@@ -7,7 +7,6 @@ use App\Http\Controllers\Controller;
 use App\Imports\PlanterImport;
 use App\Models\Planter;
 use App\Models\Production;
-use App\Models\Certification;
 use App\Models\Hacienda;
 use App\Models\MillingPeriod;
 use Inertia\Inertia;
@@ -23,11 +22,10 @@ class PlanterController extends Controller
     {
         $planter = Planter::with('haciendas')->get();
         $productions = Production::with('planter')->get();
-        $certifications = Certification::with('planter')->get();
         $haciendas = Hacienda::with('planter')->get();
 
 
-        return Inertia::render('Planters/Index',['planters' => $planter, 'productions' => $productions, 'certifications' => $certifications, 'haciendas' => $haciendas ]);
+        return Inertia::render('Planters/Index',['planters' => $planter, 'productions' => $productions, 'haciendas' => $haciendas ]);
 
     }
 
@@ -35,10 +33,7 @@ class PlanterController extends Controller
         return Inertia::render('Planters/Create');
     }
 
-    public function viewCertificates($planterId, $certificateId){
-        $certificate = Certification::with('planter')->where('planter_id', $planterId)->where('id',$certificateId)->firstorFail();
-        return Inertia::render('Planters/ViewCertificates', ['certificate'=> $certificate, 'planterName' => $certificate->planter->name]);
-    }
+
 
     public function data()
     {
@@ -146,7 +141,7 @@ class PlanterController extends Controller
             ->orderBy('week_no')
             ->get();
 
-        $planter = Planter::with(['haciendas', 'productions', 'certifications'])->findOrFail($id);
+        $planter = Planter::with(['haciendas', 'productions'])->findOrFail($id);
 
         $productions = Production::with(['planter', 'hacienda'])
             ->where('planter_id', $planter->id)
@@ -199,11 +194,7 @@ class PlanterController extends Controller
             ->map(fn ($periods) => $periods->pluck('week_no')->unique()->sort()->values())
             ->toArray();
 
-        $certifications = Certification::with(['planter', 'hacienda', 'production'])
-            ->where('planter_id', $planter->id)
-            ->orWhereHas('production', fn ($query) => $query->where('planter_id', $planter->id))
-            ->latest()
-            ->get();
+
 
         $haciendas = Hacienda::with('planter')->where('planter_id', $id)->get()->map(function ($hacienda) {
             $hacienda->planter_name = $hacienda->planter ? $hacienda->planter->name : '';
@@ -214,7 +205,6 @@ class PlanterController extends Controller
             'planter' => $planter,
             'haciendas' => $haciendas,
             'productions' => $productions->values(),
-            'certifications' => $certifications,
             'crop_years' => $cropYears,
             'weeks_by_crop_year' => $weeksByCropYear,
             'filters' => [

@@ -29,8 +29,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureDefaults();
 
-        MillingPeriod::observe(MillingPeriodObserver::class);
-        Production::observe(ProductionObserver::class);
+
     }
 
     protected function configureDefaults(): void

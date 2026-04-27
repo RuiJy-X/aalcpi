@@ -3,16 +3,12 @@ use App\Http\Controllers\PlanterController;
 use App\Http\Controllers\ProductionController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeController;
-use App\Http\Controllers\CertificationController;
-use App\Http\Controllers\AttendanceController;
-use App\Http\Controllers\PayrollController;
+
 use App\Http\Controllers\MillingPeriodsController;
-use App\Http\Controllers\ProductionDistributionController;
 use App\Http\Controllers\HaciendaController;
 use App\Http\Controllers\WeeklyController;
 use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\RawDataController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -23,9 +19,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    Route::post('/RawData/import', [RawDataController::class, 'import'])->name('RawData.import');
-    Route::delete('/RawData/bulk-delete', [RawDataController::class, 'bulkDestroy'])->name('RawData.bulk-destroy');
-    Route::resource('/RawData', RawDataController::class)->whereNumber('RawData');
+
 
     // --- MANAGER ---
     Route::middleware('role:manager')->group(function () {
@@ -76,13 +70,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::delete('/delete/{productionId}', [ProductionController::class, 'destroy'])->name('destroy');
         });
 
-        Route::prefix("Distributions")->name("distributions.")->group(function () {
-            Route::get('/', [ProductionDistributionController::class, 'index'])->name('index');
-            Route::get('/{productionId}/voucher', [ProductionDistributionController::class, 'voucher'])->name('voucher');
-            Route::patch('/{productionId}/accept', [ProductionDistributionController::class, 'accept'])->name('accept');
-            Route::patch('/{productionId}/reject', [ProductionDistributionController::class, 'reject'])->name('reject');
-            Route::patch('/{productionId}/cancel-acceptance', [ProductionDistributionController::class, 'cancelAcceptance'])->name('cancel_acceptance');
-        });
+
         // Haciendas
         Route::prefix('Haciendas')->name('haciendas.')->group(function () {
             Route::get('/', [HaciendaController::class, 'index'])->name('index');
@@ -93,12 +81,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::delete('/bulk-delete', [HaciendaController::class,'bulkDestroy'])->name('bulk-destroy');
         });
 
-        // Certifications
-        Route::prefix('Certifications')->name('certifications.')->group(function () {
-            Route::get('/', [CertificationController::class, 'index'])->name('index');
-            Route::get('/data', [CertificationController::class, 'get'])->name('data');
-            Route::delete('/bulk-delete', [CertificationController::class, 'bulkDestroy'])->name('bulk-destroy');
-        });
+
 
         Route::prefix('Weekly')->name('weekly.')->group(function () {
             Route::get('/', [WeeklyController::class, 'index'])->name('index');

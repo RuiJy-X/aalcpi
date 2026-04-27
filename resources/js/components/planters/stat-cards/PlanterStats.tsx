@@ -11,12 +11,10 @@ import StatCard from '@/components/stat-card';
 export default function PlanterStats({
     planters,
     productions,
-    certifications,
     haciendas,
 }: {
     planters: PlanterRow[];
     productions: ProductionRow[];
-    certifications: CertificationRow[];
     haciendas: HaciendaRow[];
 }) {
     const totalPlanters = planters.length;

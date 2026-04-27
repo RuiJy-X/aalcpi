@@ -41,12 +41,10 @@ const breadcrumbs: BreadcrumbItem[] = [
 export default function Index({
     planters,
     productions,
-    certifications,
     haciendas,
 }: {
     planters: PlanterRow[];
     productions: ProductionRow[];
-    certifications: CertificationRow[];
     haciendas: HaciendaRow[];
 }) {
     return (
@@ -59,7 +57,6 @@ export default function Index({
                 <PlanterStats
                     planters={planters}
                     productions={productions}
-                    certifications={certifications}
                     haciendas={haciendas}
                 />
             </div>

@@ -13,11 +13,10 @@ return new class extends Migration
             $table->id();
             $table->foreignId('planter_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('hacienda_id')->nullable()->constrained()->nullOnDelete();
-            $table->string('trans_code')->unique();
+            $table->string('trans_code');
             $table->string('planter_code');
             $table->string('hacienda_code');
-            $table->integer('production_year');
-            $table->string('production_month');
+            $table->string('crop_year');
             $table->decimal('gross_cw', 12, 3);
             $table->decimal('net_cw', 12, 3);
             $table->integer('trucks');
@@ -32,6 +31,7 @@ return new class extends Migration
             $table->decimal('association_dues_mol', 12, 3);
             $table->boolean('transloading')->default(false);
             $table->timestamps();
+            $table->unique(['planter_code', 'hacienda_code', 'crop_year']);
         });
     }
 

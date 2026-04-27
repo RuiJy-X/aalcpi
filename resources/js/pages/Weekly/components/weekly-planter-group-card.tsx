@@ -1,7 +1,6 @@
 import { ChevronDown, Download, FileText } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
     Collapsible,
     CollapsibleContent,
@@ -22,19 +21,29 @@ function WeeklyFileRow({
     onOpenPreview: (item: WeeklyRecord) => void;
 }) {
     return (
-        <div className="grid gap-3 border border-l-4 border-l-green-500 bg-white p-3 shadow-sm md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-center">
-            <div className="pt-0.5">
-                <Checkbox
-                    checked={isChecked}
-                    onCheckedChange={(checked) =>
-                        onToggleSelection(item, checked === true)
-                    }
-                />
-            </div>
-
+        <div
+            className={`grid cursor-pointer gap-3 border border-l-4 p-3 shadow-sm transition-colors md:grid-cols-[minmax(0,1fr)_auto] md:items-center ${
+                isChecked
+                    ? 'border-green-300 border-l-green-600 bg-green-50/80'
+                    : 'border-l-green-500 bg-white hover:bg-green-50/50'
+            }`}
+            onClick={() => onToggleSelection(item, !isChecked)}
+            onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    onToggleSelection(item, !isChecked);
+                }
+            }}
+            role="button"
+            tabIndex={0}
+            aria-pressed={isChecked}
+        >
             <button
                 type="button"
-                onClick={() => onOpenPreview(item)}
+                onClick={(event) => {
+                    event.stopPropagation();
+                    onOpenPreview(item);
+                }}
                 className="text-left"
             >
                 <div className="text-sm font-medium text-foreground">
@@ -50,12 +59,21 @@ function WeeklyFileRow({
 
             <div className="flex flex-wrap items-center gap-2 md:justify-end">
                 <Button variant="outline" size="sm" asChild>
-                    <a href={item.preview_url} target="_blank" rel="noreferrer">
+                    <a
+                        href={item.preview_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={(event) => event.stopPropagation()}
+                    >
                         Open
                     </a>
                 </Button>
                 <Button variant="outline" size="sm" asChild>
-                    <a href={item.download_url} download>
+                    <a
+                        href={item.download_url}
+                        download
+                        onClick={(event) => event.stopPropagation()}
+                    >
                         <Download />
                         Download
                     </a>

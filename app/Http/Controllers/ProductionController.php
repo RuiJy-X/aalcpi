@@ -7,11 +7,13 @@ use App\Imports\ProductionsImport;
 use App\Models\Production;
 use App\Services\FinancialDistributionService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Maatwebsite\Excel\Facades\Excel;
+use Throwable;
 
 class ProductionController extends Controller
 {
@@ -133,10 +135,22 @@ class ProductionController extends Controller
         $file = $validated['file'];
         $cropYear = $validated['crop_year'];
 
-        Excel::import(
-            new ProductionsImport(app(FinancialDistributionService::class), $cropYear),
-            $file,
-        );
+        try {
+            Excel::import(
+                new ProductionsImport($cropYear),
+                $file,
+            );
+        } catch (Throwable $e) {
+            Log::error('Productions import failed', [
+                'message' => $e->getMessage(),
+                'exception' => $e,
+            ]);
+
+            return back()->with(
+                'error',
+                'Productions import failed. ' . $e->getMessage()
+            );
+        }
 
         return back()->with('success', 'Productions imported successfully.');
 
@@ -157,7 +171,6 @@ class ProductionController extends Controller
         $validated = $request->validate([
             'planter_id' => 'required|exists:planters,id',
             'hacienda_id' => 'required|exists:haciendas,id',
-            'production_date' => 'required|date',
             'crop_year' => ['required', 'regex:/^\d{4}-\d{4}$/'],
             'gross_cw' => 'required|numeric',
             'net_cw' => 'required|numeric',
@@ -203,14 +216,11 @@ class ProductionController extends Controller
     {
         $production = Production::findOrFail($productionId);
 
-        if ($production->financial_status === Production::FINANCIAL_STATUS_ACCEPTED) {
-            return redirect()->back()->with('success', 'This production is financially accepted and read-only.');
-        }
+
 
         $validated = $request->validate([
             'planter_id' => 'required|exists:planters,id',
             'hacienda_id' => 'required|exists:haciendas,id',
-            'production_date' => 'required|date',
             'crop_year' => ['required', 'regex:/^\d{4}-\d{4}$/'],
             'gross_cw' => 'required|numeric',
             'net_cw' => 'required|numeric',

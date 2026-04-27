@@ -133,30 +133,6 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
         },
     },
     {
-        accessorKey: 'hacienda_address',
-        header: ({ column }) => (
-            <Button
-                variant="ghost"
-                onClick={() =>
-                    column.toggleSorting(column.getIsSorted() === 'asc')
-                }
-            >
-                hacienda Address
-                <ArrowUpDown className="ml-2 h-4 w-4" />
-            </Button>
-        ),
-        cell: ({ row }) => {
-            const production = row.original;
-            return (
-                <div className="flex items-center">
-                    <div className="ml-2 truncate">
-                        {production.hacienda_address ?? '-'}
-                    </div>
-                </div>
-            );
-        },
-    },
-    {
         accessorKey: 'trans_code',
         header: ({ column }) => (
             <Button
@@ -205,33 +181,6 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
                         className={`ml-2 truncate ${production.crop_year ? '' : 'text-red-500'}`}
                     >
                         {production.crop_year ?? 'No crop year assigned'}
-                    </div>
-                </div>
-            );
-        },
-    },
-    {
-        accessorKey: 'production_date',
-        header: ({ column }) => {
-            return (
-                <Button
-                    variant="ghost"
-                    onClick={() =>
-                        column.toggleSorting(column.getIsSorted() === 'asc')
-                    }
-                >
-                    Date
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                </Button>
-            );
-        },
-        cell: ({ row }) => {
-            const production = row.original;
-
-            return (
-                <div className="flex items-center">
-                    <div className="ml-2 truncate">
-                        {production.production_date?.split('T')[0] ?? '-'}
                     </div>
                 </div>
             );

@@ -9,6 +9,7 @@ export type SharedData = {
     auth: Auth;
     flash: {
         success?: string | null;
+        error?: string | null;
     };
     sidebarOpen: boolean;
     [key: string]: unknown;

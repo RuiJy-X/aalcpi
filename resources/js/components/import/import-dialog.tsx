@@ -78,6 +78,17 @@ export function ImportDialog({ config }: { config: ImportConfig }) {
                         Import data and add it to the database
                     </DialogDescription>
                 </DialogHeader>
+                {config.headerGuide && config.headerGuide.length > 0 && (
+                    <div className="rounded-md border p-3 text-xs leading-5">
+                        <p className="font-medium">Recommended headers</p>
+                        <p className="mt-1 text-muted-foreground">
+                            Use snake_case column names when possible.
+                        </p>
+                        <p className="mt-2 break-words text-muted-foreground">
+                            {config.headerGuide.join(', ')}
+                        </p>
+                    </div>
+                )}
                 <FieldGroup>
                     <Field>
                         <Label htmlFor="file-input">File</Label>

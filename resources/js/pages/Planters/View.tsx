@@ -109,10 +109,6 @@ export default function Index({
                                 <User />
                                 Haciendas
                             </TabsTrigger>
-                            <TabsTrigger value="certifications">
-                                <User />
-                                Certifications
-                            </TabsTrigger>
                         </TabsList>
                     </Tabs>
                 </div>

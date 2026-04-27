@@ -12,13 +12,14 @@ return new class extends Migration
         Schema::create('haciendas', function (Blueprint $table) {
             $table->id();
             $table->foreignId('planter_id')->constrained('planters')->onDelete('cascade');
-            $table->string('hacienda_code')->unique();
+            $table->string('hacienda_code');
             $table->string('name');
             $table->text('address')->nullable();
             $table->decimal('area_hectares', 8, 2)->nullable();
             $table->decimal('distance_from_urc', 10, 2)->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
+            $table->unique(['hacienda_code', 'planter_id']);
         });
     }
 

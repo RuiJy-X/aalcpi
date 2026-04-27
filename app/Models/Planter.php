@@ -29,8 +29,5 @@ class Planter extends Model
         return $this->hasMany(Production::class);
     }
 
-    public function certifications(): HasMany
-    {
-        return $this->hasMany(Certification::class);
-    }
+
 }
