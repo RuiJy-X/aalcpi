@@ -6,7 +6,6 @@ use App\Models\Hacienda;
 use App\Models\Planter;
 use App\Models\Production;
 use App\Services\FinancialDistributionService;
-use Carbon\Carbon;
 use Maatwebsite\Excel\Concerns\OnEachRow;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Row;
@@ -15,6 +14,7 @@ class ProductionsImport implements OnEachRow, WithHeadingRow
 {
     public function __construct(
         private readonly FinancialDistributionService $distributionService,
+        private readonly string $importCropYear,
     ) {
     }
 
@@ -46,8 +46,7 @@ class ProductionsImport implements OnEachRow, WithHeadingRow
             ]
         );
 
-        $productionDate = $this->normalizeProductionDate($row);
-        $cropYear = $this->normalizeCropYear($row['crop_year'] ?? null, $productionDate);
+        $productionDate = $this->defaultProductionDateFromCropYear($this->importCropYear);
 
         $production = Production::updateOrCreate(
             ['trans_code' => $row['trans_code']],
@@ -57,7 +56,7 @@ class ProductionsImport implements OnEachRow, WithHeadingRow
                 'planter_code' => $row['planter_code'],
                 'hacienda_code' => $row['hacienda_code'] ?? $row['hacienda_code'],
                 'production_date'        => $productionDate,
-                'crop_year'              => $cropYear,
+                'crop_year'              => $this->importCropYear,
                 'gross_cw'               => $row['gross_cw'],
                 'net_cw'                 => $row['net_cw'],
                 'trucks'                 => $row['trucks'],
@@ -77,92 +76,15 @@ class ProductionsImport implements OnEachRow, WithHeadingRow
         $this->distributionService->syncAndCalculateForProduction($production);
     }
 
-    private function normalizeProductionDate(array $row): ?string
+    private function defaultProductionDateFromCropYear(string $cropYear): string
     {
-        $rawDate = $row['production_date'] ?? null;
+        $startYear = (int) substr($cropYear, 0, 4);
 
-        if (!empty($rawDate)) {
-            return Carbon::parse((string) $rawDate)->toDateString();
+        if ($startYear < 1900) {
+            return '2000-01-01';
         }
 
-        $legacyDate = $this->buildProductionDate(
-            $row['production_year'] ?? null,
-            $row['production_month'] ?? null,
-        );
-
-        return $legacyDate ?: Carbon::now()->toDateString();
-    }
-
-    private function normalizeCropYear(mixed $cropYearValue, ?string $productionDate): ?string
-    {
-        if (is_string($cropYearValue) && preg_match('/^\d{4}-\d{4}$/', trim($cropYearValue))) {
-            return trim($cropYearValue);
-        }
-
-        if (empty($productionDate)) {
-            $startYear = (int) Carbon::now()->format('Y');
-            return sprintf('%04d-%04d', $startYear, $startYear + 1);
-        }
-
-        $startYear = (int) Carbon::parse($productionDate)->format('Y');
-        return sprintf('%04d-%04d', $startYear, $startYear + 1);
-    }
-
-    private function buildProductionDate(mixed $yearValue, mixed $monthValue): ?string
-    {
-        $year = (int) ($yearValue ?? 0);
-        if ($year < 1900) {
-            return null;
-        }
-
-        $month = $this->parseMonthValue($monthValue);
-        if ($month === null) {
-            return null;
-        }
-
-        return sprintf('%04d-%02d-01', $year, $month);
-    }
-
-    private function parseMonthValue(mixed $value): ?int
-    {
-        if ($value === null || $value === '') {
-            return null;
-        }
-
-        if (is_numeric($value)) {
-            $month = (int) $value;
-            return $month >= 1 && $month <= 12 ? $month : null;
-        }
-
-        $normalized = strtolower(trim((string) $value));
-        $map = [
-            'jan' => 1,
-            'january' => 1,
-            'feb' => 2,
-            'february' => 2,
-            'mar' => 3,
-            'march' => 3,
-            'apr' => 4,
-            'april' => 4,
-            'may' => 5,
-            'jun' => 6,
-            'june' => 6,
-            'jul' => 7,
-            'july' => 7,
-            'aug' => 8,
-            'august' => 8,
-            'sep' => 9,
-            'sept' => 9,
-            'september' => 9,
-            'oct' => 10,
-            'october' => 10,
-            'nov' => 11,
-            'november' => 11,
-            'dec' => 12,
-            'december' => 12,
-        ];
-
-        return $map[$normalized] ?? null;
+        return sprintf('%04d-01-01', $startYear);
     }
 
 }

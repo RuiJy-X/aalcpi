@@ -14,7 +14,6 @@ import {
 } from '@/components/ui/dialog';
 import { Field, FieldGroup } from '@/components/ui/field';
 import { Label } from '@/components/ui/label';
-import productions from '@/routes/productions';
 import { Input } from '../ui/input';
 import { ImportConfig } from './import-config';
 
@@ -22,6 +21,7 @@ export function ImportDialog({ config }: { config: ImportConfig }) {
     const [isOpen, setIsOpen] = useState(false);
     const [isImporting, setIsImporting] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [cropYear, setCropYear] = useState('');
 
     const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
         setSelectedFile(e.target.files?.[0] ?? null);
@@ -29,21 +29,27 @@ export function ImportDialog({ config }: { config: ImportConfig }) {
 
     const handleImport = () => {
         if (!selectedFile) return;
+        if (config.requireCropYear && cropYear.trim() === '') return;
 
-        router.post(
-            config.route,
-            { file: selectedFile },
-            {
-                forceFormData: true,
-                preserveScroll: true,
-                onStart: () => setIsImporting(true),
-                onFinish: () => setIsImporting(false),
-                onSuccess: () => {
-                    setSelectedFile(null);
-                    setIsOpen(false);
-                },
+        const payload: { file: File; crop_year?: string } = {
+            file: selectedFile,
+        };
+
+        if (config.requireCropYear) {
+            payload.crop_year = cropYear.trim();
+        }
+
+        router.post(config.route, payload, {
+            forceFormData: true,
+            preserveScroll: true,
+            onStart: () => setIsImporting(true),
+            onFinish: () => setIsImporting(false),
+            onSuccess: () => {
+                setSelectedFile(null);
+                setCropYear('');
+                setIsOpen(false);
             },
-        );
+        });
     };
 
     return (
@@ -51,7 +57,10 @@ export function ImportDialog({ config }: { config: ImportConfig }) {
             open={isOpen}
             onOpenChange={(open) => {
                 setIsOpen(open);
-                if (!open) setSelectedFile(null);
+                if (!open) {
+                    setSelectedFile(null);
+                    setCropYear('');
+                }
             }}
         >
             <DialogTrigger asChild>
@@ -78,6 +87,20 @@ export function ImportDialog({ config }: { config: ImportConfig }) {
                             onChange={handleFileChange}
                         />
                     </Field>
+                    {config.requireCropYear && (
+                        <Field>
+                            <Label htmlFor="crop-year-input">Crop Year</Label>
+                            <Input
+                                type="text"
+                                id="crop-year-input"
+                                placeholder="2025-2026"
+                                value={cropYear}
+                                onChange={(event) =>
+                                    setCropYear(event.target.value)
+                                }
+                            />
+                        </Field>
+                    )}
                 </FieldGroup>
                 <DialogFooter>
                     <DialogClose asChild>
@@ -85,7 +108,11 @@ export function ImportDialog({ config }: { config: ImportConfig }) {
                     </DialogClose>
                     <Button
                         onClick={handleImport}
-                        disabled={!selectedFile || isImporting}
+                        disabled={
+                            !selectedFile ||
+                            isImporting ||
+                            (config.requireCropYear && cropYear.trim() === '')
+                        }
                     >
                         {isImporting ? 'Importing...' : 'Import'}
                     </Button>

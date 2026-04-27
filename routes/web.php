@@ -9,6 +9,7 @@ use App\Http\Controllers\PayrollController;
 use App\Http\Controllers\MillingPeriodsController;
 use App\Http\Controllers\ProductionDistributionController;
 use App\Http\Controllers\HaciendaController;
+use App\Http\Controllers\WeeklyController;
 use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\RawDataController;
@@ -97,6 +98,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('/', [CertificationController::class, 'index'])->name('index');
             Route::get('/data', [CertificationController::class, 'get'])->name('data');
             Route::delete('/bulk-delete', [CertificationController::class, 'bulkDestroy'])->name('bulk-destroy');
+        });
+
+        Route::prefix('Weekly')->name('weekly.')->group(function () {
+            Route::get('/', [WeeklyController::class, 'index'])->name('index');
+            Route::post('/import', [WeeklyController::class, 'store'])->name('import');
+            Route::delete('/clear', [WeeklyController::class, 'clear'])->name('clear');
+            Route::get('/{weekly}', [WeeklyController::class, 'show'])->name('show');
+            Route::get('/{weekly}/download', [WeeklyController::class, 'download'])->name('download');
         });
     });
 

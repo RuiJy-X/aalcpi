@@ -4,6 +4,7 @@ import planters from '@/routes/planters';
 export interface ImportConfig {
     route: string;
     label: string;
+    requireCropYear?: boolean;
 }
 
 export const plantersImportConfig = {
@@ -14,6 +15,7 @@ export const plantersImportConfig = {
 export const productionsImportConfig = {
     route: productions.import.url(),
     label: 'Productions Data',
+    requireCropYear: true,
 };
 
 export const rawDataImportConfig = {

@@ -204,37 +204,7 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
                     <div
                         className={`ml-2 truncate ${production.crop_year ? '' : 'text-red-500'}`}
                     >
-                        {production.crop_year ??
-                            'No milling period set for this date'}
-                    </div>
-                </div>
-            );
-        },
-    },
-    {
-        accessorKey: 'week_no',
-        header: ({ column }) => {
-            return (
-                <Button
-                    variant="ghost"
-                    onClick={() =>
-                        column.toggleSorting(column.getIsSorted() === 'asc')
-                    }
-                >
-                    Week No.
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                </Button>
-            );
-        },
-        cell: ({ row }) => {
-            const production = row.original;
-
-            return (
-                <div className="flex items-center">
-                    <div
-                        className={`ml-2 truncate ${production.week_no ? '' : 'text-red-500'}`}
-                    >
-                        {production.week_no ?? 'No milling record on this date'}
+                        {production.crop_year ?? 'No crop year assigned'}
                     </div>
                 </div>
             );
