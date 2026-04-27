@@ -5,10 +5,12 @@ namespace App\Imports;
 use App\Models\Hacienda;
 use App\Models\Planter;
 use App\Models\Production;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Maatwebsite\Excel\Concerns\ToModel;
+use Maatwebsite\Excel\Concerns\WithChunkReading;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 
-class ProductionsImport implements ToModel, WithHeadingRow
+class ProductionsImport implements ToModel, WithHeadingRow, ShouldQueue, WithChunkReading
 {
     public function __construct(private readonly string $importCropYear) {}
 
@@ -76,5 +78,9 @@ class ProductionsImport implements ToModel, WithHeadingRow
                 'transloading'         => 0,
             ]
         );
+    }
+    public function chunkSize(): int
+    {
+        return 1000;
     }
 }
