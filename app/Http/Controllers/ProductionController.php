@@ -4,9 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Imports\ProductionsImport;
-use App\Models\MillingPeriod;
 use App\Models\Production;
-use Carbon\Carbon;
+use App\Services\FinancialDistributionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Collection;
@@ -20,41 +19,13 @@ class ProductionController extends Controller
     public function index(Request $request)
     {
         $selectedCropYear = $request->string('crop_year')->toString();
-        $selectedWeek = $request->string('week_no')->toString();
-        $selectedViewMode = $request->string('view_mode')->toString();
-
-        if (!in_array($selectedViewMode, ['weekly', 'yearly'], true)) {
-            $selectedViewMode = 'weekly';
-        }
-
-
-
-        $millingPeriods = MillingPeriod::query()
-            ->orderByDesc('crop_year')
-            ->orderBy('week_no')
-            ->get();
 
         $productions = Production::with(['planter', 'hacienda'])
             ->get()
-            ->map(function ($production) use ($millingPeriods) {
-                $productionDate = $this->resolveProductionDate($production);
-                $matchingPeriod = $millingPeriods->first(function ($period) use ($productionDate) {
-                    if (!$productionDate) {
-                        return false;
-                    }
-
-                    $start = Carbon::parse($period->start_date)->startOfDay();
-                    $end = Carbon::parse($period->end_date)->endOfDay();
-
-                    return $productionDate->between($start, $end, true);
-                });
-
+            ->map(function ($production) {
                 $production->planter_name = $production->planter ? $production->planter->name : null;
                 $production->hacienda_address = $production->hacienda ? $production->hacienda->address : null;
                 $production->hacienda_name = $production->hacienda ? $production->hacienda->name : null;
-                $production->production_date = $productionDate ? $productionDate->toDateString() : null;
-                $production->crop_year = $production->crop_year ?? $matchingPeriod?->crop_year;
-                $production->week_no = $matchingPeriod?->week_no;
 
                 return $production;
             });
@@ -63,36 +34,18 @@ class ProductionController extends Controller
             $productions = $productions->where('crop_year', $selectedCropYear);
         }
 
-        if ($selectedWeek !== '' && $selectedWeek !== 'all') {
-            $selectedWeekInt = (int) $selectedWeek;
-            $productions = $productions->where('week_no', $selectedWeekInt);
-        }
-
-        if ($selectedViewMode === 'yearly') {
-            $productions = $this->aggregateYearlyProductions($productions);
-        }
-
-        $cropYears = $millingPeriods
+        $cropYears = Production::query()
             ->pluck('crop_year')
             ->filter()
             ->unique()
+            ->sortDesc()
             ->values();
-
-        $weeksByCropYear = $millingPeriods
-            ->groupBy('crop_year')
-            ->map(fn ($periods) => $periods->pluck('week_no')->unique()->sort()->values())
-            ->toArray();
-
-
 
         return Inertia::render('Productions/Index', [
             'productions' => $productions->values(),
             'crop_years' => $cropYears,
-            'weeks_by_crop_year' => $weeksByCropYear,
             'filters' => [
                 'crop_year' => $selectedCropYear,
-                'week_no' => $selectedWeek,
-                'view_mode' => $selectedViewMode,
             ],
         ]);
 
@@ -172,11 +125,18 @@ class ProductionController extends Controller
 
     public function import(Request $request)
     {
-        // Implementation for importing productions
+        $validated = $request->validate([
+            'file' => ['required', 'file'],
+            'crop_year' => ['required', 'regex:/^\d{4}-\d{4}$/'],
+        ]);
 
-        $file = $request->file('file');
+        $file = $validated['file'];
+        $cropYear = $validated['crop_year'];
 
-        Excel::import(app(ProductionsImport::class), $file);
+        Excel::import(
+            new ProductionsImport(app(FinancialDistributionService::class), $cropYear),
+            $file,
+        );
 
         return back()->with('success', 'Productions imported successfully.');
 
@@ -334,15 +294,6 @@ class ProductionController extends Controller
 
         return $pdf->download('productions_final_data_' . now()->format('Ymd_His') . '.pdf');
 
-    }
-
-    private function resolveProductionDate(Production $production): ?Carbon
-    {
-        if (empty($production->production_date)) {
-            return null;
-        }
-
-        return Carbon::parse($production->production_date)->startOfDay();
     }
 
 }

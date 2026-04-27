@@ -4,6 +4,7 @@ import {
     BookOpen,
     Briefcase,
     Clipboard,
+    CalendarDays,
     DollarSign,
     LandPlot,
     LayoutGrid,
@@ -63,6 +64,11 @@ export function AppSidebar() {
             title: 'Productions',
             href: productionsIndex(),
             icon: BookOpen,
+        },
+        {
+            title: 'Weekly Data',
+            href: '/Weekly',
+            icon: CalendarDays,
         },
         {
             title: 'Financial Distributions',
