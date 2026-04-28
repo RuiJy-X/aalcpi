@@ -18,15 +18,109 @@ use Illuminate\Support\Collection;
 
 class PlanterController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $planter = Planter::with('haciendas')->get();
-        $productions = Production::with('planter')->get();
-        $haciendas = Hacienda::with('planter')->get();
+        $perPage = min(max(1, $request->integer('per_page', 10)), 100);
+        $sort = $request->string('sort')->toString();
+        $direction = strtolower($request->string('direction')->toString()) === 'asc' ? 'asc' : 'desc';
+        $search = $request->string('search')->toString();
+        $filters = $request->input('filters', []);
+        $dateColumn = $request->string('date_column')->toString();
+        $dateFrom = $request->string('date_from')->toString();
+        $dateTo = $request->string('date_to')->toString();
 
+        $columnMap = [
+            'planter_code' => 'planters.planter_code',
+            'name' => 'planters.name',
+            'address' => 'planters.address',
+            'tin_number' => 'planters.tin_number',
+            'contact_number' => 'planters.contact_number',
+            'registration_date' => 'planters.registration_date',
+            'created_at' => 'planters.created_at',
+            'updated_at' => 'planters.updated_at',
+        ];
 
-        return Inertia::render('Planters/Index',['planters' => $planter, 'productions' => $productions, 'haciendas' => $haciendas ]);
+        $baseQuery = Planter::query()->select([
+            'planters.id',
+            'planters.planter_code',
+            'planters.name',
+            'planters.address',
+            'planters.tin_number',
+            'planters.contact_number',
+            'planters.registration_date',
+            'planters.created_at',
+            'planters.updated_at',
+        ]);
 
+        if (!empty($filters) && is_array($filters)) {
+            foreach ($filters as $column => $value) {
+                if (!array_key_exists($column, $columnMap)) {
+                    continue;
+                }
+
+                if ($value === '' || $value === null) {
+                    continue;
+                }
+
+                $dbColumn = $columnMap[$column];
+                $values = is_array($value) ? $value : [$value];
+
+                $baseQuery->where(function ($query) use ($dbColumn, $values) {
+                    foreach ($values as $filterValue) {
+                        if ($filterValue === '' || $filterValue === null) {
+                            continue;
+                        }
+
+                        $query->orWhere($dbColumn, 'ilike', '%' . $filterValue . '%');
+                    }
+                });
+            }
+        }
+
+        if ($search !== '') {
+            $like = '%' . $search . '%';
+            $baseQuery->where(function ($query) use ($like) {
+                $query->orWhere('planters.planter_code', 'ilike', $like)
+                    ->orWhere('planters.name', 'ilike', $like)
+                    ->orWhere('planters.address', 'ilike', $like)
+                    ->orWhere('planters.tin_number', 'ilike', $like)
+                    ->orWhere('planters.contact_number', 'ilike', $like)
+                    ->orWhere('planters.registration_date', 'ilike', $like);
+            });
+        }
+
+        if ($dateColumn !== '' && isset($columnMap[$dateColumn]) && $dateFrom !== '') {
+            $dbDateColumn = $columnMap[$dateColumn];
+            $toDate = $dateTo !== '' ? $dateTo : $dateFrom;
+            $baseQuery->whereBetween($dbDateColumn, [$dateFrom, $toDate]);
+        }
+
+        if ($sort !== '' && isset($columnMap[$sort])) {
+            $baseQuery->orderBy($columnMap[$sort], $direction);
+        } else {
+            $baseQuery->orderBy('planters.id', 'desc');
+        }
+
+        $paginatedPlanters = $baseQuery->paginate($perPage)->withQueryString();
+
+        return Inertia::render('Planters/Index', [
+            'planters' => $paginatedPlanters->items(),
+            'pagination' => [
+                'total' => $paginatedPlanters->total(),
+                'per_page' => $paginatedPlanters->perPage(),
+                'current_page' => $paginatedPlanters->currentPage(),
+                'last_page' => $paginatedPlanters->lastPage(),
+            ],
+            'table_state' => [
+                'search' => $search,
+                'sort' => $sort,
+                'direction' => $direction,
+                'filters' => $filters,
+                'date_column' => $dateColumn,
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
+            ],
+        ]);
     }
 
     public function create(){

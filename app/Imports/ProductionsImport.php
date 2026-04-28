@@ -17,7 +17,7 @@ class ProductionsImport implements ToModel, WithHeadingRow, ShouldQueue, WithChu
     public function model(array $row)
     {
         // 1. SKIP EMPTY ROWS (Critical to avoid the Not Null Violation)
-        if (empty($row['planter_code'])) {
+        if (empty($row['planter_code']) && empty($row['Pcode'])) {
             return null;
         }
 
@@ -36,16 +36,16 @@ class ProductionsImport implements ToModel, WithHeadingRow, ShouldQueue, WithChu
 
         // 3. PLANTER
         $planter = Planter::updateOrCreate(
-            ['planter_code' => $row['planter_code']],
-            ['name' => $row['planter_name'] ?? 'Unknown Planter', 'registration_date' => now()]
+            ['planter_code' => $row['planter_code'] ?? $row['Pcode']],
+            ['name' => $row['planter_name'] ?? $row['Pname'] ?? $row['Planter Name'] ?? 'Unknown Planter', 'registration_date' => now()]
         );
 
         // 4. HACIENDA
         $hacienda = Hacienda::updateOrCreate(
-            ['hacienda_code' => $row['hacienda_code']],
+            ['hacienda_code' => $row['hacienda_code'] ?? $row['Hcode']],
             [
                 'planter_id' => $planter->id,
-                'name' => $row['hacienda_name'] ?? 'Unknown Hacienda',
+                'name' => $row['hacienda_name'] ?? $row['Hacienda Name'] ?? 'Unknown Hacienda',
                 'is_active' => true,
             ]
         );
@@ -54,7 +54,7 @@ class ProductionsImport implements ToModel, WithHeadingRow, ShouldQueue, WithChu
         // Note the "re_" prefix based on your screenshot!
         return Production::updateOrCreate(
             [
-                'planter_code'  => $row['planter_code'],
+                'planter_code'  => $row['planter_code'] ?? $row['Pcode'],
                 'hacienda_code' => $row['hacienda_code'],
                 'crop_year'     => $this->importCropYear,
                 ],
@@ -64,13 +64,13 @@ class ProductionsImport implements ToModel, WithHeadingRow, ShouldQueue, WithChu
                 'planter_id'           => $planter->id,
                 'hacienda_id'          => $hacienda->id,
                 'gross_cw'             => $toNum($row['gross_cw'] ?? 0),
-                'net_cw'               => $toNum($row['net_cw'] ?? 0),
+                'net_cw'               => $toNum($row['net_cw'] ?? $row['Tonnes Net'] ?? 0),
                 'pdpa_lkg' => $toNum($row['pdpa_lkg'] ?? 0),
-                'actual_lkg'           => $toNum($row['actual_lkg'] ?? 0),
+                'actual_lkg'           => $toNum($row['actual_lkg'] ?? $row['Total Sugar'] ?? 0),
                 'theoretical_lkg'      => $toNum($row['theoretical_lkg'] ?? $row['theo_lkg'] ?? 0),
                 'pshr_net_lkg'         => $toNum($row['pshr_net_lkg'] ?? $row['pshr_net_sugar'] ?? $row['planter_share_sugar'] ?? $row['Sugar (64%)'] ?? 0),
-                'actual_mol'           => $toNum($row['re actual_mol'] ?? $row['actual_mol'] ?? 0), // Note the 're_'
-                'pshr_net_mol'         => $toNum($row['re pshr_net_mol'] ?? $row['pshr_net_mol'] ?? $row['Pshr_Net_Mol'] ?? 0), // Note the 're_'
+                'actual_mol'           => $toNum($row['re actual_mol'] ?? $row['actual_mol'] ?? $row['Total Mol'] ?? 0), // Note the 're_'
+                'pshr_net_mol'         => $toNum($row['re pshr_net_mol'] ?? $row['pshr_net_mol'] ?? $row['Pshr_Net_Mol'] ?? $row['Mol (64%)'] ?? 0), // Note the 're_'
                 'pdpa_mol' => $toNum($row['re_pdpa_mol'] ?? $row['pdpa_mol'] ?? 0),
 
                 'association_dues_lkg' => $row['assn_dues_lkg'] ?? $row['assn_dues_sugar'] ?? 0,

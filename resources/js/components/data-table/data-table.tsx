@@ -106,6 +106,27 @@ interface DataTableProps<TData, TValue> {
     bulkDelete?: BulkDeleteConfig<TData>;
     onRowDoubleClick?: (row: TData) => string | null | undefined;
     excludedDateFilterColumns?: string[];
+    serverSide?: boolean;
+    pageCount?: number;
+    totalRows?: number;
+    initialState?: Partial<{
+        sorting: SortingState;
+        columnFilters: ColumnFiltersState;
+        globalFilter: string;
+        pagination: PaginationState;
+        dateRange: DateRange;
+        dateFilterColumnId: string;
+    }>;
+    onQueryChange?: (state: {
+        sorting: SortingState;
+        columnFilters: ColumnFiltersState;
+        globalFilter: string;
+        pagination: PaginationState;
+        dateRange?: DateRange;
+        dateFilterColumnId?: string;
+    }) => void;
+    queryDebounceMs?: number;
+    defaultPageSize?: number;
 }
 
 export function DataTable<TData, TValue>({
@@ -115,25 +136,41 @@ export function DataTable<TData, TValue>({
     bulkDelete,
     onRowDoubleClick,
     excludedDateFilterColumns = [],
+    serverSide = false,
+    pageCount,
+    totalRows,
+    initialState,
+    onQueryChange,
+    queryDebounceMs = 300,
+    defaultPageSize = 10,
 }: DataTableProps<TData, TValue>) {
+    const isServerSide = serverSide && Boolean(onQueryChange);
     // ======== Sorting ========
-    const [sorting, setSorting] = React.useState<SortingState>([]);
+    const [sorting, setSorting] = React.useState<SortingState>(
+        initialState?.sorting ?? [],
+    );
 
     //  Search filter
     const [columnFilters, setColumnFilters] =
-        React.useState<ColumnFiltersState>([]);
+        React.useState<ColumnFiltersState>(initialState?.columnFilters ?? []);
 
     // Global search (search across all columns)
-    const [globalFilter, setGlobalFilter] = React.useState('');
+    const [globalFilter, setGlobalFilter] = React.useState(
+        initialState?.globalFilter ?? '',
+    );
 
     // Pagination
-    const [pagination, setPagination] = React.useState<PaginationState>({
-        pageIndex: 0,
-        pageSize: 10,
-    });
+    const [pagination, setPagination] = React.useState<PaginationState>(
+        initialState?.pagination ?? {
+            pageIndex: 0,
+            pageSize: defaultPageSize,
+        },
+    );
 
     const [activeFilters, setActiveFilters] = React.useState<string[]>([]);
-    const [dateRange, setDateRange] = React.useState<DateRange | undefined>();
+    const [dateRange, setDateRange] = React.useState<DateRange | undefined>(
+        initialState?.dateRange,
+    );
 
     const dateFilterableColumns = React.useMemo(() => {
         return columns
@@ -150,8 +187,9 @@ export function DataTable<TData, TValue>({
             });
     }, [columns, excludedDateFilterColumns]);
 
-    const [dateFilterColumnId, setDateFilterColumnId] =
-        React.useState<string>('');
+    const [dateFilterColumnId, setDateFilterColumnId] = React.useState<string>(
+        initialState?.dateFilterColumnId ?? '',
+    );
 
     React.useEffect(() => {
         if (!dateFilterableColumns.length) {
@@ -172,6 +210,10 @@ export function DataTable<TData, TValue>({
     }, [dateFilterableColumns]);
 
     const filteredByDateData = React.useMemo(() => {
+        if (isServerSide) {
+            return data;
+        }
+
         if (!dateRange?.from || !dateFilterColumnId) {
             return data;
         }
@@ -191,7 +233,7 @@ export function DataTable<TData, TValue>({
 
             return parsedDate >= rangeStart && parsedDate <= rangeEnd;
         });
-    }, [data, dateRange, dateFilterColumnId]);
+    }, [data, dateRange, dateFilterColumnId, isServerSide]);
 
     // Column visibility
 
@@ -240,6 +282,91 @@ export function DataTable<TData, TValue>({
         return () => window.clearTimeout(timeout);
     }, [flashError]);
 
+    const queryState = React.useMemo(
+        () => ({
+            sorting,
+            columnFilters,
+            globalFilter,
+            pagination,
+            dateRange,
+            dateFilterColumnId,
+        }),
+        [
+            sorting,
+            columnFilters,
+            globalFilter,
+            pagination,
+            dateRange,
+            dateFilterColumnId,
+        ],
+    );
+
+    const lastQueryRef = React.useRef<{
+        sorting: SortingState;
+        columnFilters: ColumnFiltersState;
+        globalFilter: string;
+        pagination: PaginationState;
+        dateRange?: DateRange;
+        dateFilterColumnId?: string;
+    } | null>(null);
+    const skipInitialQueryRef = React.useRef(true);
+
+    React.useEffect(() => {
+        if (!isServerSide || !onQueryChange) {
+            return;
+        }
+
+        if (skipInitialQueryRef.current) {
+            skipInitialQueryRef.current = false;
+            lastQueryRef.current = queryState;
+            return;
+        }
+
+        if (
+            JSON.stringify(queryState) === JSON.stringify(lastQueryRef.current)
+        ) {
+            return;
+        }
+
+        const columnFiltersChanged =
+            JSON.stringify(queryState.columnFilters) !==
+            JSON.stringify(lastQueryRef.current?.columnFilters ?? []);
+        const globalFilterChanged =
+            queryState.globalFilter !== lastQueryRef.current?.globalFilter;
+        const shouldDebounce = columnFiltersChanged || globalFilterChanged;
+
+        const delay = shouldDebounce ? queryDebounceMs : 0;
+        const timeout = window.setTimeout(() => {
+            onQueryChange(queryState);
+            lastQueryRef.current = queryState;
+        }, delay);
+
+        return () => window.clearTimeout(timeout);
+    }, [
+        isServerSide,
+        onQueryChange,
+        queryState,
+        queryDebounceMs,
+        globalFilter,
+    ]);
+
+    React.useEffect(() => {
+        if (!isServerSide) {
+            return;
+        }
+
+        setPagination((current) =>
+            current.pageIndex === 0 ? current : { ...current, pageIndex: 0 },
+        );
+    }, [
+        isServerSide,
+        globalFilter,
+        columnFilters,
+        sorting,
+        dateRange,
+        dateFilterColumnId,
+    ]);
+
     const table = useReactTable({
         data: filteredByDateData,
         columns,
@@ -255,6 +382,10 @@ export function DataTable<TData, TValue>({
         onRowSelectionChange: setRowSelection,
         columnResizeMode: 'onChange',
         globalFilterFn: 'includesString',
+        manualPagination: isServerSide,
+        manualSorting: isServerSide,
+        manualFiltering: isServerSide,
+        pageCount: isServerSide && pageCount ? pageCount : undefined,
         state: {
             sorting,
             columnFilters,
@@ -267,6 +398,7 @@ export function DataTable<TData, TValue>({
 
     const selectedRows = table.getFilteredSelectedRowModel().rows;
     const selectedCount = selectedRows.length;
+    const totalRowCount = totalRows ?? table.getFilteredRowModel().rows.length;
 
     const handleRowDoubleClick = React.useCallback(
         (event: React.MouseEvent<HTMLTableRowElement>, rowData: TData) => {
@@ -567,8 +699,14 @@ export function DataTable<TData, TValue>({
                         ))}
                     </TableHeader>
                     <TableBody>
-                        {table.getPaginationRowModel().rows?.length ? (
-                            table.getPaginationRowModel().rows.map((row) => (
+                        {(isServerSide
+                            ? table.getRowModel().rows
+                            : table.getPaginationRowModel().rows
+                        )?.length ? (
+                            (isServerSide
+                                ? table.getRowModel().rows
+                                : table.getPaginationRowModel().rows
+                            ).map((row) => (
                                 <TableRow
                                     key={row.id}
                                     data-state={
@@ -614,8 +752,7 @@ export function DataTable<TData, TValue>({
                 <div className="flex flex-col gap-0">
                     <div className="mt-3 ml-3 items-center text-sm text-muted-foreground">
                         {table.getFilteredSelectedRowModel().rows.length} of{' '}
-                        {table.getFilteredRowModel().rows.length} row(s)
-                        selected.
+                        {totalRowCount} row(s) selected.
                     </div>
                     <div className="m-3 flex items-center justify-center space-x-2">
                         <div className="flex items-center justify-between px-2">

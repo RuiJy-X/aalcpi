@@ -91,28 +91,6 @@ const PlanterViewProductions = ({
 
     return (
         <div>
-            <div className="mx-3 flex gap-2">
-                <Tabs
-                    value={activeTab}
-                    defaultValue="weekly"
-                    className="w-fit"
-                    onValueChange={(nextTab) => {
-                        const tab = nextTab === 'yearly' ? 'yearly' : 'weekly';
-                        setActiveTab(tab);
-                        applyFilters(
-                            selectedCropYear,
-                            tab === 'yearly' ? 'all' : selectedWeekNo,
-                            tab,
-                        );
-                    }}
-                >
-                    <TabsList className="" variant="line">
-                        <TabsTrigger value="weekly">Weekly</TabsTrigger>
-                        <TabsTrigger value="yearly">Yearly</TabsTrigger>
-                    </TabsList>
-                </Tabs>
-            </div>
-
             <Container>
                 <ContainerHeader>
                     Productions Table
@@ -177,7 +155,6 @@ const PlanterViewProductions = ({
                                 </SelectContent>
                             </Select>
                         </div>
-                        <ImportDialog config={productionsImportConfig} />
                     </ContainerHeaderEnd>
                 </ContainerHeader>
 

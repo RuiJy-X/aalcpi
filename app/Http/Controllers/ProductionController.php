@@ -20,20 +20,103 @@ class ProductionController extends Controller
     public function index(Request $request)
     {
         $selectedCropYear = $request->string('crop_year')->toString();
+        $perPage = min(max(1, $request->integer('per_page', 10)), 100);
+        $sort = $request->string('sort')->toString();
+        $direction = strtolower($request->string('direction')->toString()) === 'asc' ? 'asc' : 'desc';
+        $search = $request->string('search')->toString();
+        $filters = $request->input('filters', []);
+        $dateColumn = $request->string('date_column')->toString();
+        $dateFrom = $request->string('date_from')->toString();
+        $dateTo = $request->string('date_to')->toString();
 
-        $productions = Production::with(['planter', 'hacienda'])
-            ->get()
-            ->map(function ($production) {
-                $production->planter_name = $production->planter ? $production->planter->name : null;
-                $production->hacienda_address = $production->hacienda ? $production->hacienda->address : null;
-                $production->hacienda_name = $production->hacienda ? $production->hacienda->name : null;
+        $columnMap = [
+            'planter_code' => 'productions.planter_code',
+            'planter_name' => 'planters.name',
+            'hacienda_code' => 'productions.hacienda_code',
+            'hacienda_name' => 'haciendas.name',
+            'trans_code' => 'productions.trans_code',
+            'crop_year' => 'productions.crop_year',
+            'gross_cw' => 'productions.gross_cw',
+            'net_cw' => 'productions.net_cw',
+            'trucks' => 'productions.trucks',
+            'theoretical_lkg' => 'productions.theoretical_lkg',
+            'actual_lkg' => 'productions.actual_lkg',
+            'pshr_net_lkg' => 'productions.pshr_net_lkg',
+            'pdpa_lkg' => 'productions.pdpa_lkg',
+            'association_dues_lkg' => 'productions.association_dues_lkg',
+            'actual_mol' => 'productions.actual_mol',
+            'pshr_net_mol' => 'productions.pshr_net_mol',
+            'pdpa_mol' => 'productions.pdpa_mol',
+            'association_dues_mol' => 'productions.association_dues_mol',
+            'production_date' => 'productions.production_date',
+            'created_at' => 'productions.created_at',
+            'updated_at' => 'productions.updated_at',
+        ];
 
-                return $production;
-            });
+        $baseQuery = Production::query()
+            ->leftJoin('planters', 'productions.planter_id', '=', 'planters.id')
+            ->leftJoin('haciendas', 'productions.hacienda_id', '=', 'haciendas.id')
+            ->select([
+                'productions.*',
+                'planters.name as planter_name',
+                'haciendas.name as hacienda_name',
+                'haciendas.address as hacienda_address',
+            ]);
 
         if ($selectedCropYear !== '' && $selectedCropYear !== 'all') {
-            $productions = $productions->where('crop_year', $selectedCropYear);
+            $baseQuery->where('productions.crop_year', $selectedCropYear);
         }
+
+        if (!empty($filters) && is_array($filters)) {
+            foreach ($filters as $column => $value) {
+                if (!array_key_exists($column, $columnMap)) {
+                    continue;
+                }
+
+                if ($value === '' || $value === null) {
+                    continue;
+                }
+
+                $dbColumn = $columnMap[$column];
+                $values = is_array($value) ? $value : [$value];
+
+                $baseQuery->where(function ($query) use ($dbColumn, $values) {
+                    foreach ($values as $filterValue) {
+                        if ($filterValue === '' || $filterValue === null) {
+                            continue;
+                        }
+
+                        $query->orWhere($dbColumn, 'ilike', '%' . $filterValue . '%');
+                    }
+                });
+            }
+        }
+
+        if ($search !== '') {
+            $like = '%' . $search . '%';
+            $baseQuery->where(function ($query) use ($like) {
+                $query->orWhere('productions.planter_code', 'ilike', $like)
+                    ->orWhere('planters.name', 'ilike', $like)
+                    ->orWhere('productions.hacienda_code', 'ilike', $like)
+                    ->orWhere('haciendas.name', 'ilike', $like)
+                    ->orWhere('productions.trans_code', 'ilike', $like)
+                    ->orWhere('productions.crop_year', 'ilike', $like);
+            });
+        }
+
+        if ($dateColumn !== '' && isset($columnMap[$dateColumn]) && $dateFrom !== '') {
+            $dbDateColumn = $columnMap[$dateColumn];
+            $toDate = $dateTo !== '' ? $dateTo : $dateFrom;
+            $baseQuery->whereBetween($dbDateColumn, [$dateFrom, $toDate]);
+        }
+
+        if ($sort !== '' && isset($columnMap[$sort])) {
+            $baseQuery->orderBy($columnMap[$sort], $direction);
+        } else {
+            $baseQuery->orderBy('productions.id', 'desc');
+        }
+
+        $paginatedProductions = $baseQuery->paginate($perPage)->withQueryString();
 
         $cropYears = Production::query()
             ->pluck('crop_year')
@@ -43,7 +126,22 @@ class ProductionController extends Controller
             ->values();
 
         return Inertia::render('Productions/Index', [
-            'productions' => $productions->values(),
+            'productions' => $paginatedProductions->items(),
+            'pagination' => [
+                'total' => $paginatedProductions->total(),
+                'per_page' => $paginatedProductions->perPage(),
+                'current_page' => $paginatedProductions->currentPage(),
+                'last_page' => $paginatedProductions->lastPage(),
+            ],
+            'table_state' => [
+                'search' => $search,
+                'sort' => $sort,
+                'direction' => $direction,
+                'filters' => $filters,
+                'date_column' => $dateColumn,
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
+            ],
             'crop_years' => $cropYears,
             'filters' => [
                 'crop_year' => $selectedCropYear,

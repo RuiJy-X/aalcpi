@@ -1,4 +1,4 @@
-import { BookOpen, User, Clipboard, LandPlot } from 'lucide-react';
+import { BookOpen, Clipboard, LandPlot } from 'lucide-react';
 import React from 'react';
 import type {
     ProductionRow,
@@ -9,55 +9,42 @@ import StatCard from '@/components/stat-card';
 export default function ProductionStats({
     productions,
     planters,
+    stats,
 }: {
     productions: ProductionRow[];
     planters?: PlanterRow[];
+    stats?: {
+        totalProductions: number;
+        totalNetCw: number;
+        totalActualLkg: number;
+        totalPshrNetLkg: number;
+        totalActualMol: number;
+        totalPshrNetMol: number;
+    };
 }) {
-    const totalProductions = productions.length;
-    const totalGross = productions.reduce(
-        (s, p) => s + Number(p.gross_cw || 0),
-        0,
-    );
-    const totalNet = productions.reduce((s, p) => s + Number(p.net_cw || 0), 0);
-    const uniquePlanters = new Set(productions.map((p) => p.planter_id)).size;
-    const totalTheoreticalLKG = productions.reduce(
-        (acc, val) => acc + Number(val.theoretical_lkg || 0),
-        0,
-    );
-    const totalActualLKG = productions.reduce(
-        (acc, val) => acc + Number(val.actual_lkg || 0),
-        0,
-    );
-    const totalPSHR = productions.reduce(
-        (acc, val) => acc + Number(val.pshr_net_lkg || 0),
-        0,
-    );
-
-    const totalPdpaLKG = productions.reduce(
-        (acc, val) => acc + Number(val.pdpa_lkg),
-        0,
-    );
-    const totalAssociationDuesLKG = productions.reduce(
-        (acc, val) => acc + Number(val.association_dues_lkg),
-        0,
-    );
-    const totalActualMOL = productions.reduce(
-        (acc, val) => acc + Number(val.actual_mol || 0),
-        0,
-    );
-    const totalPSHRMOL = productions.reduce(
-        (acc, val) => acc + Number(val.pshr_net_mol || 0),
-        0,
-    );
-    const totalPdpaMOL = productions.reduce(
-        (acc, val) => acc + Number(val.pdpa_mol || 0),
-        0,
-    );
-    const totalAssociationDuesMOL = productions.reduce(
-        (acc, val) => acc + Number(val.association_dues_mol || 0),
-        0,
-    );
-    const stats = [
+    const totalProductions = stats?.totalProductions ?? productions.length;
+    const totalNet =
+        stats?.totalNetCw ??
+        productions.reduce((s, p) => s + Number(p.net_cw || 0), 0);
+    const totalActualLKG =
+        stats?.totalActualLkg ??
+        productions.reduce((acc, val) => acc + Number(val.actual_lkg || 0), 0);
+    const totalPSHR =
+        stats?.totalPshrNetLkg ??
+        productions.reduce(
+            (acc, val) => acc + Number(val.pshr_net_lkg || 0),
+            0,
+        );
+    const totalActualMOL =
+        stats?.totalActualMol ??
+        productions.reduce((acc, val) => acc + Number(val.actual_mol || 0), 0);
+    const totalPSHRMOL =
+        stats?.totalPshrNetMol ??
+        productions.reduce(
+            (acc, val) => acc + Number(val.pshr_net_mol || 0),
+            0,
+        );
+    const statCards = [
         {
             title: 'Total Productions',
             value: Number(totalProductions).toFixed(0),
@@ -140,7 +127,7 @@ export default function ProductionStats({
 
     return (
         <>
-            {stats.map((stat, index) => (
+            {statCards.map((stat, index) => (
                 <StatCard
                     key={index}
                     title={stat.title}

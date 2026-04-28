@@ -23,7 +23,7 @@ export function HaciendaDialog({
     planters,
 }: {
     planterNames: string[];
-    planters: PlanterRow[];
+    planters: Array<Pick<PlanterRow, 'id' | 'name'>>;
 }) {
     const [name, setName] = useState<string | undefined>('');
     const [id, setId] = useState<string>('');

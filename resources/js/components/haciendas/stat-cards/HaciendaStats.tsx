@@ -1,23 +1,21 @@
 import React from 'react';
 import { LandPlot, User, BookOpen, ShieldCheck } from 'lucide-react';
 import StatCard from '@/components/stat-card';
-import type {
-    HaciendaRow,
-    PlanterRow,
-} from '@/components/planters/planters-table-types';
 
 export default function HaciendaStats({
-    haciendas,
+    stats,
 }: {
-    haciendas: HaciendaRow[];
+    stats: {
+        totalHaciendas: number;
+        totalArea: number;
+        uniquePlanters: number;
+        activeHaciendas: number;
+    };
 }) {
-    const totalHaciendas = haciendas.length;
-    const totalArea = haciendas.reduce(
-        (s, l) => s + Number(l.area_hectares || 0),
-        0,
-    );
-    const uniquePlanters = new Set(haciendas.map((l) => l.planter_id)).size;
-    const activeHaciendas = haciendas.filter((l) => l.is_active).length;
+    const totalHaciendas = stats.totalHaciendas;
+    const totalArea = stats.totalArea;
+    const uniquePlanters = stats.uniquePlanters;
+    const activeHaciendas = stats.activeHaciendas;
 
     return (
         <>

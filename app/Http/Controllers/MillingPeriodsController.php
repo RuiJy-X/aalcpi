@@ -4,16 +4,14 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\MillingPeriod;
-use App\Services\FinancialDistributionService;
 use Inertia\Inertia;
 use Illuminate\Validation\Rule;
 use Carbon\Carbon;
 
 class MillingPeriodsController extends Controller
 {
-    public function __construct(private readonly FinancialDistributionService $distributionService)
-    {
-    }
+
+
 
     /**
      * Display a listing of the resource.
@@ -97,11 +95,10 @@ class MillingPeriodsController extends Controller
 
         $millingPeriod = MillingPeriod::create($validated);
 
-        $noticeMessage = $this->buildFinancialUpdateNotice($millingPeriod);
 
         return redirect()
             ->route('MillingPeriods.show', $millingPeriod->id)
-            ->with('success', 'Milling period created successfully.' . $noticeMessage);
+            ->with('success', 'Milling period created successfully.');
     }
 
     /**
@@ -158,27 +155,13 @@ class MillingPeriodsController extends Controller
 
         $millingPeriod->update($validated);
 
-        $noticeMessage = $this->buildFinancialUpdateNotice($millingPeriod->fresh());
 
         return redirect()
             ->route('MillingPeriods.show', $millingPeriod->id)
-            ->with('success', 'Milling period updated successfully.' . $noticeMessage);
+            ->with('success', 'Milling period updated successfully.');
     }
 
-    private function buildFinancialUpdateNotice(MillingPeriod $millingPeriod): string
-    {
-        if ($millingPeriod->sugar_price === null || $millingPeriod->mol_price === null) {
-            return '';
-        }
 
-        $affectedCount = $this->distributionService->estimateAffectedProductionCount($millingPeriod);
-
-        if ($affectedCount < 1) {
-            return '';
-        }
-
-        return " {$affectedCount} production records have been updated with the new weekly auction price. Please review and accept the totals.";
-    }
 
     /**
      * Remove the specified resource from storage.

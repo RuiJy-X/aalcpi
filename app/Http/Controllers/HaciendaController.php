@@ -5,23 +5,143 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\Planter;
-use App\Models\Production;
-use App\Models\Certification;
 use App\Models\Hacienda;
 use Inertia\Inertia;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
 
 class HaciendaController extends Controller
 {
-    public function index(){
-        $haciendas = Hacienda::with('planter')->get()->map(function ($hacienda) {
-            $hacienda->planter_name = $hacienda->planter ? $hacienda->planter->name : '';
-            return $hacienda;
-        });
-        $planters = Planter::with('haciendas')->get();
-        $planterNames = $planters->pluck('name')->toArray();
-        return Inertia::render('Haciendas/Index', ['haciendas' => $haciendas,'planterNames'=>$planterNames, 'planters' => $planters]);
+    public function index(Request $request)
+    {
+        $perPage = min(max(1, $request->integer('per_page', 10)), 100);
+        $sort = $request->string('sort')->toString();
+        $direction = strtolower($request->string('direction')->toString()) === 'asc' ? 'asc' : 'desc';
+        $search = $request->string('search')->toString();
+        $filters = $request->input('filters', []);
+        $dateColumn = $request->string('date_column')->toString();
+        $dateFrom = $request->string('date_from')->toString();
+        $dateTo = $request->string('date_to')->toString();
+
+        $columnMap = [
+            'hacienda_code' => 'haciendas.hacienda_code',
+            'planter_name' => 'planters.name',
+            'name' => 'haciendas.name',
+            'address' => 'haciendas.address',
+            'area_hectares' => 'haciendas.area_hectares',
+            'distance_from_urc' => 'haciendas.distance_from_urc',
+            'is_active' => 'haciendas.is_active',
+            'created_at' => 'haciendas.created_at',
+            'updated_at' => 'haciendas.updated_at',
+        ];
+
+        $numericColumns = [
+            'area_hectares',
+            'distance_from_urc',
+        ];
+
+        $baseQuery = Hacienda::query()
+            ->leftJoin('planters', 'haciendas.planter_id', '=', 'planters.id')
+            ->select([
+                'haciendas.id',
+                'haciendas.planter_id',
+                'haciendas.hacienda_code',
+                'haciendas.name',
+                'haciendas.address',
+                'haciendas.area_hectares',
+                'haciendas.distance_from_urc',
+                'haciendas.is_active',
+                'haciendas.created_at',
+                'haciendas.updated_at',
+                'planters.name as planter_name',
+            ]);
+
+        if (!empty($filters) && is_array($filters)) {
+            foreach ($filters as $column => $value) {
+                if (!array_key_exists($column, $columnMap)) {
+                    continue;
+                }
+
+                if ($value === '' || $value === null) {
+                    continue;
+                }
+
+                $dbColumn = $columnMap[$column];
+                $values = is_array($value) ? $value : [$value];
+
+                if ($column === 'is_active') {
+                    $normalized = array_map(fn ($v) => filter_var($v, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE), $values);
+                    $normalized = array_values(array_filter($normalized, fn ($v) => $v !== null));
+
+                    if (!empty($normalized)) {
+                        $baseQuery->whereIn($dbColumn, $normalized);
+                    }
+
+                    continue;
+                }
+
+                if (in_array($column, $numericColumns, true)) {
+                    $numericValues = array_filter($values, fn ($v) => $v !== '' && $v !== null && is_numeric($v));
+                    if (!empty($numericValues)) {
+                        $baseQuery->whereIn($dbColumn, $numericValues);
+                    }
+
+                    continue;
+                }
+
+                $baseQuery->where(function ($query) use ($dbColumn, $values) {
+                    foreach ($values as $filterValue) {
+                        if ($filterValue === '' || $filterValue === null) {
+                            continue;
+                        }
+
+                        $query->orWhere($dbColumn, 'ilike', '%' . $filterValue . '%');
+                    }
+                });
+            }
+        }
+
+        if ($search !== '') {
+            $like = '%' . $search . '%';
+            $baseQuery->where(function ($query) use ($like) {
+                $query->orWhere('haciendas.hacienda_code', 'ilike', $like)
+                    ->orWhere('planters.name', 'ilike', $like)
+                    ->orWhere('haciendas.name', 'ilike', $like)
+                    ->orWhere('haciendas.address', 'ilike', $like);
+            });
+        }
+
+        if ($dateColumn !== '' && isset($columnMap[$dateColumn]) && $dateFrom !== '') {
+            $dbDateColumn = $columnMap[$dateColumn];
+            $toDate = $dateTo !== '' ? $dateTo : $dateFrom;
+            $baseQuery->whereBetween($dbDateColumn, [$dateFrom, $toDate]);
+        }
+
+        if ($sort !== '' && isset($columnMap[$sort])) {
+            $baseQuery->orderBy($columnMap[$sort], $direction);
+        } else {
+            $baseQuery->orderBy('haciendas.id', 'desc');
+        }
+
+        $paginatedHaciendas = $baseQuery->paginate($perPage)->withQueryString();
+
+        return Inertia::render('Haciendas/Index', [
+            'haciendas' => $paginatedHaciendas->items(),
+            'pagination' => [
+                'total' => $paginatedHaciendas->total(),
+                'per_page' => $paginatedHaciendas->perPage(),
+                'current_page' => $paginatedHaciendas->currentPage(),
+                'last_page' => $paginatedHaciendas->lastPage(),
+            ],
+            'table_state' => [
+                'search' => $search,
+                'sort' => $sort,
+                'direction' => $direction,
+                'filters' => $filters,
+                'date_column' => $dateColumn,
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
+            ],
+        ]);
     }
 
     public function create($planterId){
