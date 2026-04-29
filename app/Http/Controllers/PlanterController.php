@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Imports\PlanterImport;
+use App\Models\ImportMapping;
 use App\Models\Planter;
 use App\Models\Production;
 use App\Models\Hacienda;
@@ -311,11 +312,21 @@ class PlanterController extends Controller
 
     public function import(Request $request)
     {
-        // Implementation for importing productions
+        $validated = $request->validate([
+            'file' => ['required', 'file'],
+            'mapping_id' => ['required', 'integer', 'exists:import_mappings,id'],
+        ]);
 
-        $file = $request->file('file');
+        $mapping = ImportMapping::query()
+            ->where('id', $validated['mapping_id'])
+            ->where('import_type', 'planters')
+            ->first();
 
-        Excel::import(new PlanterImport, $file);
+        if (!$mapping) {
+            return back()->with('error', 'Import mapping not found for planters.');
+        }
+
+        Excel::import(new PlanterImport($mapping->mapping ?? []), $validated['file']);
 
         return back()->with('success', 'Planter data imported successfully.');
 

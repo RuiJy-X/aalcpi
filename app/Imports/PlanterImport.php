@@ -11,6 +11,8 @@ use Maatwebsite\Excel\Concerns\WithSkipDuplicates;
 
 class PlanterImport implements ToModel, WithHeadingRow, WithSkipDuplicates, WithUpserts
 {
+    public function __construct(private readonly array $mapping = []) {}
+
     /**
     * @param array $row
     *
@@ -18,8 +20,14 @@ class PlanterImport implements ToModel, WithHeadingRow, WithSkipDuplicates, With
     */
     public function model(array $row)
     {
+        $row = $this->applyMapping($row);
+
+        // Pad codes to 5 digits with leading zeros
+        $planterCode = $this->padCode($row['planter_code'] ?? '0');
+        $haciendaCode = $this->padCode($row['land_code'] ?? $row['hacienda_code'] ?? '0');
+
         $planter = Planter::firstOrCreate(
-            ['planter_code'=> $row['planter_code']],
+            ['planter_code'=> $planterCode],
             [
                 'name' => $row['name'] ?? $row['planter_name'] ?? 'Unknown Planter',
                 'address' => $row['address'] ?? 'Unknown Address',
@@ -30,7 +38,7 @@ class PlanterImport implements ToModel, WithHeadingRow, WithSkipDuplicates, With
         );
 
         $hacienda = Hacienda::firstOrCreate(
-            ['hacienda_code' => $row['land_code'] ?? $row['hacienda_code']],
+            ['hacienda_code' => $haciendaCode],
             [
                 'planter_id' => $planter->id,
                 'name' => $row['hacienda_name'] ?? $row['land_name'] ?? 'Unknown Hacienda',
@@ -42,7 +50,7 @@ class PlanterImport implements ToModel, WithHeadingRow, WithSkipDuplicates, With
         );
         return new Planter([
             'planter_id' => $planter->id,
-            'planter_code' => $row['planter_code'],
+            'planter_code' => $planterCode,
             'name' => $row['name'] ?? $row['planter_name'] ?? 'Unknown Planter',
             'address' => $row['address'] ?? 'Unknown Address',
             'contact_number' => $row['contact_number'] ?? null,
@@ -54,5 +62,32 @@ class PlanterImport implements ToModel, WithHeadingRow, WithSkipDuplicates, With
     public function uniqueBy()
     {
         return 'planter_code';
+    }
+
+    private function applyMapping(array $row): array
+    {
+        if (empty($this->mapping)) {
+            return $row;
+        }
+
+        $mapped = [];
+        foreach ($this->mapping as $target => $source) {
+            if (!is_string($source) || $source === '') {
+                continue;
+            }
+
+            $mapped[$target] = $row[$source] ?? null;
+        }
+
+        return array_merge($row, $mapped);
+    }
+
+    private function padCode($code): string
+    {
+        if (is_null($code) || $code === '') {
+            return '00000';
+        }
+        // Convert to string, trim whitespace, and pad with leading zeros to 5 digits
+        return str_pad((string) trim((string) $code), 5, '0', STR_PAD_LEFT);
     }
 }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Imports\ProductionsImport;
+use App\Models\ImportMapping;
 use App\Models\Production;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -227,16 +228,23 @@ class ProductionController extends Controller
         $validated = $request->validate([
             'file' => ['required', 'file'],
             'crop_year' => ['required', 'regex:/^\d{4}-\d{4}$/'],
+            'mapping_id' => ['required', 'integer', 'exists:import_mappings,id'],
         ]);
 
         $file = $validated['file'];
         $cropYear = $validated['crop_year'];
 
+        $mapping = ImportMapping::query()
+            ->where('id', $validated['mapping_id'])
+            ->where('import_type', 'productions')
+            ->first();
+
+        if (!$mapping) {
+            return back()->with('error', 'Import mapping not found for productions.');
+        }
+
         try {
-            Excel::import(
-                new ProductionsImport($cropYear),
-                $file,
-            );
+            Excel::import(new ProductionsImport($cropYear, $mapping->mapping ?? []), $file);
         } catch (Throwable $e) {
             Log::error('Productions import failed', [
                 'message' => $e->getMessage(),

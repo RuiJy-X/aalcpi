@@ -6,17 +6,162 @@ export interface ImportConfig {
     label: string;
     requireCropYear?: boolean;
     headerGuide?: string[];
+    mappingType?: 'planters' | 'productions';
+    mappingTargets?: ImportTarget[];
+}
+
+export interface ImportTarget {
+    key: string;
+    label: string;
+    required?: boolean;
+    group?: string;
 }
 
 export const plantersImportConfig = {
     route: planters.import.url(),
     label: 'Planter Data',
+    mappingType: 'planters' as const,
+    mappingTargets: [
+        {
+            key: 'planter_code',
+            label: 'Planter Code',
+            required: true,
+            group: 'Planters',
+        },
+        {
+            key: 'name',
+            label: 'Planter Name',
+            required: true,
+            group: 'Planters',
+        },
+        { key: 'address', label: 'Planter Address', group: 'Planters' },
+        { key: 'contact_number', label: 'Contact Number', group: 'Planters' },
+        { key: 'tin_number', label: 'TIN Number', group: 'Planters' },
+        {
+            key: 'registration_date',
+            label: 'Registration Date',
+            group: 'Planters',
+        },
+        {
+            key: 'hacienda_code',
+            label: 'Hacienda Code',
+            group: 'Haciendas',
+        },
+        {
+            key: 'hacienda_name',
+            label: 'Hacienda Name',
+            group: 'Haciendas',
+        },
+        {
+            key: 'hacienda_address',
+            label: 'Hacienda Address',
+            group: 'Haciendas',
+        },
+        { key: 'area_hectares', label: 'Area (Hectares)', group: 'Haciendas' },
+        {
+            key: 'distance_from_urc',
+            label: 'Distance From URC',
+            group: 'Haciendas',
+        },
+    ],
 };
 
 export const productionsImportConfig = {
     route: productions.import.url(),
     label: 'Productions Data',
     requireCropYear: true,
+    mappingType: 'productions' as const,
+    mappingTargets: [
+        {
+            key: 'planter_code',
+            label: 'Planter Code',
+            required: true,
+            group: 'Planters',
+        },
+        {
+            key: 'planter_name',
+            label: 'Planter Name',
+            required: true,
+            group: 'Planters',
+        },
+        {
+            key: 'hacienda_code',
+            label: 'Hacienda Code',
+            group: 'Haciendas',
+        },
+        { key: 'hacienda_name', label: 'Hacienda Name', group: 'Haciendas' },
+        {
+            key: 'trans_code',
+            label: 'Trans Code',
+            group: 'Productions',
+        },
+        {
+            key: 'gross_cw',
+            label: 'Gross CW',
+            group: 'Productions',
+        },
+        {
+            key: 'net_cw',
+            label: 'Net CW',
+            required: true,
+            group: 'Productions',
+        },
+        {
+            key: 'trucks',
+            label: 'Trucks',
+            group: 'Productions',
+        },
+        {
+            key: 'theoretical_lkg',
+            label: 'Theoretical LKG',
+            group: 'Productions',
+        },
+        {
+            key: 'actual_lkg',
+            label: 'Actual LKG',
+            required: true,
+            group: 'Productions',
+        },
+        {
+            key: 'pshr_net_lkg',
+            label: 'Planter Share Net LKG',
+            required: true,
+            group: 'Productions',
+        },
+        {
+            key: 'pdpa_lkg',
+            label: 'PDPA LKG',
+            group: 'Productions',
+        },
+        {
+            key: 'association_dues_lkg',
+            label: 'Association Dues LKG',
+            group: 'Productions',
+        },
+        {
+            key: 'actual_mol',
+            label: 'Actual MOL',
+            required: true,
+            group: 'Productions',
+        },
+        {
+            key: 'pshr_net_mol',
+            label: 'Planter Share Net MOL',
+            required: true,
+            group: 'Productions',
+        },
+        {
+            key: 'pdpa_mol',
+            label: 'PDPA MOL',
+            group: 'Productions',
+        },
+        {
+            key: 'association_dues_mol',
+            label: 'Association Dues MOL',
+            group: 'Productions',
+        },
+        { key: 'transloading', label: 'Transloading', group: 'Productions' },
+    ],
     headerGuide: [
         'planter_code',
         'planter_name',

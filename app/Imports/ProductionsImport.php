@@ -12,10 +12,15 @@ use Maatwebsite\Excel\Concerns\WithHeadingRow;
 
 class ProductionsImport implements ToModel, WithHeadingRow, ShouldQueue, WithChunkReading
 {
-    public function __construct(private readonly string $importCropYear) {}
+    public function __construct(
+        private readonly string $importCropYear,
+        private readonly array $mapping = [],
+    ) {}
 
     public function model(array $row)
     {
+        $row = $this->applyMapping($row);
+
         // 1. SKIP EMPTY ROWS (Critical to avoid the Not Null Violation)
         if (empty($row['planter_code']) && empty($row['Pcode'])) {
             return null;
@@ -33,16 +38,24 @@ class ProductionsImport implements ToModel, WithHeadingRow, ShouldQueue, WithChu
 
         // 2. HELPER for numeric values
         $toNum = fn($val) => is_numeric($val) ? $val : 0;
+        $toBool = fn($val) => filter_var($val, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE) ?? false;
 
-        // 3. PLANTER
+        // 3. PAD CODES to 5 digits with leading zeros
+        $planterCode = $this->padCode($row['planter_code'] ?? $row['Pcode'] ?? '0');
+        $haciendaCode = $this->padCode($row['hacienda_code'] ?? $row['Hcode'] ?? '0');
+
+        // 4. PLANTER
         $planter = Planter::updateOrCreate(
-            ['planter_code' => $row['planter_code'] ?? $row['Pcode']],
-            ['name' => $row['planter_name'] ?? $row['Pname'] ?? $row['Planter Name'] ?? 'Unknown Planter', 'registration_date' => now()]
+            ['planter_code' => $planterCode],
+            [
+                'name' => $row['planter_name'] ?? $row['Pname'] ?? $row['Planter Name'] ?? 'Unknown Planter',
+                'registration_date' => now(),
+            ]
         );
 
-        // 4. HACIENDA
+        // 5. HACIENDA
         $hacienda = Hacienda::updateOrCreate(
-            ['hacienda_code' => $row['hacienda_code'] ?? $row['Hcode']],
+            ['hacienda_code' => $haciendaCode],
             [
                 'planter_id' => $planter->id,
                 'name' => $row['hacienda_name'] ?? $row['Hacienda Name'] ?? 'Unknown Hacienda',
@@ -50,17 +63,17 @@ class ProductionsImport implements ToModel, WithHeadingRow, ShouldQueue, WithChu
             ]
         );
 
-        // 5. PRODUCTION (Mapping to your specific Excel headers)
+        // 6. PRODUCTION (Mapping to your specific Excel headers)
         // Note the "re_" prefix based on your screenshot!
         return Production::updateOrCreate(
             [
-                'planter_code'  => $row['planter_code'] ?? $row['Pcode'],
-                'hacienda_code' => $row['hacienda_code'],
+                'planter_code'  => $planterCode,
+                'hacienda_code' => $haciendaCode,
                 'crop_year'     => $this->importCropYear,
                 ],
                 [
-                'trucks' => $row['trucks'] ?? 0,
-                'trans_code'    => $row['trans_code'] ?? null, // Ensure this column exists in Excel!
+                'trucks' => $toNum($row['trucks'] ?? 0),
+                'trans_code'    => $row['trans_code'] ?? '0',
                 'planter_id'           => $planter->id,
                 'hacienda_id'          => $hacienda->id,
                 'gross_cw'             => $toNum($row['gross_cw'] ?? 0),
@@ -73,14 +86,41 @@ class ProductionsImport implements ToModel, WithHeadingRow, ShouldQueue, WithChu
                 'pshr_net_mol'         => $toNum($row['re pshr_net_mol'] ?? $row['pshr_net_mol'] ?? $row['Pshr_Net_Mol'] ?? $row['Mol (64%)'] ?? 0), // Note the 're_'
                 'pdpa_mol' => $toNum($row['re_pdpa_mol'] ?? $row['pdpa_mol'] ?? 0),
 
-                'association_dues_lkg' => $row['assn_dues_lkg'] ?? $row['assn_dues_sugar'] ?? 0,
-                'association_dues_mol' => $row['Assn_Dues_Mol'] ?? $row['assn_dues_mol'] ?? $row['re assn_dues_mol'] ?? 0,
-                'transloading'         => 0,
+                'association_dues_lkg' => $toNum($row['assn_dues_lkg'] ?? $row['assn_dues_sugar'] ?? 0),
+                'association_dues_mol' => $toNum($row['Assn_Dues_Mol'] ?? $row['assn_dues_mol'] ?? $row['re assn_dues_mol'] ?? 0),
+                'transloading'         => $toBool($row['transloading'] ?? false),
             ]
         );
     }
     public function chunkSize(): int
     {
         return 1000;
+    }
+
+    private function applyMapping(array $row): array
+    {
+        if (empty($this->mapping)) {
+            return $row;
+        }
+
+        $mapped = [];
+        foreach ($this->mapping as $target => $source) {
+            if (!is_string($source) || $source === '') {
+                continue;
+            }
+
+            $mapped[$target] = $row[$source] ?? null;
+        }
+
+        return array_merge($row, $mapped);
+    }
+
+    private function padCode($code): string
+    {
+        if (is_null($code) || $code === '') {
+            return '00000';
+        }
+        // Convert to string, trim whitespace, and pad with leading zeros to 5 digits
+        return str_pad((string) trim((string) $code), 5, '0', STR_PAD_LEFT);
     }
 }

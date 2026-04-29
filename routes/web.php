@@ -3,6 +3,7 @@ use App\Http\Controllers\PlanterController;
 use App\Http\Controllers\ProductionController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\ImportMappingController;
 
 use App\Http\Controllers\MillingPeriodsController;
 use App\Http\Controllers\HaciendaController;
@@ -42,6 +43,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // --- MANAGER & CERTIFICATION OFFICER ---
     Route::middleware('role:manager,cert_officer')->group(function () {
+
+        Route::post('/Imports/preview', [ImportMappingController::class, 'preview'])->name('imports.preview');
+        Route::post('/Imports/mappings', [ImportMappingController::class, 'store'])->name('imports.mappings.store');
 
         // Planters
         Route::prefix('Planters')->name('planters.')->group(function () {
