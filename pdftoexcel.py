@@ -1,5 +1,6 @@
 import argparse
 import json
+import os
 import re
 import sys
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -104,70 +105,7 @@ def _parse_planter_infos(text: str) -> list[PlanterInfo]:
 
 
 # ---------------------------------------------------------------------------
-# Split detection
-# ---------------------------------------------------------------------------
-
-def _find_dynamic_split_y(page, page_height: float) -> float | None:
-    words = page.extract_words(keep_blank_chars=False, use_text_flow=True)
-    if not words:
-        return None
-
-    line_words: dict[float, list[tuple[float, str]]] = {}
-    for word in words:
-        text = str(word.get("text", "")).strip().upper()
-        if not text:
-            continue
-        top = round(float(word.get("top", 0.0)), 1)
-        line_words.setdefault(top, []).append((float(word.get("x0", 0.0)), text))
-
-    header_tops: list[float] = []
-    footer_tops: list[float] = []
-
-    for top, items in line_words.items():
-        items.sort(key=lambda item: item[0])
-        line_text = " ".join(token for _, token in items)
-        normalized = re.sub(r"[^A-Z0-9]", "", line_text)
-        tokens = {re.sub(r"[^A-Z0-9]", "", token) for _, token in items}
-        tokens.discard("")
-
-        if HEADER_ANCHOR_NORM in normalized or {"WEEKLY", "PLANTERS", "REPORT"}.issubset(tokens):
-            header_tops.append(top)
-        if FOOTER_ANCHOR_NORM in normalized or FOOTER_ROLE_NORM in normalized:
-            footer_tops.append(top)
-
-    header_tops.sort()
-    footer_tops.sort()
-
-    split_y: float | None = None
-    if len(header_tops) >= 2:
-        footer_between = next(
-            (t for t in footer_tops if header_tops[0] < t < header_tops[1]), None
-        )
-        split_y = (footer_between + header_tops[1]) / 2 if footer_between else (header_tops[0] + header_tops[1]) / 2
-    elif len(footer_tops) >= 2:
-        split_y = (footer_tops[0] + footer_tops[1]) / 2
-
-    if split_y is None:
-        return None
-    if split_y < page_height * 0.15 or split_y > page_height * 0.85:
-        return None
-    return split_y
-
-
-def _get_segments(page, *, split_mode: str, fixed_split_ratio: float) -> dict[str, tuple[float, float, float, float]]:
-    w, h = page.width, page.height
-    if split_mode == "none":
-        return {"full": (0.0, 0.0, w, h)}
-    if split_mode == "dynamic":
-        split_y = _find_dynamic_split_y(page, h)
-        if split_y is not None:
-            return {"top": (0.0, 0.0, w, split_y), "bottom": (0.0, split_y, w, h)}
-    split_y = h * fixed_split_ratio
-    return {"top": (0.0, 0.0, w, split_y), "bottom": (0.0, split_y, w, h)}
-
-
-# ---------------------------------------------------------------------------
-# PDF writing — NO deepcopy, use add_page + cropbox directly
+# PDF writing
 # ---------------------------------------------------------------------------
 
 def _write_segment_pdf(
@@ -182,7 +120,6 @@ def _write_segment_pdf(
 
     bbox_x0, bbox_top, bbox_x1, bbox_bottom = bbox
 
-    # pdfplumber top-left → pypdf bottom-left coordinate conversion
     new_left   = max(left,   min(left   + bbox_x0,     right))
     new_right  = max(left,   min(left   + bbox_x1,     right))
     new_top    = max(bottom, min(top    - bbox_top,     top))
@@ -194,7 +131,7 @@ def _write_segment_pdf(
     crop = RectangleObject((new_left, new_bottom, new_right, new_top))
 
     writer = PdfWriter()
-    writer.add_page(pypdf_page)          # add_page does NOT deepcopy
+    writer.add_page(pypdf_page)
     writer.pages[0].cropbox  = crop
     writer.pages[0].mediabox = crop
 
@@ -231,71 +168,89 @@ def _build_combined_planter_name(planter_infos: list[PlanterInfo]) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Per-page worker  (runs in a subprocess when multiprocessing is used)
+# Page-range batch worker — one PDF open per worker batch
 # ---------------------------------------------------------------------------
 
-def _process_page(
-    page_index: int,
+def _process_page_range(
+    page_indices: list[int],
     input_pdf_path: str,
     week_number: str,
     crop_year: str,
     output_dir: str,
-    split_mode: str,
-    fixed_split_ratio: float,
 ) -> list[dict]:
     """
-    Process a single page and return a list of record dicts.
-    Keeps each worker's memory footprint small — opens the PDF once per worker
-    process (ProcessPoolExecutor reuses processes across tasks).
+    Process a batch of pages in a single worker invocation.
+    Opens pdfplumber and PdfReader ONCE per batch instead of once per page,
+    dramatically reducing I/O overhead on large PDFs.
+    split_mode is hardcoded to 'none'.
     """
     out = Path(output_dir)
     records: list[dict] = []
 
     with pdfplumber.open(input_pdf_path) as plumber_pdf:
         pypdf_reader = PdfReader(input_pdf_path)
-        page = plumber_pdf.pages[page_index]
-        pypdf_page = pypdf_reader.pages[page_index]
 
-        segments = _get_segments(page, split_mode=split_mode, fixed_split_ratio=fixed_split_ratio)
+        for page_index in page_indices:
+            try:
+                page      = plumber_pdf.pages[page_index]
+                pypdf_page = pypdf_reader.pages[page_index]
 
-        for segment_name, bbox in segments.items():
-            segment_page = page.crop(bbox)
-            text = segment_page.extract_text() or ""
-            planter_infos = _parse_planter_infos(text)
+                w, h = page.width, page.height
+                bbox = (0.0, 0.0, w, h)
 
-            if not planter_infos:
-                continue
+                text         = page.extract_text() or ""
+                planter_infos = _parse_planter_infos(text)
 
-            if split_mode == "none" and len(planter_infos) > 1:
-                combined_name = _build_combined_planter_name(planter_infos)
-                output_path = _build_output_path(out, combined_name, week_number, crop_year, page_index + 1, segment_name)
+                if not planter_infos:
+                    continue
+
+                if len(planter_infos) > 1:
+                    combined_name = _build_combined_planter_name(planter_infos)
+                    output_path   = _build_output_path(
+                        out, combined_name, week_number, crop_year,
+                        page_index + 1, "full",
+                    )
+                    _write_segment_pdf(pypdf_page, bbox, output_path)
+                    for info in planter_infos:
+                        records.append(asdict(OutputRecord(
+                            source_page=page_index + 1,
+                            segment="full",
+                            planter_code=info.planter_code,
+                            planter_name=info.planter_name,
+                            hacienda_code=info.hacienda_code,
+                            hacienda_address=info.hacienda_address,
+                            output_file=str(output_path),
+                        )))
+                    continue
+
+                info        = planter_infos[0]
+                output_path = _build_output_path(
+                    out, info.planter_name, week_number, crop_year,
+                    page_index + 1, "full",
+                )
                 _write_segment_pdf(pypdf_page, bbox, output_path)
-                for info in planter_infos:
-                    records.append(asdict(OutputRecord(
-                        source_page=page_index + 1,
-                        segment=segment_name,
-                        planter_code=info.planter_code,
-                        planter_name=info.planter_name,
-                        hacienda_code=info.hacienda_code,
-                        hacienda_address=info.hacienda_address,
-                        output_file=str(output_path),
-                    )))
-                continue
+                records.append(asdict(OutputRecord(
+                    source_page=page_index + 1,
+                    segment="full",
+                    planter_code=info.planter_code,
+                    planter_name=info.planter_name,
+                    hacienda_code=info.hacienda_code,
+                    hacienda_address=info.hacienda_address,
+                    output_file=str(output_path),
+                )))
 
-            info = planter_infos[0]
-            output_path = _build_output_path(out, info.planter_name, week_number, crop_year, page_index + 1, segment_name)
-            _write_segment_pdf(pypdf_page, bbox, output_path)
-            records.append(asdict(OutputRecord(
-                source_page=page_index + 1,
-                segment=segment_name,
-                planter_code=info.planter_code,
-                planter_name=info.planter_name,
-                hacienda_code=info.hacienda_code,
-                hacienda_address=info.hacienda_address,
-                output_file=str(output_path),
-            )))
+            except Exception as exc:
+                sys.stderr.write(f"Warning: page {page_index + 1} failed: {exc}\n")
 
     return records
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _chunk(lst: list, size: int) -> list[list]:
+    return [lst[i:i + size] for i in range(0, len(lst), size)]
 
 
 # ---------------------------------------------------------------------------
@@ -307,47 +262,45 @@ def process_pdf(
     week_number: str,
     crop_year: str,
     output_dir: Path,
-    split_mode: str = "none",
-    fixed_split_ratio: float = 0.5,
     max_pages: int | None = None,
+    workers: int = 2,
+    chunk_size: int = 50,
 ) -> list[OutputRecord]:
     if not input_pdf_path.exists():
         raise FileNotFoundError(f"Input PDF not found: {input_pdf_path}")
-    if not 0.05 <= fixed_split_ratio <= 0.95:
-        raise ValueError("fixed_split_ratio must be between 0.05 and 0.95")
-    if split_mode not in {"dynamic", "fixed", "none"}:
-        raise ValueError("split_mode must be one of: dynamic, fixed, none")
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    total_pages = len(PdfReader(str(input_pdf_path)).pages)
+    resolved_workers = workers if workers > 0 else max(1, (os.cpu_count() or 1))
+
+    total_pages  = len(PdfReader(str(input_pdf_path)).pages)
     page_indices = list(range(min(total_pages, max_pages) if max_pages else total_pages))
+    batches      = _chunk(page_indices, chunk_size)
 
     all_record_dicts: list[dict] = []
 
-    with ProcessPoolExecutor() as executor:
+    with ProcessPoolExecutor(max_workers=resolved_workers) as executor:
         futures = {
             executor.submit(
-                _process_page,
-                idx,
+                _process_page_range,
+                batch,
                 str(input_pdf_path),
                 week_number,
                 crop_year,
                 str(output_dir),
-                split_mode,
-                fixed_split_ratio,
-            ): idx
-            for idx in page_indices
+            ): batch
+            for batch in batches
         }
 
         for future in as_completed(futures):
             try:
                 all_record_dicts.extend(future.result())
             except Exception as exc:
-                page_idx = futures[future]
-                sys.stderr.write(f"Warning: page {page_idx + 1} failed: {exc}\n")
+                batch = futures[future]
+                sys.stderr.write(
+                    f"Warning: batch pages {batch[0]+1}–{batch[-1]+1} failed: {exc}\n"
+                )
 
-    # Reconstruct dataclass objects and sort by source_page for stable output
     records = [OutputRecord(**d) for d in all_record_dicts]
     records.sort(key=lambda r: (r.source_page, r.segment))
     return records
@@ -366,12 +319,21 @@ def _build_cli_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("pdf_path",      help="Path to the source PDF file")
     parser.add_argument("week_number",   help="Week number used in output file naming")
-    parser.add_argument("crop_year",     help="Crop year used in output file naming (example: 2025-2026)")
+    parser.add_argument("crop_year",     help="Crop year used in output file naming (e.g. 2025-2026)")
     parser.add_argument("output_folder", help="Folder where split PDFs will be saved")
-    parser.add_argument("--max-pages",        type=int,   default=None)
-    parser.add_argument("--workers",          type=int,   default=4,      help="Parallel worker processes (default: 4)")
-    parser.add_argument("--split-mode",       choices=["dynamic", "fixed", "none"], default="none")
-    parser.add_argument("--fixed-split-ratio",type=float, default=0.5)
+    parser.add_argument("--max-pages",  type=int, default=None)
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=0,
+        help="Worker processes (default: 0 = auto-detect from CPU count)",
+    )
+    parser.add_argument(
+        "--chunk-size",
+        type=int,
+        default=50,
+        help="Pages per worker batch (default: 50)",
+    )
     return parser
 
 
@@ -384,9 +346,9 @@ def main() -> int:
             week_number=str(args.week_number),
             crop_year=str(args.crop_year),
             output_dir=Path(args.output_folder),
-            split_mode=str(args.split_mode),
-            fixed_split_ratio=float(args.fixed_split_ratio),
-            max_pages=args.max_pages
+            max_pages=args.max_pages,
+            workers=args.workers,
+            chunk_size=args.chunk_size,
         )
     except Exception as exc:
         print(json.dumps({"ok": False, "error": str(exc)}), file=sys.stderr)

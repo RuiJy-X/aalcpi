@@ -41,7 +41,7 @@ function WeeklyFileRow({
             <button
                 type="button"
                 onClick={(event) => {
-                    event.stopPropagation();
+                    onToggleSelection(item, !isChecked);
                     onOpenPreview(item);
                 }}
                 className="text-left"
