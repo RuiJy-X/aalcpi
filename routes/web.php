@@ -4,11 +4,12 @@ use App\Http\Controllers\ProductionController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\ImportMappingController;
-
 use App\Http\Controllers\MillingPeriodsController;
 use App\Http\Controllers\HaciendaController;
 use App\Http\Controllers\WeeklyController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\PayrollController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -21,7 +22,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
 
-
     // --- MANAGER ---
     Route::middleware('role:manager')->group(function () {
         // User Management
@@ -30,8 +30,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('/Users/{id}', [UserController::class, 'destroy'])->name('users.destroy');
         Route::get('/Users/{id}', [UserController::class, 'show'])->name('users.show');
 
-        Route::get('/Employees', [EmployeeController::class, 'index'])->name('employees.index');
+        Route::resource('/Employees', EmployeeController::class)->whereNumber('Employee');
         // Add later the other routes like payroll, attendance, ... of all the employees records
+
+        Route::post('/Attendance/import', [AttendanceController::class, 'import'])->name('attendance.import');
+
+        Route::resource('/Attendance', AttendanceController::class)->whereNumber('Attendance');
+
+
+        Route::resource('/Payroll', PayrollController::class)->whereNumber('Payroll');
 
         Route::delete('/MillingPeriods/bulk-delete', [MillingPeriodsController::class, 'bulkDestroy'])->name('milling-periods.bulk-destroy');
 
@@ -39,6 +46,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::resource('/MillingPeriods', MillingPeriodsController::class)
             ->whereNumber('MillingPeriod');
+
+
     });
 
     // --- MANAGER & CERTIFICATION OFFICER ---

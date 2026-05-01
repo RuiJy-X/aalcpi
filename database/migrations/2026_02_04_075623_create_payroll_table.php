@@ -12,16 +12,16 @@ return new class extends Migration
         Schema::create('payrolls', function (Blueprint $table) {
             $table->id();
             $table->foreignId('employee_id')->constrained()->onDelete('cascade');
-            
+
             $table->date('period_start');
             $table->date('period_end');
-            $table->decimal('base_salary', 12, 2);
-            $table->decimal('total_overtime_hours', 8, 2)->default(0);
-            $table->decimal('total_deductions', 12, 2)->default(0);
-            $table->decimal('gross_pay', 12, 2);
-            $table->decimal('net_pay', 12, 2);
-            $table->string('status')->default('draft'); // draft, released, paid
-            
+            $table->decimal('basic_pay', 16, 2);
+            $table->decimal('overtime_pay', 16, 2);
+            $table->decimal('gross_pay', 16, 2);
+            $table->decimal('deductions', 16, 2);
+            $table->decimal('net_pay', 16, 2);
+            $table->string('status');
+
             $table->timestamps();
         });
     }

@@ -13,10 +13,15 @@ return new class extends Migration
         Schema::create('employees', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('position');
-            $table->string('employment_type'); // Regular, Seasonal
+            $table->string('position')->nullable();
+            $table->string('employment_type')->nullable();
+            $table->string('department')->nullable();
+            $table->string('hourly_rate')->nullable();
             $table->decimal('base_salary', 12, 2);
-            $table->date('hire_date');
+            $table->string('address')->nullable();
+            $table->string('tin')->nullable();
+            $table->string('contact_number')->nullable();
+
             $table->timestamps();
         });
     }

@@ -25,7 +25,7 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
-import { index as employeeIndex } from '@/routes/employees';
+import { index as employeeIndex } from '@/routes/Employees';
 import { index as haciendasIndex } from '@/routes/haciendas';
 import { index as plantersIndex } from '@/routes/planters';
 import { index as productionsIndex } from '@/routes/productions';
@@ -33,6 +33,9 @@ import { index as userIndex } from '@/routes/users';
 import { index as millingPeriodsIndex } from '@/routes/MillingPeriods';
 import type { NavItem, SharedData } from '@/types';
 import AppLogo from './app-logo';
+
+import { index as attendanceIndex } from '@/routes/attendance';
+import { index as payrollIndex } from '@/routes/Payroll';
 
 export function AppSidebar() {
     const { auth } = usePage<SharedData>().props;
@@ -70,11 +73,22 @@ export function AppSidebar() {
     ];
 
     const adminNavItems: NavItem[] = [
-        // {
-        //     title: 'HR',
-        //     href: employeeIndex(),
-        //     icon: Briefcase,
-        // },
+        {
+            title: 'Employees',
+            href: employeeIndex(),
+            icon: Briefcase,
+        },
+        {
+            title: 'Attendance',
+            href: attendanceIndex(),
+            icon: Clipboard,
+        },
+        {
+            title: 'Payroll',
+            href: payrollIndex(),
+            icon: DollarSign,
+        },
+
         // {
         //     title: 'User Management',
         //     href: userIndex(),
@@ -83,7 +97,7 @@ export function AppSidebar() {
         {
             title: 'Milling Periods',
             href: millingPeriodsIndex(),
-            icon: DollarSign,
+            icon: ShieldCheck,
         },
     ];
 

@@ -2,22 +2,51 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Http\Controllers\Controller;
+use App\Imports\AttendanceImport;
 use App\Models\Attendance;
-use Illuminate\Support\Facades\Schema;
+use App\Models\Employee;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Validation\ValidationException;
 
 class AttendanceController extends Controller
 {
-    public function get()
+    public function index()
     {
-        return response()->json(Attendance::with('employee:id,name')->latest('date')->get());
+        $attendance = Attendance::with('employee:id,name')
+            ->get()
+            ->map(function (Attendance $record) {
+                return [
+                    'id' => $record->id,
+                    'employee_id' => $record->employee_id,
+                    'employee_name' => $record->employee?->name,
+                    'date' => $record->date,
+                    'week' => $record->week,
+                    'time_in' => $record->time_in,
+                    'time_out' => $record->time_out,
+                    'times' => $record->times,
+                    'working_time' => $record->working_time,
+                ];
+            });
+
+        $employees = Employee::query()
+            ->select('id', 'name')
+            ->orderBy('name', 'asc')
+            ->get();
+
+        return Inertia::render('Attendance/Index', [
+            'attendance' => $attendance,
+            'employees' => $employees,
+        ]);
     }
 
-    public function header()
+    public function show($id)
     {
-        return response()->json(Schema::getColumnListing('attendances'));
+        return response()->json(Attendance::with('employee:id,name')->findOrFail($id));
     }
+
 
     public function create(Request $request)
     {
@@ -60,5 +89,29 @@ class AttendanceController extends Controller
     {
         Attendance::findOrFail($id)->delete();
         return response()->json(['message' => 'Attendance record deleted']);
+    }
+
+    public function import(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'employee_id' => ['required', 'integer', 'exists:employees,id'],
+            'file' => ['required', 'file', 'mimes:xlsx,xls,csv'],
+        ]);
+
+        $employee = Employee::findOrFail($request->integer('employee_id'));
+
+        $import = new AttendanceImport(
+            employeeId: $employee->id,
+        );
+
+        Excel::import($import, $request->file('file'));
+
+        if ($import->importedCount === 0) {
+            throw ValidationException::withMessages([
+                'file' => 'No attendance rows were imported for the selected employee and date range.',
+            ]);
+        }
+
+        return back()->with('success', "DTR imported successfully for {$employee->name}.");
     }
 }

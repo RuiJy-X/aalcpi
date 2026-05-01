@@ -10,11 +10,13 @@ class Attendance extends Model
     use HasFactory;
 
     protected $fillable = [
-        'employee_id', 
-        'date', 
-        'status', 
-        'hours_worked', 
-        'overtime_hours'
+        'employee_id',
+        'date',
+        'week',
+        'time_in',
+        'time_out',
+        'times',
+        'working_time',
     ];
 
     public function employee() {

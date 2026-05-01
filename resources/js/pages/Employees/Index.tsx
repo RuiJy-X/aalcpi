@@ -1,12 +1,20 @@
 import { Head, Link } from '@inertiajs/react';
-import { Briefcase } from 'lucide-react';
-import ActionContainer from '@/components/action-container';
-import StatCard from '@/components/stat-card';
-import StatsContainer from '@/components/stats-container';
+import { Briefcase, Plus } from 'lucide-react';
+import type { EmployeeType } from './employeeTypes';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
-import { index as employeeIndex } from '@/routes/employees';
+import { index as employeeIndex } from '@/routes/Employees';
+import { show as employeeShow } from '@/routes/Employees';
 import type { BreadcrumbItem } from '@/types';
+import {
+    ContainerHeader,
+    ContainerHeaderEnd,
+    Container,
+} from '@/components/container';
+import { DataTable } from '@/components/data-table/data-table';
+import { employeeColumns } from './employee-column-def';
+import AddEmployeeDialog from './Create';
+import { useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -15,25 +23,40 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function Dashboard() {
+export default function Dashboard({
+    employees,
+}: {
+    employees: EmployeeType[];
+}) {
+    const [open, onOpenChange] = useState(false);
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Employee Management">
-                <title>Employee Management</title>
+            <Head title="Employees">
+                <title>Employees</title>
             </Head>
-            <ActionContainer className="">
-                <Link href={''}>
-                    <Button>Register Employee</Button>
-                </Link>
-            </ActionContainer>
-            <StatsContainer className="flex-wrap bg-card">
-                <StatCard
-                    title="Employees"
-                    value="233"
-                    icon={Briefcase}
-                    color="green"
+
+            <Container>
+                <ContainerHeader>
+                    Employees Table
+                    <ContainerHeaderEnd>
+                        <Button onClick={() => onOpenChange(true)}>
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add Employee
+                        </Button>
+                        <AddEmployeeDialog
+                            open={open}
+                            onOpenChange={onOpenChange}
+                        />
+                    </ContainerHeaderEnd>
+                </ContainerHeader>
+                <DataTable
+                    columns={employeeColumns}
+                    data={employees}
+                    onRowDoubleClick={(employee) =>
+                        employeeShow(employee.id).url
+                    }
                 />
-            </StatsContainer>
+            </Container>
         </AppLayout>
     );
 }

@@ -13,9 +13,11 @@ return new class extends Migration
             $table->id();
             $table->foreignId('employee_id')->constrained()->onDelete('cascade');
             $table->date('date');
-            $table->string('status');
-            $table->decimal('hours_worked', 4, 2)->default(8.00);
-            $table->decimal('overtime_hours', 4, 2)->default(0.00);
+            $table->string('week')->nullable();
+            $table->time('time_in')->nullable();
+            $table->time('time_out')->nullable();
+            $table->integer('times')->nullable();
+            $table->decimal('working_time', 4, 2)->default(8.00);
             $table->timestamps();
         });
     }

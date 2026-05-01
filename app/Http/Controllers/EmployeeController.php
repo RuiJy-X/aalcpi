@@ -1,36 +1,49 @@
 <?php
 
 namespace App\Http\Controllers;
-use Inertia\Inertia;
 
+
+use Inertia\Inertia;
+use App\Http\Controllers\Controller;
+use App\Models\Employee;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 
 class EmployeeController extends Controller
 {
 
-    public function get()
+    public function index()
     {
-        return Employee::orderBy('name', 'asc')->get();
+        $employees = Employee::all();
+        return Inertia::render('Employees/Index', ['employees' => $employees]);
     }
 
-    public function header()
+    public function show($id)
     {
-        return response()->json(Schema::getColumnListing('employees'));
+        $employee = Employee::findOrFail($id);
+
+        return Inertia::render('Employees/Show', [
+            'employee' => $employee,
+        ]);
     }
 
-    public function create(Request $request)
+
+    public function store(Request $request)
     {
         $validated = $request->validate([
             'name'            => 'required|string|max:255',
-            'position'        => 'required|string',
-            'employment_type' => 'required|in:Regular,Seasonal,Contractual',
+            'position'        => 'sometimes|string',
+            'employment_type' => 'sometimes|string',
+            'department' => 'sometimes|string|max:255',
             'base_salary'     => 'required|numeric|min:0',
-            'hire_date'       => 'required|date',
+            'hourly_rate'     => 'sometimes|numeric|min:0',
+            'address'         => 'sometimes|string|max:255',
+            'tin'             => 'sometimes|string|max:255',
+            'contact_number'  => 'sometimes|string|max:255',
         ]);
 
         $employee = Employee::create($validated);
-        return response()->json(['message' => 'Employee added!', 'employee' => $employee], 201);
+         return redirect()->back()->with('success', 'Employee created successfully!');
     }
 
     public function show_with_payroll($id)
@@ -55,22 +68,26 @@ class EmployeeController extends Controller
         $employee = Employee::findOrFail($id);
 
         $validated = $request->validate([
-            'name'            => 'sometimes|string|max:255',
+            'name'            => 'required|string|max:255',
             'position'        => 'sometimes|string',
-            'employment_type' => 'sometimes|in:Regular,Seasonal,Contractual',
-            'base_salary'     => 'sometimes|numeric',
-            'hire_date'       => 'sometimes|date',
+            'employment_type' => 'sometimes|string',
+            'department' => 'sometimes|string|max:255',
+            'base_salary'     => 'required|numeric|min:0',
+            'hourly_rate'     => 'sometimes|numeric|min:0',
+            'address'         => 'sometimes|string|max:255',
+            'tin'             => 'sometimes|string|max:255',
+            'contact_number'  => 'sometimes|string|max:255',
         ]);
 
         $employee->update($validated);
-        return response()->json(['message' => 'Employee profile updated!']);
+        return redirect()->back()->with('success', 'Employee updated successfully!');
     }
 
     public function destroy($id)
     {
         $employee = Employee::findOrFail($id);
         $employee->delete();
-        return response()->json(['message' => 'Employee removed successfully']);
+        return redirect()->back()->with('success', 'Employee removed successfully!');
     }
 
 }
