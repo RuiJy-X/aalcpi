@@ -37,7 +37,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::resource('/Attendance', AttendanceController::class)->whereNumber('Attendance');
 
-
+        Route::post('/Payroll/preview', [PayrollController::class, 'preview'])->name('payroll.preview');
+        Route::post('/Payroll/generate', [PayrollController::class, 'generate'])->name('payroll.generate');
         Route::resource('/Payroll', PayrollController::class)->whereNumber('Payroll');
 
         Route::delete('/MillingPeriods/bulk-delete', [MillingPeriodsController::class, 'bulkDestroy'])->name('milling-periods.bulk-destroy');

@@ -32,6 +32,7 @@ class EmployeeController extends Controller
     {
         $validated = $request->validate([
             'name'            => 'required|string|max:255',
+            'employee_code'   => 'required|string',
             'position'        => 'sometimes|string',
             'employment_type' => 'sometimes|string',
             'department' => 'sometimes|string|max:255',
@@ -69,6 +70,7 @@ class EmployeeController extends Controller
 
         $validated = $request->validate([
             'name'            => 'required|string|max:255',
+            'employee_code'   => 'required|string',
             'position'        => 'sometimes|string',
             'employment_type' => 'sometimes|string',
             'department' => 'sometimes|string|max:255',

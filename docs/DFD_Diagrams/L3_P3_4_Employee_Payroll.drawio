@@ -1,0 +1,133 @@
+<mxfile host="Electron" modified="2026-05-05T00:00:00.000Z" agent="Mozilla/5.0" etag="dfd_p34" version="24.0.0" type="device">
+  <diagram id="dfd_p34" name="DFD Level 3: P3.4 - Employee &amp; Payroll">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- External Entities -->
+        <mxCell id="user_p34" value="👤 Manager" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#50E3C2;strokeColor=#000;fontSize=12;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="50" y="350" width="100" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="excel_p34" value="📄 Excel&#10;Attendance File" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5A623;strokeColor:#000;fontSize=11;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="50" y="50" width="100" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- Sub-Processes -->
+        <mxCell id="p341" value="P3.4.1: Employee&#10;CRUD Operations" style="ellipse;whiteSpace=wrap;html=1;fillColor=#45B7D1;strokeColor=#000;fontSize=10;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="250" y="50" width="110" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="p342" value="P3.4.2: Import&#10;Attendance Data" style="ellipse;whiteSpace=wrap;html=1;fillColor:#45B7D1;strokeColor=#000;fontSize=10;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="450" y="50" width="110" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="p343" value="P3.4.3: View&#10;Attendance Records" style="ellipse;whiteSpace=wrap;html=1;fillColor:#45B7D1;strokeColor=#000;fontSize=10;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="650" y="50" width="110" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="p344" value="P3.4.4: Calculate&#10;Payroll" style="ellipse;whiteSpace=wrap;html=1;fillColor:#45B7D1;strokeColor=#000;fontSize=10;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="850" y="50" width="110" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="p345" value="P3.4.5: Generate&#10;Payslips" style="ellipse;whiteSpace=wrap;html=1;fillColor:#45B7D1;strokeColor=#000;fontSize=10;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="1050" y="50" width="110" height="100" as="geometry" />
+        </mxCell>
+        
+        <!-- Data Stores -->
+        <mxCell id="ds_emp_p34" value="👥 Employees&#10;D3.4.1" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#F7DC6F;strokeColor=#000;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="250" y="650" width="110" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="ds_att_p34" value="📅 Attendance&#10;D3.4.2" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#F7DC6F;strokeColor=#000;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="650" y="650" width="110" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="ds_pay_p34" value="💰 Payroll&#10;D3.4.3" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;fillColor:#F7DC6F;strokeColor:#000;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="1050" y="650" width="100" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- Data Flows -->
+        <mxCell id="flow_exc" value="Upload" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="excel_p34" target="p342">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_u1_p34" value="Add/Edit/Delete" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="user_p34" target="p341">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_u2_p34" value="Import Excel" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="user_p34" target="p342">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_u3_p34" value="View Records" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="user_p34" target="p343">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_u4_p34" value="Process Payroll" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="user_p34" target="p344">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_p_p34" value="Generate" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p344" target="p345">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Data Store Flows -->
+        <mxCell id="flow_ds_c" value="CRUD" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p341" target="ds_emp_p34">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_ds_i" value="Store" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p342" target="ds_att_p34">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_ds_v1" value="Query" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p343" target="ds_att_p34">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_ds_v2" value="Query" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p343" target="ds_emp_p34">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_ds_py1" value="Read Hours" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p344" target="ds_att_p34">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_ds_py2" value="Read Salary" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p344" target="ds_emp_p34">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_ds_py3" value="Calculate" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p344" target="ds_pay_p34">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_ds_ps1" value="Read" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p345" target="ds_pay_p34">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_ds_ps2" value="Read" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p345" target="ds_emp_p34">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Output to User -->
+        <mxCell id="flow_out1" value="Display" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="ds_emp_p34" target="user_p34">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_out2" value="Display" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="ds_att_p34" target="user_p34">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_out3" value="Display" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="ds_pay_p34" target="user_p34">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_out4" value="PDF Output" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p345" target="user_p34">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,100 @@
+<mxfile host="Electron" modified="2026-05-05T00:00:00.000Z" agent="Mozilla/5.0" etag="dfd_p1_auth" version="24.0.0" type="device">
+  <diagram id="dfd_p1" name="DFD Level 2: P1.0 - Authentication">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- External Entity -->
+        <mxCell id="user_auth" value="👤 User" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#50E3C2;strokeColor=#000;fontSize=12;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="50" y="350" width="100" height="100" as="geometry" />
+        </mxCell>
+        
+        <!-- Sub-Processes -->
+        <mxCell id="p1_1" value="P1.1: Authenticate&#10;Credentials" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FF6B6B;strokeColor=#000;fontSize=11;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="250" y="50" width="120" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="p1_2" value="P1.2: Check&#10;Authorization" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FF6B6B;strokeColor=#000;fontSize=11;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="450" y="50" width="120" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="p1_3" value="P1.3: Create&#10;Session/Token" style="ellipse;whiteSpace=wrap;html=1;fillColor:#FF6B6B;strokeColor=#000;fontSize=11;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="650" y="50" width="120" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="p1_4" value="P1.4: Validate&#10;Session" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FF6B6B;strokeColor=#000;fontSize=11;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="450" y="300" width="120" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="p1_5" value="P1.5: Account&#10;Management" style="ellipse;whiteSpace=wrap;html=1;fillColor:#FF6B6B;strokeColor=#000;fontSize=11;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="850" y="300" width="120" height="100" as="geometry" />
+        </mxCell>
+        
+        <!-- Data Stores -->
+        <mxCell id="ds_users" value="👥 Users&#10;D1.1" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#F7DC6F;strokeColor=#000;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="250" y="650" width="100" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="ds_roles" value="🔑 Roles &amp; Permissions&#10;D1.2" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#F7DC6F;strokeColor=#000;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="450" y="650" width="120" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="ds_sessions" value="💾 Sessions&#10;D1.3" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#F7DC6F;strokeColor=#000;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="650" y="650" width="100" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- Data Flows -->
+        <mxCell id="flow_auth1" value="Email/Password" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="user_auth" target="p1_1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_auth2" value="Verified" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p1_1" target="p1_2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_auth3" value="Role Check" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p1_2" target="p1_3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_auth4" value="Token/Session" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p1_3" target="user_auth">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_auth5" value="Subsequent Requests" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="user_auth" target="p1_4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_auth6" value="Token Valid" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p1_4" target="user_auth">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_auth7" value="Profile/Password Changes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="user_auth" target="p1_5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Data Store Flows -->
+        <mxCell id="flow_ds1" value="Lookup User" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p1_1" target="ds_users">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_ds2" value="Check Roles" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p1_2" target="ds_roles">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_ds3" value="Store Session" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p1_3" target="ds_sessions">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_ds4" value="Verify Token" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p1_4" target="ds_sessions">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_ds5" value="Update Profile" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p1_5" target="ds_users">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

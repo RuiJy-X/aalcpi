@@ -94,15 +94,14 @@ class AttendanceController extends Controller
     public function import(Request $request): RedirectResponse
     {
         $request->validate([
-            'employee_id' => ['required', 'integer', 'exists:employees,id'],
             'file' => ['required', 'file', 'mimes:xlsx,xls,csv'],
         ]);
 
-        $employee = Employee::findOrFail($request->integer('employee_id'));
+        // $employee = Employee::findOrFail($request->integer('employee_id'));
 
-        $import = new AttendanceImport(
-            employeeId: $employee->id,
-        );
+        $import = new AttendanceImport();
+            //employeeId: $employee->id,
+
 
         Excel::import($import, $request->file('file'));
 
@@ -112,6 +111,6 @@ class AttendanceController extends Controller
             ]);
         }
 
-        return back()->with('success', "DTR imported successfully for {$employee->name}.");
+        return back()->with('success', "DTR imported successfully.");
     }
 }

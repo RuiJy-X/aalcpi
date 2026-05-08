@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('employment_type')->nullable();
             $table->string('department')->nullable();
             $table->string('hourly_rate')->nullable();
-            $table->decimal('base_salary', 12, 2);
+            $table->decimal('base_salary', 12, 2)->nullable();
             $table->string('address')->nullable();
             $table->string('tin')->nullable();
             $table->string('contact_number')->nullable();

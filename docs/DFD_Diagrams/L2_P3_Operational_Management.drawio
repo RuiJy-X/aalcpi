@@ -1,0 +1,138 @@
+<mxfile host="Electron" modified="2026-05-05T00:00:00.000Z" agent="Mozilla/5.0" etag="dfd_p3" version="24.0.0" type="device">
+  <diagram id="dfd_p3" name="DFD Level 2: P3.0 - Operational Management">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- External Entity -->
+        <mxCell id="user_op" value="👤 User" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#50E3C2;strokeColor=#000;fontSize=12;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="50" y="400" width="100" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- Sub-Processes -->
+        <mxCell id="p3_1" value="P3.1: Planter&#10;Management" style="ellipse;whiteSpace=wrap;html=1;fillColor=#45B7D1;strokeColor=#000;fontSize=11;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="250" y="50" width="110" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="p3_2" value="P3.2: Hacienda&#10;Management" style="ellipse;whiteSpace=wrap;html=1;fillColor=#45B7D1;strokeColor=#000;fontSize=11;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="450" y="50" width="110" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="p3_3" value="P3.3: Production&#10;Management" style="ellipse;whiteSpace=wrap;html=1;fillColor:#45B7D1;strokeColor=#000;fontSize=11;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="650" y="50" width="110" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="p3_4" value="P3.4: Employee&#10;Management" style="ellipse;whiteSpace=wrap;html=1;fillColor:#45B7D1;strokeColor=#000;fontSize=11;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="850" y="50" width="110" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="p3_5" value="P3.5: Milling Period&#10;Management" style="ellipse;whiteSpace=wrap;html=1;fillColor:#45B7D1;strokeColor=#000;fontSize=11;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="1050" y="50" width="110" height="100" as="geometry" />
+        </mxCell>
+        
+        <!-- Data Stores -->
+        <mxCell id="ds_p1" value="🌾 Planters&#10;D3.1" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#F7DC6F;strokeColor=#000;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="250" y="650" width="100" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="ds_h" value="🏞️ Haciendas&#10;D3.2" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#F7DC6F;strokeColor=#000;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="450" y="650" width="100" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="ds_prod" value="🏭 Productions&#10;D3.3" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#F7DC6F;strokeColor=#000;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="650" y="650" width="100" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="ds_emp" value="👥 Employees&#10;D3.4" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;fillColor:#F7DC6F;strokeColor=#000;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="850" y="650" width="100" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="ds_mil" value="📊 Milling Periods&#10;D3.5" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#F7DC6F;strokeColor=#000;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="1050" y="650" width="110" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- User to Processes -->
+        <mxCell id="flow_u1" value="CRUD Commands" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="user_op" target="p3_1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_u2" value="CRUD Commands" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="user_op" target="p3_2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_u3" value="CRUD Commands" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="user_op" target="p3_3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_u4" value="CRUD Commands" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="user_op" target="p3_4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_u5" value="CRUD Commands" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="user_op" target="p3_5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Processes to Data Stores -->
+        <mxCell id="flow_ds1" value="Store/Update" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p3_1" target="ds_p1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_ds2" value="Store/Update" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p3_2" target="ds_h">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_ds3" value="Store/Update" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p3_3" target="ds_prod">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_ds4" value="Store/Update" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p3_4" target="ds_emp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_ds5" value="Store/Update" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p3_5" target="ds_mil">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Data Stores to User -->
+        <mxCell id="flow_ds_u1" value="Query" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="ds_p1" target="user_op">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_ds_u2" value="Query" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="ds_h" target="user_op">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_ds_u3" value="Query" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="ds_prod" target="user_op">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_ds_u4" value="Query" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="ds_emp" target="user_op">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_ds_u5" value="Query" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="ds_mil" target="user_op">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Cross-Process Links -->
+        <mxCell id="flow_link1" value="Link to" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p3_3" target="ds_p1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_link2" value="Link to" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p3_3" target="ds_h">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_link3" value="Link to" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p3_3" target="ds_mil">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_link4" value="Link to" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p3_2" target="ds_p1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

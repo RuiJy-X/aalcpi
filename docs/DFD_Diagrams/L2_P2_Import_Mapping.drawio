@@ -1,0 +1,108 @@
+<mxfile host="Electron" modified="2026-05-05T00:00:00.000Z" agent="Mozilla/5.0" etag="dfd_p2_import" version="24.0.0" type="device">
+  <diagram id="dfd_p2" name="DFD Level 2: P2.0 - Import &amp; Map Data">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- External Entities -->
+        <mxCell id="excel_imp" value="📄 Excel Files&#10;(Planters/Productions Data)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5A623;strokeColor=#000;fontSize=12;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="50" y="50" width="120" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="user_imp" value="👤 User" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#50E3C2;strokeColor=#000;fontSize=12;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="50" y="400" width="100" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- Sub-Processes -->
+        <mxCell id="p2_1" value="P2.1: Upload&#10;&amp; Validate File" style="ellipse;whiteSpace=wrap;html=1;fillColor=#4ECDC4;strokeColor=#000;fontSize=11;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="250" y="50" width="110" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="p2_2" value="P2.2: Preview Data&#10;&amp; Column Mapping" style="ellipse;whiteSpace=wrap;html=1;fillColor=#4ECDC4;strokeColor=#000;fontSize=11;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="450" y="50" width="110" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="p2_3" value="P2.3: Apply Mapping&#10;Transform Data" style="ellipse;whiteSpace=wrap;html=1;fillColor:#4ECDC4;strokeColor=#000;fontSize=11;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="650" y="50" width="110" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="p2_4" value="P2.4: Deduplication&#10;&amp; Validation" style="ellipse;whiteSpace=wrap;html=1;fillColor=#4ECDC4;strokeColor=#000;fontSize=11;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="850" y="50" width="110" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="p2_5" value="P2.5: Store to&#10;Database" style="ellipse;whiteSpace=wrap;html=1;fillColor:#4ECDC4;strokeColor=#000;fontSize=11;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="1050" y="50" width="110" height="100" as="geometry" />
+        </mxCell>
+        
+        <!-- Data Stores -->
+        <mxCell id="ds_mapping" value="🔄 Import Mappings&#10;D2.1" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#F7DC6F;strokeColor=#000;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="250" y="650" width="110" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="ds_data" value="📊 Planter/Production Data&#10;D2.2" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#F7DC6F;strokeColor=#000;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="650" y="650" width="110" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="ds_logs" value="📋 Import Logs&#10;D2.3" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#F7DC6F;strokeColor=#000;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="1050" y="650" width="100" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- Data Flows -->
+        <mxCell id="flow_imp1" value="File" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="excel_imp" target="p2_1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_imp2" value="Mapping Config" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="user_imp" target="p2_2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_imp3" value="File Content" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p2_1" target="p2_2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_imp4" value="Mapping Rules" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p2_2" target="p2_3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_imp5" value="Cleaned Data" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p2_3" target="p2_4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_imp6" value="Valid Records" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p2_4" target="p2_5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_imp7" value="Preview Data" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p2_2" target="user_imp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_imp8" value="Validation Errors" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p2_4" target="user_imp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_imp9" value="Success Message" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p2_5" target="user_imp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Data Store Flows -->
+        <mxCell id="flow_ds_m1" value="Save Mapping" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="user_imp" target="ds_mapping">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_ds_m2" value="Retrieve Mapping" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="ds_mapping" target="p2_2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_ds_d1" value="Persist Data" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p2_5" target="ds_data">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_ds_l1" value="Validation Results" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p2_4" target="ds_logs">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -14,6 +14,7 @@ import EmployeeActions from '@/pages/Employees/employee-actions';
 export const employeeColumns: ColumnDef<EmployeeType>[] = [
     {
         id: 'select',
+        size: 20,
         header: ({ table }) => (
             <Checkbox
                 checked={
@@ -36,6 +37,33 @@ export const employeeColumns: ColumnDef<EmployeeType>[] = [
         ),
         enableSorting: false,
         enableHiding: false,
+    },
+    {
+        accessorKey: 'employee_code',
+        header: ({ column }) => {
+            return (
+                <Button
+                    variant="ghost"
+                    className="truncate"
+                    onClick={() =>
+                        column.toggleSorting(column.getIsSorted() === 'asc')
+                    }
+                >
+                    Employee Code
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                </Button>
+            );
+        },
+        cell: ({ row }) => {
+            const employee = row.original;
+            return (
+                <div className="flex items-center">
+                    <div className="ml-2 truncate">
+                        {employee.employee_code ?? 'NA'}
+                    </div>
+                </div>
+            );
+        },
     },
     {
         accessorKey: 'name',

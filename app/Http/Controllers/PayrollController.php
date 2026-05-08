@@ -3,73 +3,290 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\GeneratePayrollRequest;
+use App\Http\Requests\PreviewPayrollRequest;
 use App\Models\Payroll;
-use App\Models\Employee;
+use App\Imports\AttendanceImport;
+use App\Services\PayrollCalculationService;
+use Carbon\Carbon;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\ValidationException;
 
 class PayrollController extends Controller
 {
+    protected PayrollCalculationService $payrollService;
+
+    public function __construct(PayrollCalculationService $payrollService)
+    {
+        $this->payrollService = $payrollService;
+    }
+
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        $payrolls = Payroll::with('employee');
-        return Inertia::render('Payroll/Index', ['payrolls' => $payrolls]);
+        $payrolls = Payroll::with('employee:id,name')
+            ->latest('period_end')
+            ->get()
+            ->map(function (Payroll $record) {
+                return [
+                    'id' => $record->id,
+                    'employee_id' => $record->employee_id,
+                    'employee_name' => $record->employee?->name,
+                    'period_start' => $record->period_start,
+                    'period_end' => $record->period_end,
+                    'basic_pay' => $record->basic_pay,
+                    'holidays' => $record->holidays,
+                    'gross_pay' => $record->gross_pay,
+                    'deductions' => $record->deductions,
+                    'net_pay' => $record->net_pay,
+                    'status' => $record->status,
+                    'created_at' => $record->created_at,
+                    'updated_at' => $record->updated_at,
+                ];
+            });
+
+        return Inertia::render('Payroll/Index', [
+            'payrolls' => $payrolls,
+        ]);
     }
 
+    /**
+     * Preview payroll details based on an attendance file
+     */
+    public function preview(PreviewPayrollRequest $request)
+    {
+        try {
+            $validated = $request->validated();
+
+            $import = new AttendanceImport(persist: false);
+
+            Excel::import($import, $validated['attendance_file']);
+
+            if ($import->importedCount === 0) {
+                throw ValidationException::withMessages([
+                    'attendance_file' => 'No attendance records were imported from the file.',
+                ]);
+            }
+
+            [$periodStart, $periodEnd] = $this->resolvePeriodRange($import);
+            $employee = $import->employee;
+            $hourlyRate = (float) ($employee?->hourly_rate ?? 0);
+
+            $summary = $this->payrollService->calculateSimplePayroll(
+                hourlyRate: $hourlyRate,
+                totalHours: $import->totalHours,
+                holidays: (int) $validated['holidays'],
+                deductions: (float) $validated['deductions'],
+            );
+
+            return response()->json([
+                'employee' => [
+                    'id' => $employee?->id,
+                    'employee_code' => $import->employeeCode,
+                    'name' => $employee?->name ?? $import->employeeName,
+                    'department' => $employee?->department,
+                    'position' => $employee?->position,
+                    'employment_type' => $employee?->employment_type,
+                    'hourly_rate' => $employee?->hourly_rate,
+                    'base_salary' => $employee?->base_salary,
+                    'exists' => (bool) $employee,
+                ],
+                'period_start' => $periodStart?->toDateString(),
+                'period_end' => $periodEnd?->toDateString(),
+                'attendance' => [
+                    'rows' => $import->attendanceRows,
+                    'total_hours' => round($import->totalHours, 2),
+                    'total_days' => $import->totalDays,
+                ],
+                'payroll' => [
+                    'basic_pay' => $summary['basic_pay'],
+                    'holiday_pay' => $summary['holiday_pay'],
+                    'gross_pay' => $summary['gross_pay'],
+                    'deductions' => (float) $validated['deductions'],
+                    'net_pay' => $summary['net_pay'],
+                ],
+            ]);
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            throw ValidationException::withMessages([
+                'attendance_file' => 'Error previewing payroll: ' . $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Generate payroll for an employee
+     */
+    public function generate(GeneratePayrollRequest $request)
+    {
+        try {
+            $validated = $request->validated();
+            $employeeData = [
+                'name' => $validated['employee_name'],
+                'department' => $validated['department'] ?? null,
+                'position' => $validated['position'] ?? null,
+                'employment_type' => $validated['employment_type'] ?? null,
+                'hourly_rate' => (float) $validated['hourly_rate'],
+                'base_salary' => isset($validated['base_salary']) ? (float) $validated['base_salary'] : null,
+            ];
+
+            $import = new AttendanceImport(persist: true, employeeData: $employeeData);
+
+            Excel::import($import, $validated['attendance_file']);
+
+            if ($import->importedCount === 0) {
+                throw ValidationException::withMessages([
+                    'attendance_file' => 'No attendance records were imported from the file.',
+                ]);
+            }
+
+            $employee = $import->employee;
+            if (!$employee) {
+                throw ValidationException::withMessages([
+                    'attendance_file' => 'Employee could not be resolved from the attendance file.',
+                ]);
+            }
+
+            [$periodStart, $periodEnd] = $this->resolvePeriodRange($import);
+
+            if (!$periodStart || !$periodEnd) {
+                throw ValidationException::withMessages([
+                    'attendance_file' => 'Unable to determine payroll period from the attendance file.',
+                ]);
+            }
+
+            $payroll = $this->payrollService->generatePayroll(
+                employee: $employee,
+                periodStart: Carbon::parse($periodStart),
+                periodEnd: Carbon::parse($periodEnd),
+                holidays: (int) $validated['holidays'],
+                deductions: (float) $validated['deductions'],
+                totalHours: $import->totalHours,
+            );
+
+            return back()->with('success', "Payroll generated successfully for {$employee->name}.");
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            throw ValidationException::withMessages([
+                'attendance_file' => 'Error generating payroll: ' . $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * @return array{0: CarbonImmutable|null, 1: CarbonImmutable|null}
+     */
+    private function resolvePeriodRange(AttendanceImport $import): array
+    {
+        if ($import->periodStart && $import->periodEnd) {
+            return [$import->periodStart, $import->periodEnd];
+        }
+
+        if ($import->attendanceRows === []) {
+            return [null, null];
+        }
+
+        $periodStart = null;
+        $periodEnd = null;
+
+        foreach ($import->attendanceRows as $row) {
+            $date = CarbonImmutable::parse($row['date']);
+            if (!$periodStart || $date->lt($periodStart)) {
+                $periodStart = $date;
+            }
+            if (!$periodEnd || $date->gt($periodEnd)) {
+                $periodEnd = $date;
+            }
+        }
+
+        return [$periodStart, $periodEnd];
+    }
+
+    /**
+     * Get all payrolls as JSON
+     */
     public function get()
     {
         return Payroll::with('employee:id,name')->latest('period_end')->get();
     }
 
+    /**
+     * Get payroll table schema
+     */
     public function header()
     {
         return response()->json(Schema::getColumnListing('payrolls'));
     }
 
-    public function create(Request $request)
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(Request $request)
     {
         $validated = $request->validate([
-            'employee_id'           => 'required|exists:employees,id',
-            'period_start'          => 'required|date',
-            'period_end'            => 'required|date|after_or_equal:period_start',
-            'base_salary'           => 'required|numeric',
-            'total_overtime_hours'  => 'nullable|numeric',
-            'total_deductions'      => 'nullable|numeric',
-            'gross_pay'             => 'required|numeric',
-            'net_pay'               => 'required|numeric',
-            'status'                => 'required|in:draft,released,paid',
+            'employee_id' => 'required|exists:employees,id',
+            'period_start' => 'required|date',
+            'period_end' => 'required|date|after_or_equal:period_start',
+            'basic_pay' => 'required|numeric',
+            'holidays' => 'required|integer|min:0',
+            'gross_pay' => 'required|numeric',
+            'deductions' => 'required|numeric|min:0',
+            'net_pay' => 'required|numeric',
+            'status' => 'required|in:draft,released,paid',
         ]);
 
         $payroll = Payroll::create($validated);
 
         return response()->json([
-            'message' => 'Payroll generated successfully!',
+            'message' => 'Payroll created successfully!',
             'data' => $payroll
         ], 201);
     }
 
-    public function update(Request $request, $id)
+    /**
+     * Display the specified resource.
+     */
+    public function show(Payroll $payroll)
     {
-        $payroll = Payroll::findOrFail($id);
-
-        $validated = $request->validate([
-            'status'           => 'sometimes|in:draft,released,paid',
-            'total_deductions' => 'sometimes|numeric',
-            'net_pay'          => 'sometimes|numeric',
-        ]);
-
-        $payroll->update($validated);
-
-        return response()->json(['message' => 'Payroll updated!']);
+        return response()->json($payroll->load('employee'));
     }
 
-    public function destroy($id)
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, Payroll $payroll)
     {
-        Payroll::findOrFail($id)->delete();
-        return response()->json(['message' => 'Payroll record deleted']);
+        $validated = $request->validate([
+            'status' => 'sometimes|in:draft,released,paid',
+            'deductions' => 'sometimes|numeric|min:0',
+            'net_pay' => 'sometimes|numeric',
+        ]);
+
+        // If deductions are updated, recalculate net pay
+        if (isset($validated['deductions'])) {
+            $this->payrollService->updateDeductions($payroll, (float) $validated['deductions']);
+        } else {
+            $payroll->update($validated);
+        }
+
+        return back()->with('success', 'Payroll updated successfully!');
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy(Payroll $payroll)
+    {
+        $payroll->delete();
+
+        return back()->with('success', 'Payroll record deleted successfully!');
     }
 }

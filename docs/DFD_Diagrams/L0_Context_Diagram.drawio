@@ -1,0 +1,55 @@
+<mxfile host="Electron" modified="2026-05-05T00:00:00.000Z" agent="Mozilla/5.0" etag="dfd_level0" version="24.0.0" type="device">
+  <diagram id="dfd_l0" name="DFD Level 0: Context">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- External Entities -->
+        <mxCell id="user1" value="👤 User&#10;(Manager/Cert Officer)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#50E3C2;strokeColor=#000;fontSize=12;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="100" y="350" width="120" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="excel1" value="📄 Excel Files&#10;(Planters, Productions,&#10;Attendance Data)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5A623;strokeColor=#000;fontSize=12;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="100" y="100" width="120" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="pdf1" value="📑 PDF Files&#10;(Weekly Reports)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5A623;strokeColor=#000;fontSize=12;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="100" y="600" width="120" height="100" as="geometry" />
+        </mxCell>
+        
+        <!-- System -->
+        <mxCell id="system1" value="🏢 AALCPI MIS System" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#4A90E2;strokeColor=#000;fontSize=14;fontStyle=bold;strokeWidth=3" vertex="1" parent="1">
+          <mxGeometry x="500" y="300" width="300" height="200" as="geometry" />
+        </mxCell>
+        
+        <!-- Output -->
+        <mxCell id="reports1" value="📊 Reports &amp; Data&#10;(PDF Output, Final Data)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#50E3C2;strokeColor=#000;fontSize=12;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="1100" y="350" width="120" height="100" as="geometry" />
+        </mxCell>
+        
+        <!-- Data Flows -->
+        <mxCell id="flow1" value="Login, Data Entry,&#10;Import Commands" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="user1" target="system1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow2" value="Import Data" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="excel1" target="system1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow3" value="Weekly Imports" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="pdf1" target="system1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow4" value="Reports, Certifications,&#10;Final Data Output" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="system1" target="reports1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow5" value="Display Data,&#10;Query Results" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="system1" target="user1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

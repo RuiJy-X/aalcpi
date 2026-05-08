@@ -1,5 +1,6 @@
 export type EmployeeType = {
     id: number;
+    employee_code: string;
     name: string;
     hourly_rate: string | number;
     position: string;

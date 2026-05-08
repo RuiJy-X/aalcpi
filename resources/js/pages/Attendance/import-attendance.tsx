@@ -31,10 +31,8 @@ const ImportAttendance = ({
     employees: Pick<EmployeeType, 'id' | 'name'>[];
 }) => {
     const { data, setData, post, processing, errors, reset } = useForm<{
-        employee_id: string;
         file: File | null;
     }>({
-        employee_id: '',
         file: null,
     });
 
@@ -53,7 +51,7 @@ const ImportAttendance = ({
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!data.file || !data.employee_id) {
+        if (!data.file) {
             return;
         }
 
@@ -88,7 +86,7 @@ const ImportAttendance = ({
                     </DialogHeader>
 
                     <div className="flex flex-col gap-4 py-4">
-                        <div className="flex flex-col gap-2">
+                        {/* <div className="flex flex-col gap-2">
                             <Label htmlFor="employee-id">Employee</Label>
                             <Select
                                 value={data.employee_id}
@@ -115,7 +113,7 @@ const ImportAttendance = ({
                                     {errors.employee_id}
                                 </p>
                             )}
-                        </div>
+                        </div> */}
 
                         <div className="flex flex-col gap-2">
                             <Label htmlFor="file-input">File</Label>
@@ -147,9 +145,7 @@ const ImportAttendance = ({
                         </DialogClose>
                         <Button
                             type="submit"
-                            disabled={
-                                !data.file || !data.employee_id || processing
-                            }
+                            disabled={!data.file || processing}
                         >
                             {processing ? 'Importing...' : 'Import'}
                         </Button>

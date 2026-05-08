@@ -13,15 +13,30 @@ class Payroll extends Model
         'employee_id',
         'period_start',
         'period_end',
-        'base_salary', 
-        'total_overtime_hours', 
-        'total_deductions', 
-        'gross_pay', 
-        'net_pay', 
-        'status'
+        'days_worked',
+        'total_days',
+        'total_hours',
+        'hours_worked',
+        'basic_pay',
+        'holidays',
+        'gross_pay',
+        'deductions',
+        'net_pay',
+        'status',
     ];
 
-    public function employee() {
+    protected $casts = [
+        'period_start' => 'date',
+        'period_end' => 'date',
+        'basic_pay' => 'decimal:2',
+        'holidays' => 'integer',
+        'gross_pay' => 'decimal:2',
+        'deductions' => 'decimal:2',
+        'net_pay' => 'decimal:2',
+    ];
+
+    public function employee()
+    {
         return $this->belongsTo(Employee::class);
     }
 }

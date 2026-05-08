@@ -16,7 +16,7 @@ return new class extends Migration
             $table->date('period_start');
             $table->date('period_end');
             $table->decimal('basic_pay', 16, 2);
-            $table->decimal('overtime_pay', 16, 2);
+            $table->integer('holidays')->default(0);
             $table->decimal('gross_pay', 16, 2);
             $table->decimal('deductions', 16, 2);
             $table->decimal('net_pay', 16, 2);

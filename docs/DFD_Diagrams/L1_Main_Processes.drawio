@@ -1,0 +1,123 @@
+<mxfile host="Electron" modified="2026-05-05T00:00:00.000Z" agent="Mozilla/5.0" etag="dfd_level1" version="24.0.0" type="device">
+  <diagram id="dfd_l1" name="DFD Level 1: Main Processes">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- External Entities -->
+        <mxCell id="user_l1" value="👤 Users" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#50E3C2;strokeColor=#000;fontSize=12;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="100" y="400" width="100" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="excel_l1" value="📄 Excel Files" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5A623;strokeColor=#000;fontSize=12;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="100" y="100" width="100" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="pdf_l1" value="📑 PDF Files" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5A623;strokeColor=#000;fontSize=12;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="100" y="700" width="100" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- Processes -->
+        <mxCell id="p1_l1" value="🔐 P1.0: Authentication&#10;&amp; Authorization" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FF6B6B;strokeColor=#000;fontSize=11;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="400" y="50" width="140" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="p2_l1" value="📥 P2.0: Import &amp; Map Data&#10;(Excel/PDF Processing)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#4ECDC4;strokeColor=#000;fontSize=11;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="700" y="50" width="140" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="p3_l1" value="📋 P3.0: Operational&#10;Management" style="ellipse;whiteSpace=wrap;html=1;fillColor=#45B7D1;strokeColor=#000;fontSize=11;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="1000" y="200" width="140" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="p4_l1" value="📅 P4.0: Weekly PDF&#10;Processing" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFA07A;strokeColor=#000;fontSize=11;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="700" y="400" width="140" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="p5_l1" value="📊 P5.0: Report &amp;&#10;Certification Generation" style="ellipse;whiteSpace=wrap;html=1;fillColor=#98D8C8;strokeColor=#000;fontSize=11;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="1000" y="400" width="140" height="100" as="geometry" />
+        </mxCell>
+        
+        <!-- Data Stores -->
+        <mxCell id="ds1_l1" value="👥 Users&#10;D1.0" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#F7DC6F;strokeColor=#000;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="400" y="800" width="100" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="ds2_l1" value="📊 Operations DB&#10;D2.0" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#F7DC6F;strokeColor=#000;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="700" y="800" width="100" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="ds3_l1" value="🔄 Import Mappings&#10;D3.0" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#F7DC6F;strokeColor=#000;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="1000" y="800" width="100" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- UI -->
+        <mxCell id="ui_l1" value="🖥️ User Interface&#10;(Inertia/React)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B0E0E6;strokeColor=#000;fontSize=11;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="400" y="400" width="140" height="100" as="geometry" />
+        </mxCell>
+        
+        <!-- Data Flows - Inputs -->
+        <mxCell id="flow_u1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="user_l1" target="p1_l1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="excel_l1" target="p2_l1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_p1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="pdf_l1" target="p4_l1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Data Flows - Processes to UI -->
+        <mxCell id="flow_p1ui" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p1_l1" target="ui_l1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_p2ui" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p2_l1" target="ui_l1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_p3ui" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p3_l1" target="ui_l1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_p4ui" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p4_l1" target="ui_l1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_p5ui" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p5_l1" target="ui_l1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Data Flows - UI to User -->
+        <mxCell id="flow_uiuser" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="ui_l1" target="user_l1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Data Store Flows -->
+        <mxCell id="flow_p1ds1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p1_l1" target="ds1_l1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_p2ds3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p2_l1" target="ds3_l1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_p2ds2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p2_l1" target="ds2_l1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_p3ds2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p3_l1" target="ds2_l1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_p5ds2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10" edge="1" parent="1" source="p5_l1" target="ds2_l1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

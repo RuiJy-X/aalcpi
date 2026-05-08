@@ -4,10 +4,14 @@ export type PayrollType = {
     employee_name: string;
     period_start: string;
     period_end: string;
+    days_worked: number;
+    total_days: number;
+    total_hours: number;
+    hours_worked: number;
     basic_pay: string | number;
-    overtime_pay: string | number;
-    deductions: string | number;
+    holidays: number;
     gross_pay: string | number;
+    deductions: string | number;
     net_pay: string | number;
     status: string;
     created_at: string;

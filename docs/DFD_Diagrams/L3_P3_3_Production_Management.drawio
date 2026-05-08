@@ -1,0 +1,185 @@
+<mxfile host="Electron" modified="2026-05-05T00:00:00.000Z" agent="Mozilla/5.0" etag="dfd_p33" version="24.0.0" type="device">
+  <diagram id="dfd_p33" name="DFD Level 3: P3.3 - Production Management">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- External Entity -->
+        <mxCell id="user_p33" value="👤 User" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#50E3C2;strokeColor=#000;fontSize=12;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="50" y="500" width="100" height="100" as="geometry" />
+        </mxCell>
+        
+        <!-- Sub-Processes -->
+        <mxCell id="p331" value="P3.3.1: View&#10;Productions List" style="ellipse;whiteSpace=wrap;html=1;fillColor:#45B7D1;strokeColor:#000;fontSize=10;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="250" y="50" width="100" height="90" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="p332" value="P3.3.2: Filter&#10;by Crop Year" style="ellipse;whiteSpace=wrap;html=1;fillColor:#45B7D1;strokeColor:#000;fontSize=10;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="450" y="50" width="100" height="90" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="p333" value="P3.3.3: Search&#10;Productions" style="ellipse;whiteSpace=wrap;html=1;fillColor:#45B7D1;strokeColor:#000;fontSize=10;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="650" y="50" width="100" height="90" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="p334" value="P3.3.4: Create&#10;New Production" style="ellipse;whiteSpace=wrap;html=1;fillColor:#45B7D1;strokeColor:#000;fontSize=10;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="850" y="50" width="100" height="90" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="p335" value="P3.3.5: Update&#10;Production Data" style="ellipse;whiteSpace=wrap;html=1;fillColor:#45B7D1;strokeColor:#000;fontSize=10;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="1050" y="50" width="100" height="90" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="p336" value="P3.3.6: Calculate&#10;Financial Data" style="ellipse;whiteSpace=wrap;html=1;fillColor:#45B7D1;strokeColor:#000;fontSize=10;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="250" y="250" width="100" height="90" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="p337" value="P3.3.7: Delete&#10;Production" style="ellipse;whiteSpace=wrap;html=1;fillColor:#45B7D1;strokeColor=#000;fontSize=10;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="450" y="250" width="100" height="90" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="p338" value="P3.3.8: Bulk&#10;Download" style="ellipse;whiteSpace=wrap;html=1;fillColor:#45B7D1;strokeColor:#000;fontSize=10;fontStyle=bold" vertex="1" parent="1">
+          <mxGeometry x="650" y="250" width="100" height="90" as="geometry" />
+        </mxCell>
+        
+        <!-- Data Stores -->
+        <mxCell id="ds_prod_p33" value="🏭 Productions&#10;D3.3.1" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#F7DC6F;strokeColor=#000;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="250" y="900" width="110" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="ds_plant_p33" value="🌾 Planters&#10;D3.3.2" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#F7DC6F;strokeColor=#000;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="450" y="900" width="100" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="ds_hac_p33" value="🏞️ Haciendas&#10;D3.3.3" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#F7DC6F;strokeColor=#000;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="650" y="900" width="100" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="ds_mill_p33" value="📊 Milling Periods&#10;D3.3.4" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;fillColor:#F7DC6F;strokeColor:#000;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="850" y="900" width="110" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- Data Flows - User Requests -->
+        <mxCell id="flow_u1" value="Request List" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9" edge="1" parent="1" source="user_p33" target="p331">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_u2" value="Apply Filters" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9" edge="1" parent="1" source="user_p33" target="p332">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_u3" value="Enter Search" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9" edge="1" parent="1" source="user_p33" target="p333">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_u4" value="Add New" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9" edge="1" parent="1" source="user_p33" target="p334">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_u5" value="Edit Data" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9" edge="1" parent="1" source="user_p33" target="p335">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_u6" value="Delete" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9" edge="1" parent="1" source="user_p33" target="p337">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_u7" value="Bulk Download" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9" edge="1" parent="1" source="user_p33" target="p338">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Process Flows -->
+        <mxCell id="flow_p1" value="Display Results" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9" edge="1" parent="1" source="p331" target="user_p33">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_p2" value="Filtered Data" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9" edge="1" parent="1" source="p332" target="user_p33">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_p3" value="Results" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9" edge="1" parent="1" source="p333" target="user_p33">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_p4" value="Trigger" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9" edge="1" parent="1" source="p335" target="p336">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_p5" value="Updated Data" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9" edge="1" parent="1" source="p336" target="user_p33">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Data Store Flows - Select -->
+        <mxCell id="flow_ds1" value="Query All" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9" edge="1" parent="1" source="p331" target="ds_prod_p33">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_ds2" value="Join" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9" edge="1" parent="1" source="p331" target="ds_plant_p33">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_ds3" value="Join" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9" edge="1" parent="1" source="p331" target="ds_hac_p33">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_ds4" value="Query Filter" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9" edge="1" parent="1" source="p332" target="ds_prod_p33">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_ds5" value="Full Text" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9" edge="1" parent="1" source="p333" target="ds_prod_p33">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_ds6" value="Insert" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9" edge="1" parent="1" source="p334" target="ds_prod_p33">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_ds7" value="Link" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9" edge="1" parent="1" source="p334" target="ds_plant_p33">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_ds8" value="Link" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9" edge="1" parent="1" source="p334" target="ds_hac_p33">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_ds9" value="Link" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9" edge="1" parent="1" source="p334" target="ds_mill_p33">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_ds10" value="Update" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9" edge="1" parent="1" source="p335" target="ds_prod_p33">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_ds11" value="Update Fields" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9" edge="1" parent="1" source="p336" target="ds_prod_p33">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_ds12" value="Read Price" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9" edge="1" parent="1" source="p336" target="ds_mill_p33">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_ds13" value="Delete" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9" edge="1" parent="1" source="p337" target="ds_prod_p33">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_ds14" value="Query" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9" edge="1" parent="1" source="p338" target="ds_prod_p33">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_ds15" value="Join" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9" edge="1" parent="1" source="p338" target="ds_plant_p33">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_ds16" value="Join" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9" edge="1" parent="1" source="p338" target="ds_hac_p33">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow_ds17" value="Display" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=9" edge="1" parent="1" source="ds_prod_p33" target="user_p33">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

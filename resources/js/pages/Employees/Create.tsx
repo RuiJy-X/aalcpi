@@ -45,7 +45,7 @@ interface AddEmployeeDialogProps {
 
 const computeHourlyRate = (monthlySalary: number): string => {
     // Philippine standard: 313 working days/year ÷ 12 months × 8 hours
-    const hourlyRate = monthlySalary / 2 / 14 / 8;
+    const hourlyRate = monthlySalary / 24 / 8;
     return hourlyRate.toFixed(2);
 };
 
@@ -56,6 +56,7 @@ export default function AddEmployeeDialog({
     const { data, setData, post, processing, errors, reset } =
         useForm<EmployeeFormData>({
             name: '',
+            employee_code: '',
             hourly_rate: '',
             position: '',
             employment_type: '',
@@ -92,6 +93,42 @@ export default function AddEmployeeDialog({
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="space-y-4 pt-1">
+                    {/* Employee Code */}
+                    <div className="space-y-1.5">
+                        <Label htmlFor="employee_code">Employee Code</Label>
+                        <Input
+                            id="employee_code"
+                            placeholder="e.g. 1"
+                            type="number"
+                            value={data.employee_code}
+                            onChange={(e) =>
+                                setData('employee_code', e.target.value)
+                            }
+                            disabled={processing}
+                        />
+                        {errors.employee_code && (
+                            <p className="text-xs text-red-500">
+                                {errors.employee_code}
+                            </p>
+                        )}
+                    </div>
+
+                    {/* Full Name */}
+                    <div className="space-y-1.5">
+                        <Label htmlFor="name">Full Name</Label>
+                        <Input
+                            id="name"
+                            placeholder="Juan Dela Cruz"
+                            value={data.name}
+                            onChange={(e) => setData('name', e.target.value)}
+                            disabled={processing}
+                        />
+                        {errors.name && (
+                            <p className="text-xs text-red-500">
+                                {errors.name}
+                            </p>
+                        )}
+                    </div>
                     {/* Name */}
                     <div className="space-y-1.5">
                         <Label htmlFor="name">Full Name</Label>
@@ -228,8 +265,8 @@ export default function AddEmployeeDialog({
                                 tabIndex={-1}
                             />
                             <span className="align-center m-auto ml-1.5 w-full self-center text-center text-xs font-normal text-muted-foreground">
-                                auto-computed ({data.base_salary ?? 'Php'} / 2 /
-                                14 / 8)
+                                auto-computed ({data.base_salary ?? 'Php'} / 24
+                                days a month / 8 hrs a wk)
                             </span>
                         </div>
                     </div>
