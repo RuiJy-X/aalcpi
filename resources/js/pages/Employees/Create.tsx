@@ -85,7 +85,7 @@ export default function AddEmployeeDialog({
 
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
-            <DialogContent className="sm:max-w-lg">
+            <DialogContent className="max-h-[90vh] max-w-[95vw] overflow-y-auto md:max-w-6xl">
                 <DialogHeader>
                     <DialogTitle className="text-base font-medium">
                         Add Employee
@@ -113,22 +113,6 @@ export default function AddEmployeeDialog({
                         )}
                     </div>
 
-                    {/* Full Name */}
-                    <div className="space-y-1.5">
-                        <Label htmlFor="name">Full Name</Label>
-                        <Input
-                            id="name"
-                            placeholder="Juan Dela Cruz"
-                            value={data.name}
-                            onChange={(e) => setData('name', e.target.value)}
-                            disabled={processing}
-                        />
-                        {errors.name && (
-                            <p className="text-xs text-red-500">
-                                {errors.name}
-                            </p>
-                        )}
-                    </div>
                     {/* Name */}
                     <div className="space-y-1.5">
                         <Label htmlFor="name">Full Name</Label>

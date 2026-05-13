@@ -37,7 +37,13 @@ const GeneratePayrollSummary = ({
                     </div>
                 </div>
                 <div className="rounded border border-slate-200 bg-white p-3 text-sm">
-                    <div className="text-xs text-slate-500">Total Hours</div>
+                    <div className="text-xs text-slate-500">Days Attended</div>
+                    <div className="font-medium">
+                        {preview.attendance.total_days}
+                    </div>
+                </div>
+                <div className="rounded border border-slate-200 bg-white p-3 text-sm">
+                    <div className="text-xs text-slate-500">Hours Attended</div>
                     <div className="font-medium">
                         {preview.attendance.total_hours}
                     </div>

@@ -1,13 +1,17 @@
 'use client';
 
 import type { ColumnDef } from '@tanstack/react-table';
-import { ArrowUpDown, Pencil, Check, X } from 'lucide-react';
+import { ArrowUpDown, Pencil, Check, X, Eye, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import React from 'react';
 import { PayrollType } from './payroll-types';
-import { useForm } from '@inertiajs/react';
+import { Link, router, useForm } from '@inertiajs/react';
+import {
+    destroy as payrollDestroy,
+    show as payrollShow,
+} from '@/routes/payroll';
 
 interface EditingCell {
     rowId: string | number;
@@ -232,6 +236,41 @@ export const payrollColumns: ColumnDef<PayrollType>[] = [
             );
         },
     },
+    {
+        id: 'actions',
+        header: 'Actions',
+        cell: ({ row }) => (
+            <div className="flex items-center gap-2" data-no-row-open="true">
+                <Button size="sm" variant="outline" asChild>
+                    <Link href={payrollShow(row.original.id).url}>
+                        <Eye className="mr-2 h-4 w-4" />
+                        View
+                    </Link>
+                </Button>
+                <Button
+                    size="icon"
+                    variant="ghost"
+                    className="text-red-600 hover:text-red-700"
+                    onClick={() => {
+                        const confirmed = window.confirm(
+                            'Delete this payroll record? This action cannot be undone.',
+                        );
+
+                        if (!confirmed) {
+                            return;
+                        }
+
+                        router.delete(payrollDestroy(row.original.id).url, {
+                            preserveScroll: true,
+                        });
+                    }}
+                    aria-label="Delete payroll"
+                >
+                    <Trash2 className="h-4 w-4" />
+                </Button>
+            </div>
+        ),
+    },
 ];
 
 const EditableCell = ({
@@ -244,12 +283,14 @@ const EditableCell = ({
     value: string | number;
 }) => {
     const [isEditing, setIsEditing] = React.useState(false);
-    const [editValue, setEditValue] = React.useState(String(value));
-    const { patch, processing } = useForm({
+    const [editValue, setEditValue] = React.useState(String(value ?? 0));
+    const { patch, processing, setData } = useForm({
         [field]: value,
     });
 
     const handleSave = () => {
+        setData(field, editValue);
+
         patch(`/Payroll/${payrollId}`, {
             preserveScroll: true,
             onSuccess: () => {
@@ -260,12 +301,15 @@ const EditableCell = ({
 
     if (isEditing) {
         return (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2" data-no-row-open="true">
                 <Input
                     type="number"
                     step="0.01"
                     value={editValue}
-                    onChange={(e) => setEditValue(e.target.value)}
+                    onChange={(e) => {
+                        setEditValue(e.target.value);
+                        setData(field, e.target.value);
+                    }}
                     className="w-24"
                     disabled={processing}
                 />
@@ -282,7 +326,7 @@ const EditableCell = ({
                     variant="ghost"
                     onClick={() => {
                         setIsEditing(false);
-                        setEditValue(String(value));
+                        setEditValue(String(value ?? 0));
                     }}
                     disabled={processing}
                 >
@@ -296,6 +340,7 @@ const EditableCell = ({
         <div
             className="group flex cursor-pointer items-center gap-2 rounded p-1 hover:bg-gray-100"
             onClick={() => setIsEditing(true)}
+            data-no-row-open="true"
         >
             <span className="flex-1 text-right">
                 ₱{Number(editValue).toFixed(2)}

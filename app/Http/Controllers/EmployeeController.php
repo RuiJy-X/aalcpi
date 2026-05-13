@@ -5,9 +5,10 @@ namespace App\Http\Controllers;
 
 use Inertia\Inertia;
 use App\Http\Controllers\Controller;
+use App\Models\Attendance;
 use App\Models\Employee;
+use App\Models\Payroll;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Schema;
 
 class EmployeeController extends Controller
 {
@@ -22,8 +23,52 @@ class EmployeeController extends Controller
     {
         $employee = Employee::findOrFail($id);
 
+        $attendance = $employee->attendances()
+            ->latest('date')
+            ->get()
+            ->map(function (Attendance $record) use ($employee) {
+                return [
+                    'id' => $record->id,
+                    'employee_id' => $record->employee_id,
+                    'employee_name' => $employee->name,
+                    'date' => $record->date,
+                    'week' => $record->week,
+                    'time_in' => $record->time_in,
+                    'time_out' => $record->time_out,
+                    'times' => $record->times,
+                    'working_time' => $record->working_time,
+                ];
+            });
+
+        $payrolls = $employee->payrolls()
+            ->latest('period_end')
+            ->get()
+            ->map(function (Payroll $record) use ($employee) {
+                return [
+                    'id' => $record->id,
+                    'employee_id' => $record->employee_id,
+                    'employee_name' => $employee->name,
+                    'period_start' => $record->period_start,
+                    'period_end' => $record->period_end,
+                    'days_worked' => $record->days_worked,
+                    'total_days' => $record->total_days,
+                    'total_hours' => $record->total_hours,
+                    'hours_worked' => $record->hours_worked,
+                    'basic_pay' => $record->basic_pay,
+                    'holidays' => $record->holidays,
+                    'gross_pay' => $record->gross_pay,
+                    'deductions' => $record->deductions,
+                    'net_pay' => $record->net_pay,
+                    'status' => $record->status,
+                    'created_at' => $record->created_at,
+                    'updated_at' => $record->updated_at,
+                ];
+            });
+
         return Inertia::render('Employees/Show', [
             'employee' => $employee,
+            'attendance' => $attendance,
+            'payrolls' => $payrolls,
         ]);
     }
 
@@ -32,7 +77,7 @@ class EmployeeController extends Controller
     {
         $validated = $request->validate([
             'name'            => 'required|string|max:255',
-            'employee_code'   => 'required|string',
+            'employee_code'   => 'required|string|unique:employees,employee_code',
             'position'        => 'sometimes|string',
             'employment_type' => 'sometimes|string',
             'department' => 'sometimes|string|max:255',

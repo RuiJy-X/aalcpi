@@ -40,6 +40,10 @@ class PayrollController extends Controller
                     'employee_name' => $record->employee?->name,
                     'period_start' => $record->period_start,
                     'period_end' => $record->period_end,
+                    'days_worked' => $record->days_worked,
+                    'total_days' => $record->total_days,
+                    'total_hours' => $record->total_hours,
+                    'hours_worked' => $record->hours_worked,
                     'basic_pay' => $record->basic_pay,
                     'holidays' => $record->holidays,
                     'gross_pay' => $record->gross_pay,
@@ -169,6 +173,7 @@ class PayrollController extends Controller
                 holidays: (int) $validated['holidays'],
                 deductions: (float) $validated['deductions'],
                 totalHours: $import->totalHours,
+                totalDays: $import->totalDays,
             );
 
             return back()->with('success', "Payroll generated successfully for {$employee->name}.");
@@ -254,9 +259,41 @@ class PayrollController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Payroll $payroll)
+    public function show($id)
     {
-        return response()->json($payroll->load('employee'));
+        $payroll = Payroll::with('employee:id,name,department,position,employment_type,hourly_rate,base_salary')->findOrFail($id);
+
+
+        return Inertia::render('Payroll/Show', [
+            'payroll' => [
+                'id' => $payroll->id,
+                'employee_id' => $payroll->employee_id,
+                'employee_name' => $payroll->employee?->name,
+                'employee' => $payroll->employee ? [
+                    'id' => $payroll->employee->id,
+                    'name' => $payroll->employee->name,
+                    'department' => $payroll->employee->department,
+                    'position' => $payroll->employee->position,
+                    'employment_type' => $payroll->employee->employment_type,
+                    'hourly_rate' => $payroll->employee->hourly_rate,
+                    'base_salary' => $payroll->employee->base_salary,
+                ] : null,
+                'period_start' => $payroll->period_start?->toDateString(),
+                'period_end' => $payroll->period_end?->toDateString(),
+                'days_worked' => $payroll->days_worked,
+                'total_days' => $payroll->total_days,
+                'total_hours' => $payroll->total_hours,
+                'hours_worked' => $payroll->hours_worked,
+                'basic_pay' => $payroll->basic_pay,
+                'holidays' => $payroll->holidays,
+                'gross_pay' => $payroll->gross_pay,
+                'deductions' => $payroll->deductions,
+                'net_pay' => $payroll->net_pay,
+                'status' => $payroll->status,
+                'created_at' => $payroll->created_at?->toDateTimeString(),
+                'updated_at' => $payroll->updated_at?->toDateTimeString(),
+            ],
+        ]);
     }
 
     /**
@@ -283,10 +320,10 @@ class PayrollController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Payroll $payroll)
+    public function destroy($id)
     {
+        $payroll = Payroll::findOrFail($id);
         $payroll->delete();
-
         return back()->with('success', 'Payroll record deleted successfully!');
     }
 }

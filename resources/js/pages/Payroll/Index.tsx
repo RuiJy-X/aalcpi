@@ -11,6 +11,7 @@ import { PayrollType } from './payroll-types';
 import { payrollColumns } from './payroll-column-def';
 import { DataTable } from '@/components/data-table/data-table';
 import GeneratePayrollModal from './generate-payroll-modal';
+import { show as payrollShow } from '@/routes/payroll';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -31,7 +32,11 @@ const Index = ({ payrolls }: { payrolls: PayrollType[] }) => {
                         <GeneratePayrollModal />
                     </ContainerHeaderEnd>
                 </ContainerHeader>
-                <DataTable data={payrolls} columns={payrollColumns} />
+                <DataTable
+                    data={payrolls}
+                    columns={payrollColumns}
+                    onRowDoubleClick={(row) => payrollShow(row.id).url}
+                />
             </Container>
         </AppLayout>
     );

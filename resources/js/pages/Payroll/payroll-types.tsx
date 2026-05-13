@@ -1,7 +1,7 @@
 export type PayrollType = {
     id: number;
     employee_id: number;
-    employee_name: string;
+    employee_name: string | null;
     period_start: string;
     period_end: string;
     days_worked: number;
@@ -16,4 +16,18 @@ export type PayrollType = {
     status: string;
     created_at: string;
     updated_at: string;
+};
+
+export type PayrollEmployeeSummary = {
+    id: number;
+    name: string;
+    department?: string | null;
+    position?: string | null;
+    employment_type?: string | null;
+    hourly_rate?: string | number | null;
+    base_salary?: string | number | null;
+};
+
+export type PayrollDetailType = PayrollType & {
+    employee?: PayrollEmployeeSummary | null;
 };

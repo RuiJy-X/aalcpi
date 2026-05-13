@@ -3,16 +3,24 @@ import type { EmployeeType } from './employeeTypes';
 import AppLayout from '@/layouts/app-layout';
 import { index as employeeIndex } from '@/routes/Employees';
 import { show as employeeShow } from '@/routes/Employees';
+import { show as payrollShow } from '@/routes/payroll';
 import type { BreadcrumbItem } from '@/types';
 import {
     Container,
     ContainerHeader,
     ContainerHeaderEnd,
 } from '@/components/container';
+import { DataTable } from '@/components/data-table/data-table';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import type { AttendanceType } from '../Attendance/attendance-types';
+import { attendanceColumns } from '../Attendance/attendance-column-def';
+import type { PayrollType } from '../Payroll/payroll-types';
+import { payrollColumns } from '../Payroll/payroll-column-def';
 
 function formatDateTime(value?: string | null) {
     if (!value) {
@@ -27,8 +35,18 @@ function formatDateTime(value?: string | null) {
     return date.toLocaleString();
 }
 
-export default function Show({ employee }: { employee: EmployeeType }) {
+export default function Show({
+    employee,
+    attendance,
+    payrolls,
+}: {
+    employee: EmployeeType;
+    attendance: AttendanceType[];
+    payrolls: PayrollType[];
+}) {
     const employeeHref = employeeShow(employee.id).url;
+    const attendanceRecords = attendance ?? [];
+    const payrollRecords = payrolls ?? [];
 
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -133,6 +151,61 @@ export default function Show({ employee }: { employee: EmployeeType }) {
                         />
                     </Field>
                 </div>
+            </Container>
+
+            <Container>
+                <ContainerHeader>
+                    Attendance & Payroll
+                    <ContainerHeaderEnd>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <Badge variant="secondary">
+                                Attendance {attendanceRecords.length}
+                            </Badge>
+                            <Badge variant="secondary">
+                                Payrolls {payrollRecords.length}
+                            </Badge>
+                        </div>
+                    </ContainerHeaderEnd>
+                </ContainerHeader>
+
+                <Tabs defaultValue="attendance" className="w-full">
+                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                        <TabsList variant="line">
+                            <TabsTrigger value="attendance" className="gap-2">
+                                Attendance
+                                <Badge variant="outline">
+                                    {attendanceRecords.length}
+                                </Badge>
+                            </TabsTrigger>
+                            <TabsTrigger value="payroll" className="gap-2">
+                                Payroll
+                                <Badge variant="outline">
+                                    {payrollRecords.length}
+                                </Badge>
+                            </TabsTrigger>
+                        </TabsList>
+                        <p className="text-sm text-muted-foreground">
+                            {payrollRecords.length > 0
+                                ? 'Double-click a payroll row to view details.'
+                                : 'No payroll records available yet.'}
+                        </p>
+                    </div>
+
+                    <TabsContent value="attendance" className="mt-4">
+                        <DataTable
+                            data={attendanceRecords}
+                            columns={attendanceColumns}
+                        />
+                    </TabsContent>
+
+                    <TabsContent value="payroll" className="mt-4">
+                        <DataTable
+                            data={payrollRecords}
+                            columns={payrollColumns}
+                            onRowDoubleClick={(row) => payrollShow(row.id).url}
+                        />
+                    </TabsContent>
+                </Tabs>
             </Container>
         </AppLayout>
     );

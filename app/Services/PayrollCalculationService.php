@@ -26,10 +26,12 @@ class PayrollCalculationService
         Carbon $periodEnd,
         int $holidays,
         float $deductions,
-        ?float $totalHours = null
+        ?float $totalHours = null,
+        ?int $totalDays = null
     ): Payroll {
         $hourlyRate = floatval($employee->hourly_rate ?? 0);
         $totalHours = $totalHours ?? $this->calculateTotalHours($employee, $periodStart, $periodEnd);
+        $totalDays = $totalDays ?? $this->calculateTotalDays($employee, $periodStart, $periodEnd);
 
         $summary = $this->calculateSimplePayroll(
             hourlyRate: $hourlyRate,
@@ -46,6 +48,10 @@ class PayrollCalculationService
                 'period_end' => $periodEnd,
             ],
             [
+                'days_worked' => $totalDays,
+                'total_days' => $totalDays,
+                'total_hours' => $totalHours,
+                'hours_worked' => $totalHours,
                 'basic_pay' => $summary['basic_pay'],
                 'holidays' => $holidays,
                 'gross_pay' => $summary['gross_pay'],
@@ -76,6 +82,18 @@ class PayrollCalculationService
             ->where('employee_id', $employee->id)
             ->whereBetween('date', [$periodStart, $periodEnd])
             ->sum('working_time');
+    }
+
+    private function calculateTotalDays(
+        Employee $employee,
+        Carbon $periodStart,
+        Carbon $periodEnd
+    ): int {
+        return Attendance::query()
+            ->where('employee_id', $employee->id)
+            ->whereBetween('date', [$periodStart, $periodEnd])
+            ->distinct('date')
+            ->count('date');
     }
 
     /**

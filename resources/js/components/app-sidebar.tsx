@@ -35,7 +35,7 @@ import type { NavItem, SharedData } from '@/types';
 import AppLogo from './app-logo';
 
 import { index as attendanceIndex } from '@/routes/attendance';
-import { index as payrollIndex } from '@/routes/Payroll';
+import { index as payrollIndex } from '@/routes/payroll';
 
 export function AppSidebar() {
     const { auth } = usePage<SharedData>().props;
