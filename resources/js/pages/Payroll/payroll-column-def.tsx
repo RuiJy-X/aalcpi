@@ -79,6 +79,9 @@ export const payrollColumns: ColumnDef<PayrollType>[] = [
                 {new Date(row.original.period_start).toLocaleDateString()}
             </div>
         ),
+        meta: {
+            isDateFilter: true,
+        },
     },
     {
         accessorKey: 'period_end',
@@ -96,6 +99,9 @@ export const payrollColumns: ColumnDef<PayrollType>[] = [
         cell: ({ row }) => (
             <div>{new Date(row.original.period_end).toLocaleDateString()}</div>
         ),
+        meta: {
+            isDateFilter: true,
+        },
     },
 
     {
@@ -234,6 +240,30 @@ export const payrollColumns: ColumnDef<PayrollType>[] = [
                     {status}
                 </span>
             );
+        },
+        filterFn: (row, columnId, filterValue) => {
+            const rowValue = row.getValue(columnId);
+
+            if (!filterValue) {
+                return true;
+            }
+
+            if (Array.isArray(filterValue)) {
+                return filterValue
+                    .map((value) => String(value))
+                    .includes(String(rowValue));
+            }
+
+            return String(rowValue) === String(filterValue);
+        },
+        meta: {
+            label: 'Status',
+            filterOptions: [
+                { label: 'All', value: '' },
+                { label: 'Draft', value: 'draft' },
+                { label: 'Released', value: 'released' },
+                { label: 'Paid', value: 'paid' },
+            ],
         },
     },
     {

@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import * as React from 'react';
 import { router, usePage } from '@inertiajs/react';
-import { endOfDay, startOfDay } from 'date-fns';
+import { endOfDay, format, startOfDay } from 'date-fns';
 import { type DateRange } from 'react-day-picker';
 import type { SharedData } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -54,6 +54,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 
 import {
     Table,
@@ -171,20 +172,40 @@ export function DataTable<TData, TValue>({
     const [dateRange, setDateRange] = React.useState<DateRange | undefined>(
         initialState?.dateRange,
     );
+    const [dateFilterMode, setDateFilterMode] = React.useState<
+        'single' | 'range'
+    >(() => (initialState?.dateRange?.to ? 'range' : 'single'));
 
     const dateFilterableColumns = React.useMemo(() => {
         return columns
-            .map((column) => deriveColumnId(column))
-            .filter((columnId): columnId is string => {
+            .map((column) => {
+                const columnId = deriveColumnId(column);
+                const meta = (
+                    column as ColumnDef<TData, TValue> & {
+                        meta?: { isDateFilter?: boolean };
+                    }
+                ).meta;
+
+                return {
+                    columnId,
+                    isDateFilter: meta?.isDateFilter === true,
+                };
+            })
+            .filter(({ columnId, isDateFilter }) => {
                 if (!columnId) {
                     return false;
+                }
+
+                if (isDateFilter) {
+                    return !excludedDateFilterColumns.includes(columnId);
                 }
 
                 return (
                     DATE_COLUMN_PATTERN.test(columnId) &&
                     !excludedDateFilterColumns.includes(columnId)
                 );
-            });
+            })
+            .map(({ columnId }) => columnId as string);
     }, [columns, excludedDateFilterColumns]);
 
     const [dateFilterColumnId, setDateFilterColumnId] = React.useState<string>(
@@ -607,10 +628,70 @@ export function DataTable<TData, TValue>({
                                     </SelectContent>
                                 </Select>
                             )}
-                            <DatePickerWithRange
-                                value={dateRange}
-                                onChange={setDateRange}
-                            />
+                            <Select
+                                value={dateFilterMode}
+                                onValueChange={(value) => {
+                                    const nextMode = value as
+                                        | 'single'
+                                        | 'range';
+
+                                    setDateFilterMode(nextMode);
+
+                                    if (nextMode === 'single') {
+                                        setDateRange((current) =>
+                                            current?.from
+                                                ? { from: current.from }
+                                                : undefined,
+                                        );
+                                    }
+                                }}
+                            >
+                                <SelectTrigger className="w-36">
+                                    <SelectValue placeholder="Date mode" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="single">
+                                        Single date
+                                    </SelectItem>
+                                    <SelectItem value="range">
+                                        Date range
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                            {dateFilterMode === 'single' ? (
+                                <Input
+                                    type="date"
+                                    className="w-40"
+                                    value={
+                                        dateRange?.from
+                                            ? format(
+                                                  dateRange.from,
+                                                  'yyyy-MM-dd',
+                                              )
+                                            : ''
+                                    }
+                                    onChange={(event) => {
+                                        const value = event.target.value;
+
+                                        if (!value) {
+                                            setDateRange(undefined);
+                                            return;
+                                        }
+
+                                        const nextDate = new Date(value);
+                                        if (isNaN(nextDate.getTime())) {
+                                            return;
+                                        }
+
+                                        setDateRange({ from: nextDate });
+                                    }}
+                                />
+                            ) : (
+                                <DatePickerWithRange
+                                    value={dateRange}
+                                    onChange={setDateRange}
+                                />
+                            )}
                         </div>
                     )}
                 </div>
