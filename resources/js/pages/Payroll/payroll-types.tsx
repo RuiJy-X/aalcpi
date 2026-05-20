@@ -1,3 +1,5 @@
+import type { AttendanceType } from '../Attendance/attendance-types';
+
 export type PayrollType = {
     id: number;
     employee_id: number;
@@ -26,6 +28,7 @@ export type PayrollEmployeeSummary = {
     employment_type?: string | null;
     hourly_rate?: string | number | null;
     base_salary?: string | number | null;
+    attendances?: AttendanceType[];
 };
 
 export type PayrollDetailType = PayrollType & {

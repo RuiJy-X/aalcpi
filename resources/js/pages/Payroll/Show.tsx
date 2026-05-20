@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
 import { index as payrollIndex, show as payrollShow } from '@/routes/payroll';
@@ -11,17 +11,32 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { DataTable } from '@/components/data-table/data-table';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { formatMoney } from './generate-payroll.utils';
 import type { PayrollDetailType } from './payroll-types';
+import { attendanceColumns } from '../Attendance/attendance-column-def';
 
 const statusStyles: Record<string, string> = {
     draft: 'border-yellow-200 bg-yellow-50 text-yellow-800',
-    released: 'border-blue-200 bg-blue-50 text-blue-800',
+    pending: 'border-blue-200 bg-blue-50 text-blue-800',
     paid: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+};
+
+const statusLabels: Record<string, string> = {
+    draft: 'Draft',
+    pending: 'Pending',
+    paid: 'Paid',
 };
 
 const formatDate = (value?: string | null) => {
@@ -68,12 +83,29 @@ export default function Show({ payroll }: { payroll: PayrollDetailType }) {
     ];
 
     const employee = payroll.employee;
+    const attendanceRecords = employee?.attendances ?? [];
     const grossPay = toNumber(payroll.gross_pay);
     const deductions = toNumber(payroll.deductions);
     const netPay = toNumber(payroll.net_pay);
     const basicPay = toNumber(payroll.basic_pay);
     const deductionRate =
         grossPay > 0 ? Math.min(100, (deductions / grossPay) * 100) : 0;
+    const { data, setData, patch, processing } = useForm({
+        status: payroll.status,
+    });
+
+    const handleStatusChange = (nextStatus: string) => {
+        if (nextStatus === data.status) {
+            return;
+        }
+
+        setData('status', nextStatus);
+        router.patch(
+            `/Payroll/${payroll.id}/status`,
+            { status: nextStatus },
+            { preserveScroll: true },
+        );
+    };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -83,12 +115,28 @@ export default function Show({ payroll }: { payroll: PayrollDetailType }) {
                 <ContainerHeader>
                     Payroll #{payroll.id}
                     <ContainerHeaderEnd>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                             <Badge
-                                className={`border px-3 py-1 text-xs font-semibold ${statusStyles[payroll.status] ?? 'border-slate-200 bg-slate-50 text-slate-700'}`}
+                                className={`border px-3 py-1 text-xs font-semibold ${statusStyles[data.status] ?? 'border-slate-200 bg-slate-50 text-slate-700'}`}
                             >
-                                {payroll.status}
+                                {statusLabels[data.status] ?? data.status}
                             </Badge>
+                            <Select
+                                value={data.status}
+                                onValueChange={handleStatusChange}
+                                disabled={processing}
+                            >
+                                <SelectTrigger className="h-9 w-[140px]">
+                                    <SelectValue placeholder="Status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="draft">Draft</SelectItem>
+                                    <SelectItem value="pending">
+                                        Pending
+                                    </SelectItem>
+                                    <SelectItem value="paid">Paid</SelectItem>
+                                </SelectContent>
+                            </Select>
                             <Button variant="outline" asChild>
                                 <Link href={payrollIndex().url}>
                                     Back to list
@@ -239,6 +287,24 @@ export default function Show({ payroll }: { payroll: PayrollDetailType }) {
                                     {payroll.total_hours ?? 0}
                                 </span>
                             </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="lg:col-span-3">
+                        <CardHeader>
+                            <CardTitle className="text-base text-slate-700">
+                                Attendance Records
+                            </CardTitle>
+                            <div className="text-sm text-slate-500">
+                                {formatDate(payroll.period_start)} -{' '}
+                                {formatDate(payroll.period_end)}
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <DataTable
+                                data={attendanceRecords}
+                                columns={attendanceColumns}
+                            />
                         </CardContent>
                     </Card>
 

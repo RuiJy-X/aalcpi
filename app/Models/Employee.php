@@ -17,6 +17,9 @@ class Employee extends Model
         'position',
         'employment_type',
         'base_salary',
+        'address',
+        'tin',
+        'contact_number',
     ];
 
     public function attendances() {

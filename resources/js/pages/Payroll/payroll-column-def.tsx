@@ -230,15 +230,17 @@ export const payrollColumns: ColumnDef<PayrollType>[] = [
             const statusClass =
                 status === 'draft'
                     ? 'bg-yellow-100 text-yellow-800'
-                    : status === 'released'
+                    : status === 'pending'
                       ? 'bg-blue-100 text-blue-800'
                       : 'bg-green-100 text-green-800';
             return (
-                <span
-                    className={`rounded-full px-3 py-1 text-sm font-medium ${statusClass}`}
-                >
-                    {status}
-                </span>
+                <div className="flex justify-center">
+                    <span
+                        className={`rounded-full px-3 py-1 text-sm font-medium ${statusClass}`}
+                    >
+                        {status}
+                    </span>
+                </div>
             );
         },
         filterFn: (row, columnId, filterValue) => {
@@ -261,7 +263,7 @@ export const payrollColumns: ColumnDef<PayrollType>[] = [
             filterOptions: [
                 { label: 'All', value: '' },
                 { label: 'Draft', value: 'draft' },
-                { label: 'Released', value: 'released' },
+                { label: 'Pending', value: 'pending' },
                 { label: 'Paid', value: 'paid' },
             ],
         },

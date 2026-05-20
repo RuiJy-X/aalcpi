@@ -39,6 +39,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::post('/Payroll/preview', [PayrollController::class, 'preview'])->name('payroll.preview');
         Route::post('/Payroll/generate', [PayrollController::class, 'generate'])->name('payroll.generate');
+        Route::patch('/Payroll/{payroll}/status', [PayrollController::class, 'updateStatus'])->name('payroll.update-status');
         Route::resource('/Payroll', PayrollController::class)->whereNumber('Payroll');
 
         Route::delete('/MillingPeriods/bulk-delete', [MillingPeriodsController::class, 'bulkDestroy'])->name('milling-periods.bulk-destroy');

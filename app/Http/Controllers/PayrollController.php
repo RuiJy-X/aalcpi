@@ -216,7 +216,6 @@ class PayrollController extends Controller
     }
 
     /**
-     * Get all payrolls as JSON
      */
     public function get()
     {
@@ -245,7 +244,7 @@ class PayrollController extends Controller
             'gross_pay' => 'required|numeric',
             'deductions' => 'required|numeric|min:0',
             'net_pay' => 'required|numeric',
-            'status' => 'required|in:draft,released,paid',
+            'status' => 'required|in:draft,pending,paid',
         ]);
 
         $payroll = Payroll::create($validated);
@@ -263,6 +262,32 @@ class PayrollController extends Controller
     {
         $payroll = Payroll::with('employee:id,name,department,position,employment_type,hourly_rate,base_salary')->findOrFail($id);
 
+        $attendanceRecords = [];
+        if ($payroll->employee && $payroll->period_start && $payroll->period_end) {
+            $attendanceRecords = $payroll->employee
+                ->attendances()
+                ->whereBetween('date', [
+                    $payroll->period_start->toDateString(),
+                    $payroll->period_end->toDateString(),
+                ])
+                ->orderBy('date')
+                ->get()
+                ->map(function ($attendance) use ($payroll) {
+                    return [
+                        'id' => $attendance->id,
+                        'employee_id' => $attendance->employee_id,
+                        'employee_name' => $payroll->employee?->name,
+                        'date' => $attendance->date,
+                        'week' => $attendance->week,
+                        'time_in' => $attendance->time_in,
+                        'time_out' => $attendance->time_out,
+                        'times' => $attendance->times,
+                        'working_time' => $attendance->working_time,
+                    ];
+                })
+                ->values();
+        }
+
 
         return Inertia::render('Payroll/Show', [
             'payroll' => [
@@ -277,6 +302,7 @@ class PayrollController extends Controller
                     'employment_type' => $payroll->employee->employment_type,
                     'hourly_rate' => $payroll->employee->hourly_rate,
                     'base_salary' => $payroll->employee->base_salary,
+                    'attendances' => $attendanceRecords,
                 ] : null,
                 'period_start' => $payroll->period_start?->toDateString(),
                 'period_end' => $payroll->period_end?->toDateString(),
@@ -302,7 +328,7 @@ class PayrollController extends Controller
     public function update(Request $request, Payroll $payroll)
     {
         $validated = $request->validate([
-            'status' => 'sometimes|in:draft,released,paid',
+            'status' => 'sometimes|in:draft,pending,paid',
             'deductions' => 'sometimes|numeric|min:0',
             'net_pay' => 'sometimes|numeric',
         ]);
@@ -315,6 +341,19 @@ class PayrollController extends Controller
         }
 
         return back()->with('success', 'Payroll updated successfully!');
+    }
+
+    public function updateStatus(Request $request, Payroll $payroll)
+    {
+        
+        $validated = $request->validate([
+            'status' => 'required|in:draft,pending,paid',
+        ]);
+        $payroll->update([
+            'status' => $validated['status'],
+        ]);
+
+        return back()->with('success', 'Payroll status updated successfully!');
     }
 
     /**
