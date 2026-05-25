@@ -58,6 +58,8 @@ export type ProductionRow = {
     pshr_net_mol: number;
     pdpa_mol: number;
     association_dues_mol: number;
+    composite_sugar_price?: number | string | null;
+    composite_molasses_price?: number | string | null;
     trans_code?: string | null;
     transloading?: boolean | null;
     milling_period_id?: string | number | null;

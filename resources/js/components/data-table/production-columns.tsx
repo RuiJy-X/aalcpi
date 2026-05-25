@@ -9,6 +9,15 @@ import { Checkbox } from '@/components/ui/checkbox';
 import ProductionActions from './production-actions';
 import type { ProductionRow } from '@/components/planters/planters-table-types';
 
+const formatPrice = (value: unknown) => {
+    if (value === null || value === undefined || value === '') {
+        return '-';
+    }
+
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric.toFixed(2) : '-';
+};
+
 export const productionColumns: ColumnDef<ProductionRow>[] = [
     {
         id: 'select',
@@ -181,6 +190,54 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
                         className={`ml-2 truncate ${production.crop_year ? '' : 'text-red-500'}`}
                     >
                         {production.crop_year ?? 'No crop year assigned'}
+                    </div>
+                </div>
+            );
+        },
+    },
+    {
+        accessorKey: 'composite_sugar_price',
+        header: ({ column }) => (
+            <Button
+                variant="ghost"
+                onClick={() =>
+                    column.toggleSorting(column.getIsSorted() === 'asc')
+                }
+            >
+                Composite Sugar Price
+                <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+        ),
+        cell: ({ row }) => {
+            const production = row.original;
+            return (
+                <div className="flex items-center">
+                    <div className="ml-2 truncate">
+                        {formatPrice(production.composite_sugar_price)}
+                    </div>
+                </div>
+            );
+        },
+    },
+    {
+        accessorKey: 'composite_molasses_price',
+        header: ({ column }) => (
+            <Button
+                variant="ghost"
+                onClick={() =>
+                    column.toggleSorting(column.getIsSorted() === 'asc')
+                }
+            >
+                Composite Molasses Price
+                <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+        ),
+        cell: ({ row }) => {
+            const production = row.original;
+            return (
+                <div className="flex items-center">
+                    <div className="ml-2 truncate">
+                        {formatPrice(production.composite_molasses_price)}
                     </div>
                 </div>
             );

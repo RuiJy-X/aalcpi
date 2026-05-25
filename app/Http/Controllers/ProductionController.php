@@ -49,6 +49,8 @@ class ProductionController extends Controller
             'pshr_net_mol' => 'productions.pshr_net_mol',
             'pdpa_mol' => 'productions.pdpa_mol',
             'association_dues_mol' => 'productions.association_dues_mol',
+            'composite_sugar_price' => 'productions.composite_sugar_price',
+            'composite_molasses_price' => 'productions.composite_molasses_price',
             'production_date' => 'productions.production_date',
             'created_at' => 'productions.created_at',
             'updated_at' => 'productions.updated_at',
@@ -229,6 +231,8 @@ class ProductionController extends Controller
             'file' => ['required', 'file'],
             'crop_year' => ['required', 'regex:/^\d{4}-\d{4}$/'],
             'mapping_id' => ['required', 'integer', 'exists:import_mappings,id'],
+            'composite_sugar_price' => ['nullable', 'numeric'],
+            'composite_molasses_price' => ['nullable', 'numeric'],
         ]);
 
         $file = $validated['file'];
@@ -239,12 +243,23 @@ class ProductionController extends Controller
             ->where('import_type', 'productions')
             ->first();
 
+        $compositeSugarPrice = $validated['composite_sugar_price'] ?? null;
+        $compositeMolassesPrice = $validated['composite_molasses_price'] ?? null;
+
         if (!$mapping) {
             return back()->with('error', 'Import mapping not found for productions.');
         }
 
         try {
-            Excel::import(new ProductionsImport($cropYear, $mapping->mapping ?? []), $file);
+            Excel::import(
+                new ProductionsImport(
+                    $cropYear,
+                    $mapping->mapping ?? [],
+                    $compositeSugarPrice,
+                    $compositeMolassesPrice,
+                ),
+                $file,
+            );
         } catch (Throwable $e) {
             Log::error('Productions import failed', [
                 'message' => $e->getMessage(),
@@ -289,6 +304,8 @@ class ProductionController extends Controller
             'pshr_net_mol' => 'required|numeric',
             'pdpa_mol' => 'required|numeric',
             'association_dues_mol' => 'required|numeric',
+            'composite_sugar_price' => 'nullable|numeric',
+            'composite_molasses_price' => 'nullable|numeric',
             'trans_code' => 'required|string',
             'transloading' => 'required|boolean',
 
@@ -339,6 +356,8 @@ class ProductionController extends Controller
             'pshr_net_mol' => 'required|numeric',
             'pdpa_mol' => 'required|numeric',
             'association_dues_mol' => 'required|numeric',
+            'composite_sugar_price' => 'nullable|numeric',
+            'composite_molasses_price' => 'nullable|numeric',
             'trans_code' => 'required|string|max:255',
             'transloading' => 'required|boolean'
 

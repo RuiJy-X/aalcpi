@@ -15,6 +15,8 @@ class ProductionsImport implements ToModel, WithHeadingRow, ShouldQueue, WithChu
     public function __construct(
         private readonly string $importCropYear,
         private readonly array $mapping = [],
+        private readonly float | null $compositeSugarPrice = null,
+        private readonly float | null $compositeMolassesPrice = null,
     ) {}
 
     public function model(array $row)
@@ -39,6 +41,9 @@ class ProductionsImport implements ToModel, WithHeadingRow, ShouldQueue, WithChu
         // 2. HELPER for numeric values
         $toNum = fn($val) => is_numeric($val) ? $val : 0;
         $toBool = fn($val) => filter_var($val, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE) ?? false;
+        $toNullablePrice = fn($val) => ($val === null || $val === '')
+            ? null
+            : (is_numeric($val) ? (float) $val : null);
 
         // 3. PAD CODES to 5 digits with leading zeros
         $planterCode = $this->padCode($row['planter_code'] ?? $row['Pcode'] ?? '0');
@@ -88,6 +93,8 @@ class ProductionsImport implements ToModel, WithHeadingRow, ShouldQueue, WithChu
 
                 'association_dues_lkg' => $toNum($row['assn_dues_lkg'] ?? $row['assn_dues_sugar'] ?? 0),
                 'association_dues_mol' => $toNum($row['Assn_Dues_Mol'] ?? $row['assn_dues_mol'] ?? $row['re assn_dues_mol'] ?? 0),
+                'composite_sugar_price' => $toNullablePrice($this->compositeSugarPrice),
+                'composite_molasses_price' => $toNullablePrice($this->compositeMolassesPrice),
                 'transloading'         => $toBool($row['transloading'] ?? false),
             ]
         );

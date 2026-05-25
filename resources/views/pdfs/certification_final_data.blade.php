@@ -30,6 +30,10 @@
     @endphp
 
     @foreach ($records as $production)
+    @php
+        $compositeSugarPrice = $production->composite_sugar_price;
+        $compositeMolassesPrice = $production->composite_molasses_price;
+    @endphp
     <h2 style="text-align: center;">ASSOCIACION DE AGRICULTORES DE LA CARLOTA Y PONTEVEDRA, INC. P.O BOX 18, Brgy. RSB, La Carlota City</h2>
     <br><br>
     <h1 style="text-align: center;"><strong>CERTIFICATION</strong></h1>
@@ -77,8 +81,8 @@
     <tbody>
         <tr>
             <td style="width: 60%">
-                <p>Sugar= Php __PRICE HERE__
-                <p>Molasses= Php __PRICE HERE__
+                <p>Sugar= Php {{ $compositeSugarPrice !== null ? number_format($compositeSugarPrice, 2) : '-' }}
+                <p>Molasses= Php {{ $compositeMolassesPrice !== null ? number_format($compositeMolassesPrice, 2) : '-' }}
             </td>
             <td style="width: 40%; text-align: justify">
                 <h5>

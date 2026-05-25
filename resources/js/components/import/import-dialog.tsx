@@ -22,7 +22,11 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Input } from '../ui/input';
-import { ImportConfig, type ImportTarget } from './import-config';
+import {
+    ImportConfig,
+    type ImportExtraField,
+    type ImportTarget,
+} from './import-config';
 
 type MappingPreviewResponse = {
     headers: string[];
@@ -112,6 +116,7 @@ export function ImportDialog({ config }: { config: ImportConfig }) {
     const [headers, setHeaders] = useState<string[]>([]);
     const [signature, setSignature] = useState('');
     const [mapping, setMapping] = useState<Record<string, string>>({});
+    const [extraFields, setExtraFields] = useState<Record<string, string>>({});
     const [error, setError] = useState<string | null>(null);
 
     const canMap = Boolean(
@@ -150,6 +155,7 @@ export function ImportDialog({ config }: { config: ImportConfig }) {
         setHeaders([]);
         setSignature('');
         setMapping({});
+        setExtraFields({});
         setError(null);
         setIsPreviewing(false);
         setIsSavingMapping(false);
@@ -161,6 +167,7 @@ export function ImportDialog({ config }: { config: ImportConfig }) {
         setHeaders([]);
         setSignature('');
         setMapping({});
+        setExtraFields({});
         setError(null);
     };
 
@@ -173,10 +180,14 @@ export function ImportDialog({ config }: { config: ImportConfig }) {
             return;
         }
 
-        const payload: { file: File; crop_year?: string; mapping_id?: number } =
-            {
-                file: selectedFile,
-            };
+        const payload: {
+            file: File;
+            crop_year?: string;
+            mapping_id?: number;
+            [key: string]: unknown;
+        } = {
+            file: selectedFile,
+        };
 
         if (config.requireCropYear) {
             payload.crop_year = cropYear.trim();
@@ -185,6 +196,13 @@ export function ImportDialog({ config }: { config: ImportConfig }) {
         if (mappingId) {
             payload.mapping_id = mappingId;
         }
+
+        (config.extraFields ?? []).forEach((field) => {
+            const value = extraFields[field.key];
+            if (value !== undefined && value !== '') {
+                payload[field.key] = value;
+            }
+        });
 
         router.post(config.route, payload, {
             forceFormData: true,
@@ -351,6 +369,29 @@ export function ImportDialog({ config }: { config: ImportConfig }) {
                                         }
                                     />
                                 </Field>
+                            )}
+                            {config.extraFields?.map(
+                                (field: ImportExtraField) => (
+                                    <Field key={field.key}>
+                                        <Label htmlFor={field.key}>
+                                            {field.label}
+                                        </Label>
+                                        <Input
+                                            type={field.type ?? 'text'}
+                                            id={field.key}
+                                            placeholder={field.placeholder}
+                                            step={field.step}
+                                            value={extraFields[field.key] ?? ''}
+                                            onChange={(event) =>
+                                                setExtraFields((prev) => ({
+                                                    ...prev,
+                                                    [field.key]:
+                                                        event.target.value,
+                                                }))
+                                            }
+                                        />
+                                    </Field>
+                                ),
                             )}
                         </FieldGroup>
                     </>

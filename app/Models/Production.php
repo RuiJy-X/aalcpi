@@ -16,6 +16,7 @@ class Production extends Model
         'gross_cw', 'net_cw', 'trucks', 'theoretical_lkg', 'actual_lkg',
         'pshr_net_lkg', 'pdpa_lkg', 'association_dues_lkg', 'actual_mol',
         'pshr_net_mol', 'pdpa_mol', 'association_dues_mol', 'trans_code', 'transloading',
+        'composite_sugar_price', 'composite_molasses_price',
 
     ];
 
@@ -29,6 +30,8 @@ class Production extends Model
         'planter_mol_money' => 'decimal:4',
         'pdpa_mol_money' => 'decimal:4',
         'association_dues_mol_money' => 'decimal:4',
+        'composite_sugar_price' => 'decimal:4',
+        'composite_molasses_price' => 'decimal:4',
         'financial_calculated_at' => 'datetime',
         'financial_reviewed_at' => 'datetime',
         'transloading' => 'boolean',

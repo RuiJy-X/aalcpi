@@ -29,6 +29,9 @@ class ProductionFactory extends Factory
         $pdpaMol = round($pshrNetMol * 0.02, 4);
         $associationDuesMol = round($pshrNetMol * 0.01, 4);
 
+        $compositeSugarPrice = fake()->randomFloat(4, 1000, 3000);
+        $compositeMolassesPrice = fake()->randomFloat(4, 500, 2000);
+
         $planter = Planter::factory();
         $hacienda = Hacienda::factory()->for($planter);
 
@@ -61,6 +64,8 @@ class ProductionFactory extends Factory
             'pshr_net_mol' => $pshrNetMol,
             'pdpa_mol' => $pdpaMol,
             'association_dues_mol' => $associationDuesMol,
+            'composite_sugar_price' => $compositeSugarPrice,
+            'composite_molasses_price' => $compositeMolassesPrice,
             'trans_code' => strtoupper(fake()->bothify('TRN-########')),
             'transloading' => fake()->boolean(20),
         ];

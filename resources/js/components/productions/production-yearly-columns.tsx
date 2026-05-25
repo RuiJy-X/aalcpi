@@ -7,6 +7,15 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { certification as productionCertification } from '@/routes/productions';
 import type { ProductionRow } from '@/components/planters/planters-table-types';
 
+const formatPrice = (value: unknown) => {
+    if (value === null || value === undefined || value === '') {
+        return '-';
+    }
+
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric.toFixed(2) : '-';
+};
+
 export const productionYearlyColumns: ColumnDef<ProductionRow>[] = [
     {
         id: 'select',
@@ -96,6 +105,30 @@ export const productionYearlyColumns: ColumnDef<ProductionRow>[] = [
             return (
                 <div className="ml-2 truncate">
                     {production.crop_year ?? '-'}
+                </div>
+            );
+        },
+    },
+    {
+        accessorKey: 'composite_sugar_price',
+        header: 'Composite Sugar Price',
+        cell: ({ row }) => {
+            const production = row.original;
+            return (
+                <div className="ml-2 truncate">
+                    {formatPrice(production.composite_sugar_price)}
+                </div>
+            );
+        },
+    },
+    {
+        accessorKey: 'composite_molasses_price',
+        header: 'Composite Molasses Price',
+        cell: ({ row }) => {
+            const production = row.original;
+            return (
+                <div className="ml-2 truncate">
+                    {formatPrice(production.composite_molasses_price)}
                 </div>
             );
         },

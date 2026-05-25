@@ -8,6 +8,15 @@ export interface ImportConfig {
     headerGuide?: string[];
     mappingType?: 'planters' | 'productions';
     mappingTargets?: ImportTarget[];
+    extraFields?: ImportExtraField[];
+}
+
+export interface ImportExtraField {
+    key: string;
+    label: string;
+    placeholder?: string;
+    type?: 'text' | 'number';
+    step?: string;
 }
 
 export interface ImportTarget {
@@ -71,6 +80,22 @@ export const productionsImportConfig = {
     label: 'Productions Data',
     requireCropYear: true,
     mappingType: 'productions' as const,
+    extraFields: [
+        {
+            key: 'composite_sugar_price',
+            label: 'Composite Sugar Price',
+            placeholder: '0.00',
+            type: 'number',
+            step: '0.01',
+        },
+        {
+            key: 'composite_molasses_price',
+            label: 'Composite Molasses Sugar Price',
+            placeholder: '0.00',
+            type: 'number',
+            step: '0.01',
+        },
+    ],
     mappingTargets: [
         {
             key: 'planter_code',
