@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Jobs\ProcessWeeklyImportJob;
+use App\Models\ImportJob;
 use App\Models\Weekly;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 use RuntimeException;
@@ -75,11 +77,24 @@ class WeeklyController extends Controller
         $week = trim((string) $validated['week']);
         $cropYear = trim((string) $validated['crop_year']);
         $temporaryPath = $uploadedFile->store('weekly-imports', 'local');
+
+        $importJob = ImportJob::create([
+            'user_id' => $request->user()?->id,
+            'type' => 'weekly_pdf',
+            'status' => ImportJob::STATUS_QUEUED,
+            'context' => [
+                'week' => $week,
+                'crop_year' => $cropYear,
+            ],
+        ]);
         // Avoid blocking the current HTTP request when queue connection is sync.
         // This lets the user continue navigating while import processing runs.
-        ProcessWeeklyImportJob::dispatch($temporaryPath, $week, $cropYear);
+        ProcessWeeklyImportJob::dispatch($temporaryPath, $week, $cropYear, $importJob->id);
 
-        return redirect()->back()->with('success', 'Weekly import queued. You can keep using the app while it processes.');
+        return redirect()
+            ->back()
+            ->with('success', 'Weekly import queued. You can keep using the app while it processes.')
+            ->with('import_job_id', $importJob->id);
     }
 
     public function clear(): RedirectResponse
@@ -92,6 +107,43 @@ class WeeklyController extends Controller
         return redirect()->back()->with('success', 'Weekly data cleared successfully.');
     }
 
+        public function destroyByCropYearWeek(Request $request): RedirectResponse
+        {
+            $validated = $request->validate([
+                'crop_year' => ['required', 'string', 'max:50'],
+                'week' => ['required', 'string', 'max:50'],
+            ]);
+
+            $cropYear = trim((string) $validated['crop_year']);
+            $week = trim((string) $validated['week']);
+
+            $weeklies = Weekly::query()
+                ->where('crop_year', $cropYear)
+                ->where('week', $week)
+                ->get(['file_location']);
+
+            $fileLocations = $weeklies
+                ->pluck('file_location')
+                ->filter()
+                ->values()
+                ->all();
+
+            if (! empty($fileLocations)) {
+                Storage::disk('public')->delete($fileLocations);
+            }
+
+            $deleted = Weekly::query()
+                ->where('crop_year', $cropYear)
+                ->where('week', $week)
+                ->delete();
+
+            $relativeOutputDirectory = 'weekly-pdfs/' . Str::slug($cropYear) . '/week-' . Str::slug($week);
+            Storage::disk('public')->deleteDirectory($relativeOutputDirectory);
+
+            return redirect()
+                ->back()
+                ->with('success', "Deleted {$deleted} weekly records for crop year {$cropYear} week {$week}.");
+        }
     public function show(Weekly $weekly)
     {
         abort_unless(Storage::disk('public')->exists($weekly->file_location), 404);

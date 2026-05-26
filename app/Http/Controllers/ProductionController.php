@@ -3,17 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Imports\ProductionsImport;
+use App\Jobs\ProcessExcelImportJob;
+use App\Models\ImportJob;
 use App\Models\ImportMapping;
 use App\Models\Production;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Maatwebsite\Excel\Facades\Excel;
-use Throwable;
 
 class ProductionController extends Controller
 {
@@ -250,29 +248,31 @@ class ProductionController extends Controller
             return back()->with('error', 'Import mapping not found for productions.');
         }
 
-        try {
-            Excel::import(
-                new ProductionsImport(
-                    $cropYear,
-                    $mapping->mapping ?? [],
-                    $compositeSugarPrice,
-                    $compositeMolassesPrice,
-                ),
-                $file,
-            );
-        } catch (Throwable $e) {
-            Log::error('Productions import failed', [
-                'message' => $e->getMessage(),
-                'exception' => $e,
-            ]);
+        $storedPath = $file->store('imports', 'local');
+        $importJob = ImportJob::create([
+            'user_id' => $request->user()?->id,
+            'type' => 'productions_excel',
+            'status' => ImportJob::STATUS_QUEUED,
+            'context' => [
+                'crop_year' => $cropYear,
+            ],
+        ]);
 
-            return back()->with(
-                'error',
-                'Productions import failed. ' . $e->getMessage()
-            );
-        }
+        ProcessExcelImportJob::dispatch(
+            $importJob->id,
+            'productions_excel',
+            $storedPath,
+            [
+                'crop_year' => $cropYear,
+                'mapping' => $mapping->mapping ?? [],
+                'composite_sugar_price' => $compositeSugarPrice,
+                'composite_molasses_price' => $compositeMolassesPrice,
+            ],
+        );
 
-        return back()->with('success', 'Productions imported successfully.');
+        return back()
+            ->with('success', 'Productions import queued. You can keep using the app while it processes.')
+            ->with('import_job_id', $importJob->id);
 
     }
 
@@ -332,6 +332,22 @@ class ProductionController extends Controller
         Production::whereIn('id', $validated['ids'])->delete();
 
         return redirect()->back()->with('success', 'Selected production records deleted successfully.');
+    }
+
+    public function destroyByCropYear(Request $request)
+    {
+        $validated = $request->validate([
+            'crop_year' => ['required', 'regex:/^\d{4}-\d{4}$/'],
+        ]);
+
+        $cropYear = $validated['crop_year'];
+        $deletedProductions = Production::where('crop_year', $cropYear)->delete();
+        $deletedMappings = ImportMapping::where('import_type', 'productions')->delete();
+
+        return redirect()->back()->with(
+            'success',
+            "Deleted {$deletedProductions} production records for crop year {$cropYear}. Cleared {$deletedMappings} production import mappings.",
+        );
     }
 
     public function update(Request $request, $productionId)

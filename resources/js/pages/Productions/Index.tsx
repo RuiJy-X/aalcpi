@@ -22,6 +22,18 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
 import { index as productionsIndex } from '@/routes/productions';
 import { show as productionShow } from '@/routes/productions';
@@ -123,6 +135,11 @@ export default function Index({
         initialQueryStateRef.current,
     );
 
+    const [isDeleteCropYearOpen, setDeleteCropYearOpen] = React.useState(false);
+    const [cropYearToDelete, setCropYearToDelete] = React.useState('');
+    const [isDeletingByCropYear, setIsDeletingByCropYear] =
+        React.useState(false);
+
     const buildQueryParams = React.useCallback(
         (state: DataTableQueryState, cropYear: string) => {
             const query: Record<string, any> = {
@@ -212,6 +229,25 @@ export default function Index({
         [buildQueryParams, selectedCropYear],
     );
 
+    const handleDeleteByCropYear = () => {
+        if (!cropYearToDelete) {
+            return;
+        }
+
+        router.delete('/Productions/delete-by-crop-year', {
+            data: {
+                crop_year: cropYearToDelete,
+            },
+            preserveScroll: true,
+            onStart: () => setIsDeletingByCropYear(true),
+            onFinish: () => setIsDeletingByCropYear(false),
+            onSuccess: () => {
+                setDeleteCropYearOpen(false);
+                setCropYearToDelete('');
+            },
+        });
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Productions"></Head>
@@ -244,6 +280,87 @@ export default function Index({
                                     ))}
                                 </SelectContent>
                             </Select>
+                            <Dialog
+                                open={isDeleteCropYearOpen}
+                                onOpenChange={(nextOpen) => {
+                                    setDeleteCropYearOpen(nextOpen);
+                                    if (nextOpen) {
+                                        setCropYearToDelete(
+                                            selectedCropYear !== 'all'
+                                                ? selectedCropYear
+                                                : '',
+                                        );
+                                    } else {
+                                        setCropYearToDelete('');
+                                    }
+                                }}
+                            >
+                                <DialogTrigger asChild>
+                                    <Button variant="destructive">
+                                        Delete by crop year
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>
+                                            Delete productions by crop year
+                                        </DialogTitle>
+                                        <DialogDescription>
+                                            This will permanently delete all
+                                            production rows for the selected
+                                            crop year. It also clears production
+                                            import mappings so they must be
+                                            remapped on the next import.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="grid gap-3">
+                                        <Label htmlFor="delete-crop-year">
+                                            Crop year
+                                        </Label>
+                                        <Select
+                                            value={cropYearToDelete}
+                                            onValueChange={(nextCropYear) =>
+                                                setCropYearToDelete(
+                                                    nextCropYear,
+                                                )
+                                            }
+                                        >
+                                            <SelectTrigger id="delete-crop-year">
+                                                <SelectValue placeholder="Select crop year" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {crop_years.map((cropYear) => (
+                                                    <SelectItem
+                                                        key={cropYear}
+                                                        value={cropYear}
+                                                    >
+                                                        {cropYear}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <DialogFooter className="gap-2">
+                                        <DialogClose asChild>
+                                            <Button variant="secondary">
+                                                Cancel
+                                            </Button>
+                                        </DialogClose>
+                                        <Button
+                                            variant="destructive"
+                                            onClick={handleDeleteByCropYear}
+                                            disabled={
+                                                !cropYearToDelete ||
+                                                isDeletingByCropYear
+                                            }
+                                        >
+                                            {isDeletingByCropYear
+                                                ? 'Deleting...'
+                                                : 'Delete'}
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
                         </div>
                         <ImportDialog config={productionsImportConfig} />
                     </ContainerHeaderEnd>

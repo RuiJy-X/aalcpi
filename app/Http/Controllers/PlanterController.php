@@ -4,7 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
-use App\Imports\PlanterImport;
+use App\Jobs\ProcessExcelImportJob;
+use App\Models\ImportJob;
 use App\Models\ImportMapping;
 use App\Models\Planter;
 use App\Models\Production;
@@ -12,7 +13,6 @@ use App\Models\Hacienda;
 use App\Models\MillingPeriod;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Schema;
-use Maatwebsite\Excel\Facades\Excel;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
@@ -326,9 +326,25 @@ class PlanterController extends Controller
             return back()->with('error', 'Import mapping not found for planters.');
         }
 
-        Excel::import(new PlanterImport($mapping->mapping ?? []), $validated['file']);
+        $storedPath = $validated['file']->store('imports', 'local');
+        $importJob = ImportJob::create([
+            'user_id' => $request->user()?->id,
+            'type' => 'planters_excel',
+            'status' => ImportJob::STATUS_QUEUED,
+        ]);
 
-        return back()->with('success', 'Planter data imported successfully.');
+        ProcessExcelImportJob::dispatch(
+            $importJob->id,
+            'planters_excel',
+            $storedPath,
+            [
+                'mapping' => $mapping->mapping ?? [],
+            ],
+        );
+
+        return back()
+            ->with('success', 'Planter import queued. You can keep using the app while it processes.')
+            ->with('import_job_id', $importJob->id);
 
     }
 

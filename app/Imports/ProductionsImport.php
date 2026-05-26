@@ -3,20 +3,27 @@ namespace App\Imports;
 
 
 use App\Models\Hacienda;
+use App\Models\ImportJob;
 use App\Models\Planter;
 use App\Models\Production;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
+use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
+use Maatwebsite\Excel\Events\AfterImport;
+use Maatwebsite\Excel\Events\ImportFailed;
 
-class ProductionsImport implements ToModel, WithHeadingRow, ShouldQueue, WithChunkReading
+class ProductionsImport implements ToModel, WithHeadingRow, ShouldQueue, WithChunkReading, WithEvents
 {
     public function __construct(
         private readonly string $importCropYear,
         private readonly array $mapping = [],
         private readonly float | null $compositeSugarPrice = null,
         private readonly float | null $compositeMolassesPrice = null,
+        private readonly ?int $importJobId = null,
+        private readonly ?string $storedPath = null,
     ) {}
 
     public function model(array $row)
@@ -102,6 +109,32 @@ class ProductionsImport implements ToModel, WithHeadingRow, ShouldQueue, WithChu
     public function chunkSize(): int
     {
         return 1000;
+    }
+
+    public function registerEvents(): array
+    {
+        return [
+            AfterImport::class => function (): void {
+                if ($this->importJobId !== null) {
+                    $importJob = ImportJob::find($this->importJobId);
+                    $importJob?->markDone();
+                }
+
+                if ($this->storedPath) {
+                    Storage::disk('local')->delete($this->storedPath);
+                }
+            },
+            ImportFailed::class => function (ImportFailed $event): void {
+                if ($this->importJobId !== null) {
+                    $importJob = ImportJob::find($this->importJobId);
+                    $importJob?->markFailed($event->getException()->getMessage());
+                }
+
+                if ($this->storedPath) {
+                    Storage::disk('local')->delete($this->storedPath);
+                }
+            },
+        ];
     }
 
     private function applyMapping(array $row): array

@@ -4,6 +4,7 @@ use App\Http\Controllers\ProductionController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\ImportMappingController;
+use App\Http\Controllers\ImportJobStatusController;
 use App\Http\Controllers\MillingPeriodsController;
 use App\Http\Controllers\HaciendaController;
 use App\Http\Controllers\WeeklyController;
@@ -57,6 +58,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::post('/Imports/preview', [ImportMappingController::class, 'preview'])->name('imports.preview');
         Route::post('/Imports/mappings', [ImportMappingController::class, 'store'])->name('imports.mappings.store');
+        Route::get('/Imports/status/{importJob}', [ImportJobStatusController::class, 'show'])->name('imports.status');
 
         // Planters
         Route::prefix('Planters')->name('planters.')->group(function () {
@@ -82,6 +84,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::patch('/view/update/{productionId}', [ProductionController::class,'update'])->name('update');
             Route::post('/import', [ProductionController::class,'import'])->name('import');
             Route::delete('/bulk-delete', [ProductionController::class, 'bulkDestroy'])->name('bulk-destroy');
+            Route::delete('/delete-by-crop-year', [ProductionController::class, 'destroyByCropYear'])->name('destroy-by-crop-year');
             Route::delete('/delete/{productionId}', [ProductionController::class, 'destroy'])->name('destroy');
         });
 
@@ -102,6 +105,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('/', [WeeklyController::class, 'index'])->name('index');
             Route::post('/import', [WeeklyController::class, 'store'])->name('import');
             Route::delete('/clear', [WeeklyController::class, 'clear'])->name('clear');
+            Route::delete('/delete-by-crop-year-week', [WeeklyController::class, 'destroyByCropYearWeek'])->name('destroy-by-crop-year-week');
             Route::get('/{weekly}', [WeeklyController::class, 'show'])->name('show');
             Route::get('/{weekly}/download', [WeeklyController::class, 'download'])->name('download');
         });

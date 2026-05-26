@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { Head } from '@inertiajs/react';
 import { useState } from 'react';
 
 import {
@@ -7,10 +7,10 @@ import {
     ContainerHeaderEnd,
 } from '@/components/container';
 import { WeeklyImportDialog } from '@/components/weekly/weekly-import-dialog';
-import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
 import { Spinner } from '@/components/ui/spinner';
+import { WeeklyDeleteDialog } from './components/weekly-delete-dialog';
 import { WeeklyFilterBar } from './components/weekly-filter-bar';
 import { WeeklyList } from './components/weekly-list';
 import { WeeklyPdfPreview } from './components/weekly-pdf-preview';
@@ -29,7 +29,6 @@ export default function Index({
     crop_years,
     weeks_by_crop_year,
 }: WeeklyIndexProps) {
-    const [isClearing, setIsClearing] = useState(false);
     const [isImporting, setIsImporting] = useState(false);
 
     const {
@@ -55,23 +54,6 @@ export default function Index({
         weeklies,
         weeksByCropYear: weeks_by_crop_year,
     });
-
-    const handleClearData = () => {
-        if (
-            !window.confirm(
-                'This will permanently delete all weekly PDFs, imported files, and weekly records. Continue?',
-            )
-        ) {
-            return;
-        }
-
-        router.delete('/Weekly/clear', {
-            preserveScroll: true,
-            onStart: () => setIsClearing(true),
-            onFinish: () => setIsClearing(false),
-            onSuccess: clearSelection,
-        });
-    };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -99,14 +81,13 @@ export default function Index({
                                 onCropYearChange={handleCropYearChange}
                                 onWeekChange={setSelectedWeek}
                             />
-                            <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={handleClearData}
-                                disabled={isClearing}
-                            >
-                                {isClearing ? 'Clearing...' : 'Clear'}
-                            </Button>
+                            <WeeklyDeleteDialog
+                                cropYears={crop_years}
+                                weeksByCropYear={weeks_by_crop_year}
+                                selectedCropYear={selectedCropYear}
+                                selectedWeek={selectedWeek}
+                                onDeleted={clearSelection}
+                            />
                             <WeeklyImportDialog
                                 setIsImporting={setIsImporting}
                                 isImporting={isImporting}

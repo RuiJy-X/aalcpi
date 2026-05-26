@@ -2,14 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Imports\AttendanceImport;
+use App\Jobs\ProcessExcelImportJob;
+use App\Models\ImportJob;
 use App\Models\Attendance;
 use App\Models\Employee;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Validation\ValidationException;
 
 class AttendanceController extends Controller
 {
@@ -97,20 +96,21 @@ class AttendanceController extends Controller
             'file' => ['required', 'file', 'mimes:xlsx,xls,csv'],
         ]);
 
-        // $employee = Employee::findOrFail($request->integer('employee_id'));
+        $storedPath = $request->file('file')->store('imports', 'local');
+        $importJob = ImportJob::create([
+            'user_id' => $request->user()?->id,
+            'type' => 'attendance_excel',
+            'status' => ImportJob::STATUS_QUEUED,
+        ]);
 
-        $import = new AttendanceImport();
-            //employeeId: $employee->id,
+        ProcessExcelImportJob::dispatch(
+            $importJob->id,
+            'attendance_excel',
+            $storedPath,
+        );
 
-
-        Excel::import($import, $request->file('file'));
-
-        if ($import->importedCount === 0) {
-            throw ValidationException::withMessages([
-                'file' => 'No attendance rows were imported for the selected employee and date range.',
-            ]);
-        }
-
-        return back()->with('success', "DTR imported successfully.");
+        return back()
+            ->with('success', 'Attendance import queued. You can keep using the app while it processes.')
+            ->with('import_job_id', $importJob->id);
     }
 }

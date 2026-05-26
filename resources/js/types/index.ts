@@ -10,6 +10,7 @@ export type SharedData = {
     flash: {
         success?: string | null;
         error?: string | null;
+        import_job_id?: number | string | null;
     };
     sidebarOpen: boolean;
     [key: string]: unknown;
