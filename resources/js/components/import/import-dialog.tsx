@@ -238,11 +238,6 @@ export function ImportDialog({ config }: { config: ImportConfig }) {
                 formData,
             );
 
-            if (preview.mapping_id) {
-                submitImport(preview.mapping_id);
-                return;
-            }
-
             const nextHeaders = preview.headers ?? [];
             const nextMapping = (config.mappingTargets ?? []).reduce(
                 (acc, target) => {
@@ -253,6 +248,13 @@ export function ImportDialog({ config }: { config: ImportConfig }) {
                 },
                 {} as Record<string, string>,
             );
+
+            const existingMapping = preview.mapping ?? {};
+            Object.keys(nextMapping).forEach((key) => {
+                if (existingMapping[key]) {
+                    nextMapping[key] = existingMapping[key];
+                }
+            });
 
             setHeaders(nextHeaders);
             setSignature(preview.signature ?? '');

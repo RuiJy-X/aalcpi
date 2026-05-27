@@ -4,7 +4,7 @@ import type {
     PaginationState,
     SortingState,
 } from '@tanstack/react-table';
-import { User } from 'lucide-react';
+import { RefreshCw, User } from 'lucide-react';
 import * as React from 'react';
 import { format } from 'date-fns';
 import type { DateRange } from 'react-day-picker';

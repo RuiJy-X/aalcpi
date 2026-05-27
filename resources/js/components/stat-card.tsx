@@ -127,7 +127,7 @@ const StatCard = ({
         >
             {/* Header row */}
             <div className="mb-3 flex items-start justify-between">
-                <span className="text-[11px] leading-none font-medium tracking-[0.07em] text-gray-400 uppercase">
+                <span className="text-dark text-[14px] leading-none font-bold tracking-[0.07em] uppercase">
                     {title}
                 </span>
                 <span

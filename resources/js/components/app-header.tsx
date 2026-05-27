@@ -1,5 +1,12 @@
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, Menu, Search } from 'lucide-react';
+import {
+    BookOpen,
+    Folder,
+    LayoutGrid,
+    Menu,
+    RefreshCw,
+    Search,
+} from 'lucide-react';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -178,6 +185,16 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
 
                     <div className="ml-auto flex items-center space-x-2">
                         <div className="relative flex items-center space-x-1">
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="group h-9 w-9 cursor-pointer"
+                                onClick={() => window.location.reload()}
+                                aria-label="Refresh"
+                            >
+                                <RefreshCw className="!size-5 opacity-80 group-hover:opacity-100" />
+                            </Button>
                             <Button
                                 variant="ghost"
                                 size="icon"

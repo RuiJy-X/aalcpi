@@ -29,6 +29,20 @@ class PlanterController extends Controller
         $dateColumn = $request->string('date_column')->toString();
         $dateFrom = $request->string('date_from')->toString();
         $dateTo = $request->string('date_to')->toString();
+        $driver = Schema::getConnection()->getDriverName();
+        $likeOperator = $driver === 'pgsql' ? 'ilike' : 'like';
+        $useCaseInsensitiveLike = $driver === 'sqlite';
+        $applyLike = function ($query, string $column, string $value, string $boolean = 'and') use ($likeOperator, $useCaseInsensitiveLike) {
+            if ($useCaseInsensitiveLike) {
+                $grammar = method_exists($query, 'getQuery') ? $query->getQuery()->getGrammar() : $query->getGrammar();
+                $wrapped = $grammar->wrap($column);
+                $query->whereRaw('lower(' . $wrapped . ') like ?', [strtolower($value)], $boolean);
+
+                return;
+            }
+
+            $query->where($column, $likeOperator, $value, $boolean);
+        };
 
         $columnMap = [
             'planter_code' => 'planters.planter_code',
@@ -66,13 +80,13 @@ class PlanterController extends Controller
                 $dbColumn = $columnMap[$column];
                 $values = is_array($value) ? $value : [$value];
 
-                $baseQuery->where(function ($query) use ($dbColumn, $values) {
+                $baseQuery->where(function ($query) use ($applyLike, $dbColumn, $values) {
                     foreach ($values as $filterValue) {
                         if ($filterValue === '' || $filterValue === null) {
                             continue;
                         }
 
-                        $query->orWhere($dbColumn, 'ilike', '%' . $filterValue . '%');
+                        $applyLike($query, $dbColumn, '%' . $filterValue . '%', 'or');
                     }
                 });
             }
@@ -80,13 +94,13 @@ class PlanterController extends Controller
 
         if ($search !== '') {
             $like = '%' . $search . '%';
-            $baseQuery->where(function ($query) use ($like) {
-                $query->orWhere('planters.planter_code', 'ilike', $like)
-                    ->orWhere('planters.name', 'ilike', $like)
-                    ->orWhere('planters.address', 'ilike', $like)
-                    ->orWhere('planters.tin_number', 'ilike', $like)
-                    ->orWhere('planters.contact_number', 'ilike', $like)
-                    ->orWhere('planters.registration_date', 'ilike', $like);
+            $baseQuery->where(function ($query) use ($applyLike, $like) {
+                $applyLike($query, 'planters.planter_code', $like, 'or');
+                $applyLike($query, 'planters.name', $like, 'or');
+                $applyLike($query, 'planters.address', $like, 'or');
+                $applyLike($query, 'planters.tin_number', $like, 'or');
+                $applyLike($query, 'planters.contact_number', $like, 'or');
+                $applyLike($query, 'planters.registration_date', $like, 'or');
             });
         }
 

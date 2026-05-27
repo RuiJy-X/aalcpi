@@ -15,12 +15,18 @@
         }
 
         p {
+            font-family: 'Times New Roman', Times, serif;
             line-height: 1.5;
+            font-size: 16px;
         }
 
         .emphasize {
             font-weight: bold;
             text-decoration: underline;
+        }
+
+        h3{
+            font-family: 'Times New Roman', Times, serif;
         }
     </style>
 </head>
@@ -34,12 +40,12 @@
         $compositeSugarPrice = $production->composite_sugar_price;
         $compositeMolassesPrice = $production->composite_molasses_price;
     @endphp
-    <h2 style="text-align: center;">ASSOCIACION DE AGRICULTORES DE LA CARLOTA Y PONTEVEDRA, INC. P.O BOX 18, Brgy. RSB, La Carlota City</h2>
+    <h2 style="text-align: center; font-size: 16px;">ASSOCIACION DE AGRICULTORES DE LA CARLOTA Y PONTEVEDRA, INC. P.O Box 18, Brgy. RSB, La Carlota City</h2>
     <br><br>
-    <h1 style="text-align: center;"><strong>CERTIFICATION</strong></h1>
+    <h1 style="text-align: center; font-family: 'Times New Roman', Times, serif;"><strong>C E R T I F I C A T I O N</strong></h1>
     <h3><strong>TO WHOM IT MAY CONCERN:</strong></h3>
-    <p style="text-align: justify;">This is to certify that according to our records on file with Planter Code No. <span class="emphasize">{{ $production->planter_code}}</span> milling with Universal Robina Corporation, La Carlota City under the name of <span class="emphasize">{{ $production->planter->name }}</span> had the following production in Tons Cane, Lkg, Sugar and Molasses in metric tons for crop year {{ $production->production_year }}.</p>
-    <h3 style="text-align: center;"><strong>FINAL DATA</strong></h3>
+    <p style="text-align: justify; text-indent: 40px; padding:0px 32px">This is to certify that according to our records on file with Planter Code No. <span class="emphasize">{{ $production->planter_code}}</span> milling with Universal Robina Corporation, La Carlota City under the name of <span class="emphasize">{{ $production->planter->name }}</span> had the following production in Tons Cane, Lkg, Sugar and Molasses in metric tons for crop year {{ $production->crop_year }}.</p>
+    <h3 style="text-align: center; font-family: Arial, Helvetica, sans-serif; font-size: 18px;"><strong>FINAL DATA</strong></h3>
 
 
 
@@ -81,10 +87,11 @@
     <tbody>
         <tr>
             <td style="width: 60%">
-                <p>Sugar= Php {{ $compositeSugarPrice !== null ? number_format($compositeSugarPrice, 2) : '-' }}
-                <p>Molasses= Php {{ $compositeMolassesPrice !== null ? number_format($compositeMolassesPrice, 2) : '-' }}
+                <p style="padding: 0; margin:0 ">Sugar= Php {{ $compositeSugarPrice !== null ? number_format($compositeSugarPrice, 2) : '-' }}
+                <p style="padding: 0; margin:0 ">Molasses= Php {{ $compositeMolassesPrice !== null ? number_format($compositeMolassesPrice, 2) : '-' }}
+                
             </td>
-            <td style="width: 40%; text-align: justify">
+            <td style="width: 40%; text-align: center">
                 <h5>
                     ASSOCIACION DE AGRICULTORES DE LA CARLOTA Y PONTEVEDRA, INC. BY:<br><br><br>
                     DAVID JOHN THADDEUS P. ALBA<br>
@@ -95,6 +102,8 @@
     </tbody>
 
 </table>
+<p style="padding: 0; margin:0 ">La Carlota City Philippines</p>
+<p style="padding: 0; margin:0 ">{{ now()->format('F j, Y') }}</p>
 
     @if (! $loop->last)
         <div style="page-break-after: always;"></div>

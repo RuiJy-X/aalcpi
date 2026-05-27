@@ -35,22 +35,30 @@ class ProductionsImport implements ToModel, WithHeadingRow, ShouldQueue, WithChu
             return null;
         }
 
-        $sanitizeNum = function($val) {
-        if (empty($val)) return 0;
-
-        // Remove commas (e.g., "32,871" becomes "32871")
-        // If the comma was intended as a decimal, use: str_replace(',', '.', $val)
-        $cleanVal = str_replace(',', '', $val);
-
-        return is_numeric($cleanVal) ? (float) $cleanVal : 0;
-        };
-
-        // 2. HELPER for numeric values
-        $toNum = fn($val) => is_numeric($val) ? $val : 0;
+        // 2. HELPERS for numeric values
+        $toNum = fn($val) => is_numeric($val) ? (float) $val : 0;
         $toBool = fn($val) => filter_var($val, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE) ?? false;
         $toNullablePrice = fn($val) => ($val === null || $val === '')
             ? null
             : (is_numeric($val) ? (float) $val : null);
+        $toMolValue = function ($val): float {
+            if ($val === null || $val === '') {
+                return 0;
+            }
+
+            $raw = trim((string) $val);
+            $hasDecimal = str_contains($raw, '.') || str_contains($raw, ',');
+            $normalized = str_replace(',', '.', $raw);
+
+            if (!is_numeric($normalized)) {
+                return 0;
+            }
+
+            $num = (float) $normalized;
+
+            // If no decimal separator, assume the value is in thousandths.
+            return $hasDecimal ? $num : $num / 1000;
+        };
 
         // 3. PAD CODES to 5 digits with leading zeros
         $planterCode = $this->padCode($row['planter_code'] ?? $row['Pcode'] ?? '0');
@@ -94,9 +102,9 @@ class ProductionsImport implements ToModel, WithHeadingRow, ShouldQueue, WithChu
                 'actual_lkg'           => $toNum($row['actual_lkg'] ?? $row['Total Sugar'] ?? 0),
                 'theoretical_lkg'      => $toNum($row['theoretical_lkg'] ?? $row['theo_lkg'] ?? 0),
                 'pshr_net_lkg'         => $toNum($row['pshr_net_lkg'] ?? $row['pshr_net_sugar'] ?? $row['planter_share_sugar'] ?? $row['Sugar (64%)'] ?? 0),
-                'actual_mol'           => $toNum($row['re actual_mol'] ?? $row['actual_mol'] ?? $row['Total Mol'] ?? 0), // Note the 're_'
-                'pshr_net_mol'         => $toNum($row['re pshr_net_mol'] ?? $row['pshr_net_mol'] ?? $row['Pshr_Net_Mol'] ?? $row['Mol (64%)'] ?? 0), // Note the 're_'
-                'pdpa_mol' => $toNum($row['re_pdpa_mol'] ?? $row['pdpa_mol'] ?? 0),
+                'actual_mol'           => $toMolValue($row['re actual_mol'] ?? $row['actual_mol'] ?? $row['Total Mol'] ?? 0), // Note the 're_'
+                'pshr_net_mol'         => $toMolValue($row['re pshr_net_mol'] ?? $row['pshr_net_mol'] ?? $row['Pshr_Net_Mol'] ?? $row['Mol (64%)'] ?? 0), // Note the 're_'
+                'pdpa_mol' => $toMolValue($row['re_pdpa_mol'] ?? $row['pdpa_mol'] ?? 0),
 
                 'association_dues_lkg' => $toNum($row['assn_dues_lkg'] ?? $row['assn_dues_sugar'] ?? 0),
                 'association_dues_mol' => $toNum($row['Assn_Dues_Mol'] ?? $row['assn_dues_mol'] ?? $row['re assn_dues_mol'] ?? 0),

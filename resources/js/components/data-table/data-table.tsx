@@ -36,6 +36,8 @@ import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
     DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -417,6 +419,31 @@ export function DataTable<TData, TValue>({
         },
     });
 
+    const hideableColumns = React.useMemo(
+        () => table.getAllColumns().filter((column) => column.getCanHide()),
+        [table],
+    );
+    const canSelectAllColumns = hideableColumns.some(
+        (column) => !column.getIsVisible(),
+    );
+    const canClearAllColumns = hideableColumns.some((column) =>
+        column.getIsVisible(),
+    );
+    const setAllColumnsVisibility = React.useCallback(
+        (isVisible: boolean) => {
+            table.setColumnVisibility((current) => {
+                const nextVisibility = { ...current };
+
+                hideableColumns.forEach((column) => {
+                    nextVisibility[column.id] = isVisible;
+                });
+
+                return nextVisibility;
+            });
+        },
+        [table, hideableColumns],
+    );
+
     const selectedRows = table.getFilteredSelectedRowModel().rows;
     const selectedCount = selectedRows.length;
     const totalRowCount = totalRows ?? table.getFilteredRowModel().rows.length;
@@ -705,24 +732,38 @@ export function DataTable<TData, TValue>({
                         align="end"
                         className="max-h-75 overflow-y-auto"
                     >
-                        {table
-                            .getAllColumns()
-                            .filter((column) => column.getCanHide())
-                            .map((column) => {
-                                return (
-                                    <DropdownMenuCheckboxItem
-                                        key={column.id}
-                                        className="capitalize"
-                                        onSelect={(e) => e.preventDefault()}
-                                        checked={column.getIsVisible()}
-                                        onCheckedChange={(value) =>
-                                            column.toggleVisibility(!!value)
-                                        }
-                                    >
-                                        {column.id}
-                                    </DropdownMenuCheckboxItem>
-                                );
-                            })}
+                        <DropdownMenuItem
+                            onSelect={(event) => {
+                                event.preventDefault();
+                                setAllColumnsVisibility(true);
+                            }}
+                            disabled={!canSelectAllColumns}
+                        >
+                            Select all
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            onSelect={(event) => {
+                                event.preventDefault();
+                                setAllColumnsVisibility(false);
+                            }}
+                            disabled={!canClearAllColumns}
+                        >
+                            Clear all
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        {hideableColumns.map((column) => (
+                            <DropdownMenuCheckboxItem
+                                key={column.id}
+                                className="capitalize"
+                                onSelect={(e) => e.preventDefault()}
+                                checked={column.getIsVisible()}
+                                onCheckedChange={(value) =>
+                                    column.toggleVisibility(!!value)
+                                }
+                            >
+                                {column.id}
+                            </DropdownMenuCheckboxItem>
+                        ))}
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>

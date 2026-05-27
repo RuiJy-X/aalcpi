@@ -8,6 +8,7 @@ use App\Models\Planter;
 use App\Models\Hacienda;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class HaciendaController extends Controller
 {
@@ -21,6 +22,20 @@ class HaciendaController extends Controller
         $dateColumn = $request->string('date_column')->toString();
         $dateFrom = $request->string('date_from')->toString();
         $dateTo = $request->string('date_to')->toString();
+        $driver = Schema::getConnection()->getDriverName();
+        $likeOperator = $driver === 'pgsql' ? 'ilike' : 'like';
+        $useCaseInsensitiveLike = $driver === 'sqlite';
+        $applyLike = function ($query, string $column, string $value, string $boolean = 'and') use ($likeOperator, $useCaseInsensitiveLike) {
+            if ($useCaseInsensitiveLike) {
+                $grammar = method_exists($query, 'getQuery') ? $query->getQuery()->getGrammar() : $query->getGrammar();
+                $wrapped = $grammar->wrap($column);
+                $query->whereRaw('lower(' . $wrapped . ') like ?', [strtolower($value)], $boolean);
+
+                return;
+            }
+
+            $query->where($column, $likeOperator, $value, $boolean);
+        };
 
         $columnMap = [
             'hacienda_code' => 'haciendas.hacienda_code',
@@ -88,13 +103,13 @@ class HaciendaController extends Controller
                     continue;
                 }
 
-                $baseQuery->where(function ($query) use ($dbColumn, $values) {
+                $baseQuery->where(function ($query) use ($applyLike, $dbColumn, $values) {
                     foreach ($values as $filterValue) {
                         if ($filterValue === '' || $filterValue === null) {
                             continue;
                         }
 
-                        $query->orWhere($dbColumn, 'ilike', '%' . $filterValue . '%');
+                        $applyLike($query, $dbColumn, '%' . $filterValue . '%', 'or');
                     }
                 });
             }
@@ -102,11 +117,11 @@ class HaciendaController extends Controller
 
         if ($search !== '') {
             $like = '%' . $search . '%';
-            $baseQuery->where(function ($query) use ($like) {
-                $query->orWhere('haciendas.hacienda_code', 'ilike', $like)
-                    ->orWhere('planters.name', 'ilike', $like)
-                    ->orWhere('haciendas.name', 'ilike', $like)
-                    ->orWhere('haciendas.address', 'ilike', $like);
+            $baseQuery->where(function ($query) use ($applyLike, $like) {
+                $applyLike($query, 'haciendas.hacienda_code', $like, 'or');
+                $applyLike($query, 'planters.name', $like, 'or');
+                $applyLike($query, 'haciendas.name', $like, 'or');
+                $applyLike($query, 'haciendas.address', $like, 'or');
             });
         }
 

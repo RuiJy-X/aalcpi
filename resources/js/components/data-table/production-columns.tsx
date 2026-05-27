@@ -460,7 +460,7 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
             return (
                 <div className="flex items-center">
                     <div className="ml-2 truncate">
-                        {Number(production.actual_mol).toFixed(2)}
+                        {Number(production.actual_mol).toFixed(3)}
                     </div>
                 </div>
             );
@@ -484,7 +484,7 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
             return (
                 <div className="flex items-center">
                     <div className="ml-2 truncate">
-                        {Number(production.pshr_net_mol).toFixed(2)}
+                        {Number(production.pshr_net_mol).toFixed(3)}
                     </div>
                 </div>
             );
