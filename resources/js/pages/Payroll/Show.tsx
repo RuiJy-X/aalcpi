@@ -210,7 +210,7 @@ export default function Show({ payroll }: { payroll: PayrollDetailType }) {
                                 <span className="font-semibold text-slate-700">
                                     ₱
                                     {formatMoney(
-                                        payroll.employee.hourly_rate,
+                                        payroll.hourly_rate,
                                     ) ?? 'N/A'}
                                 </span>
                             </div>
@@ -369,9 +369,9 @@ export default function Show({ payroll }: { payroll: PayrollDetailType }) {
                                     <Input
                                         readOnly
                                         value={
-                                            employee?.hourly_rate !== null &&
-                                            employee?.hourly_rate !== undefined
-                                                ? String(employee.hourly_rate)
+                                            payroll.hourly_rate !== null &&
+                                            payroll.hourly_rate !== undefined
+                                                ? String(payroll.hourly_rate)
                                                 : 'N/A'
                                         }
                                     />

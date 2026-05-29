@@ -190,7 +190,7 @@ export default function Dashboard({
                     </SelectTrigger>
                     <SelectContent className="bg-white">
                         {crop_years.length === 0 ? (
-                            <SelectItem value="" disabled>
+                            <SelectItem value="__no_crop_years__" disabled>
                                 No crop years
                             </SelectItem>
                         ) : (

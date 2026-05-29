@@ -62,7 +62,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     // --- MANAGER & CERTIFICATION OFFICER ---
-    Route::middleware('role:manager,cert_officer,employee')->group(function () {
+    Route::middleware('role:manager,cert_officer,employee,admin')->group(function () {
 
         Route::post('/Imports/preview', [ImportMappingController::class, 'preview'])->name('imports.preview');
         Route::post('/Imports/mappings', [ImportMappingController::class, 'store'])->name('imports.mappings.store');

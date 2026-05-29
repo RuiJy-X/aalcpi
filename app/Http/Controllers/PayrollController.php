@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\GeneratePayrollRequest;
 use App\Http\Requests\PreviewPayrollRequest;
 use App\Models\Payroll;
+use App\Models\Attendance;
 use App\Imports\AttendanceImport;
 use App\Services\PayrollCalculationService;
 use Carbon\Carbon;
@@ -40,10 +41,12 @@ class PayrollController extends Controller
                     'employee_name' => $record->employee?->name,
                     'period_start' => $record->period_start,
                     'period_end' => $record->period_end,
+                    'payroll_date' => $record->payroll_date,
                     'days_worked' => $record->days_worked,
                     'total_days' => $record->total_days,
                     'total_hours' => $record->total_hours,
                     'hours_worked' => $record->hours_worked,
+                    'hourly_rate' => $record->hourly_rate,
                     'basic_pay' => $record->basic_pay,
                     'holidays' => $record->holidays,
                     'gross_pay' => $record->gross_pay,
@@ -176,6 +179,12 @@ class PayrollController extends Controller
                 totalDays: $import->totalDays,
             );
 
+            if ($payroll->payroll_date === null) {
+                $payroll->update([
+                    'payroll_date' => $payroll->period_end,
+                ]);
+            }
+
             return back()->with('success', "Payroll generated successfully for {$employee->name}.");
         } catch (ValidationException $e) {
             throw $e;
@@ -300,16 +309,18 @@ class PayrollController extends Controller
                     'department' => $payroll->employee->department,
                     'position' => $payroll->employee->position,
                     'employment_type' => $payroll->employee->employment_type,
-                    'hourly_rate' => $payroll->employee->hourly_rate,
+                    'hourly_rate' => $payroll->hourly_rate,
                     'base_salary' => $payroll->employee->base_salary,
                     'attendances' => $attendanceRecords,
                 ] : null,
                 'period_start' => $payroll->period_start?->toDateString(),
                 'period_end' => $payroll->period_end?->toDateString(),
+                'payroll_date' => $payroll->payroll_date?->toDateString(),
                 'days_worked' => $payroll->days_worked,
                 'total_days' => $payroll->total_days,
                 'total_hours' => $payroll->total_hours,
                 'hours_worked' => $payroll->hours_worked,
+                'hourly_rate' => $payroll->hourly_rate,
                 'basic_pay' => $payroll->basic_pay,
                 'holidays' => $payroll->holidays,
                 'gross_pay' => $payroll->gross_pay,
@@ -329,15 +340,128 @@ class PayrollController extends Controller
     {
         $validated = $request->validate([
             'status' => 'sometimes|in:draft,pending,paid',
+            'payroll_date' => 'sometimes|date',
+            'holidays' => 'sometimes|integer|min:0',
             'deductions' => 'sometimes|numeric|min:0',
             'net_pay' => 'sometimes|numeric',
+            'attendance_file' => 'sometimes|file|mimes:xlsx,xls',
         ]);
 
-        // If deductions are updated, recalculate net pay
-        if (isset($validated['deductions'])) {
+        $updates = [];
+
+        if (isset($validated['status'])) {
+            $updates['status'] = $validated['status'];
+        }
+
+        if (array_key_exists('payroll_date', $validated)) {
+            $updates['payroll_date'] = $validated['payroll_date'];
+        }
+
+        if ($payroll->hourly_rate === null && $payroll->employee?->hourly_rate !== null) {
+            $updates['hourly_rate'] = $payroll->employee->hourly_rate;
+        }
+
+        $hasAttendanceFile = $request->hasFile('attendance_file');
+
+        if ($hasAttendanceFile || isset($validated['holidays']) || isset($validated['deductions'])) {
+            $holidays = isset($validated['holidays'])
+                ? (int) $validated['holidays']
+                : (int) $payroll->holidays;
+            $deductions = isset($validated['deductions'])
+                ? (float) $validated['deductions']
+                : (float) $payroll->deductions;
+
+            $hourlyRate = (float) ($updates['hourly_rate'] ?? $payroll->hourly_rate ?? $payroll->employee?->hourly_rate ?? 0);
+            $totalHours = (float) ($payroll->total_hours ?? $payroll->hours_worked ?? 0);
+            $totalDays = (int) ($payroll->total_days ?? $payroll->days_worked ?? 0);
+            $periodStart = $payroll->period_start;
+            $periodEnd = $payroll->period_end;
+
+            if ($hasAttendanceFile) {
+                $preview = new AttendanceImport(persist: false);
+                Excel::import($preview, $request->file('attendance_file'));
+
+                if ($preview->importedCount === 0) {
+                    throw ValidationException::withMessages([
+                        'attendance_file' => 'No attendance records were imported from the file.',
+                    ]);
+                }
+
+                $employee = $preview->employee;
+                if (!$employee || $employee->id !== $payroll->employee_id) {
+                    throw ValidationException::withMessages([
+                        'attendance_file' => 'The attendance file does not match the payroll employee.',
+                    ]);
+                }
+
+                [$periodStart, $periodEnd] = $this->resolvePeriodRange($preview);
+
+                if (!$periodStart || !$periodEnd) {
+                    throw ValidationException::withMessages([
+                        'attendance_file' => 'Unable to determine payroll period from the attendance file.',
+                    ]);
+                }
+
+                if (
+                    $payroll->period_start
+                    && $payroll->period_end
+                    && (
+                        $periodStart->toDateString() !== $payroll->period_start->toDateString()
+                        || $periodEnd->toDateString() !== $payroll->period_end->toDateString()
+                    )
+                ) {
+                    throw ValidationException::withMessages([
+                        'attendance_file' => 'The attendance file period must match the payroll period.',
+                    ]);
+                }
+
+                Attendance::query()
+                    ->where('employee_id', $payroll->employee_id)
+                    ->whereBetween('date', [
+                        $periodStart->toDateString(),
+                        $periodEnd->toDateString(),
+                    ])
+                    ->delete();
+
+                $import = new AttendanceImport(persist: true);
+                Excel::import($import, $request->file('attendance_file'));
+
+                if ($import->importedCount === 0) {
+                    throw ValidationException::withMessages([
+                        'attendance_file' => 'No attendance records were imported from the file.',
+                    ]);
+                }
+
+                $totalHours = $import->totalHours;
+                $totalDays = $import->totalDays;
+            }
+
+            $summary = $this->payrollService->calculateSimplePayroll(
+                hourlyRate: $hourlyRate,
+                totalHours: $totalHours,
+                holidays: $holidays,
+                deductions: $deductions,
+            );
+
+            $updates = array_merge($updates, [
+                'period_start' => $periodStart,
+                'period_end' => $periodEnd,
+                'days_worked' => $totalDays,
+                'total_days' => $totalDays,
+                'total_hours' => $totalHours,
+                'hours_worked' => $totalHours,
+                'basic_pay' => $summary['basic_pay'],
+                'holidays' => $holidays,
+                'gross_pay' => $summary['gross_pay'],
+                'deductions' => $deductions,
+                'net_pay' => $summary['net_pay'],
+            ]);
+        } elseif (isset($validated['deductions'])) {
             $this->payrollService->updateDeductions($payroll, (float) $validated['deductions']);
-        } else {
-            $payroll->update($validated);
+        }
+
+        if ($updates !== []) {
+            $payroll->update($updates);
         }
 
         return back()->with('success', 'Payroll updated successfully!');

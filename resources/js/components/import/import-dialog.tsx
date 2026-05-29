@@ -42,6 +42,15 @@ const getCsrfToken = (): string => {
     return token ?? '';
 };
 
+const formatErrorDetails = (data: unknown, fallbackMessage: string): string => {
+    if (!data || typeof data !== 'object') {
+        return fallbackMessage;
+    }
+
+    const detail = JSON.stringify(data);
+    return detail ? `${fallbackMessage} ${detail}` : fallbackMessage;
+};
+
 const postFormData = async <T,>(
     url: string,
     formData: FormData,
@@ -57,7 +66,18 @@ const postFormData = async <T,>(
     });
 
     if (!response.ok) {
-        throw new Error(`Failed to fetch: ${response.status}`);
+        let data: unknown = null;
+        try {
+            data = await response.json();
+        } catch {
+            data = null;
+        }
+
+        const errorMessage = formatErrorDetails(
+            data,
+            `HTTP ${response.status}`,
+        );
+        throw new Error(errorMessage);
     }
 
     return response.json() as Promise<T>;
@@ -84,9 +104,9 @@ const postJson = async <T,>(
     };
 
     if (!response.ok) {
-        let errorMsg = `HTTP ${response.status}`;
+        let errorMsg = formatErrorDetails(data, `HTTP ${response.status}`);
         if (data.message) {
-            errorMsg = data.message;
+            errorMsg = `${data.message} ${JSON.stringify(data)}`.trim();
         }
         if (data.errors) {
             const errorDetails = Object.entries(data.errors)
@@ -238,7 +258,9 @@ export function ImportDialog({ config }: { config: ImportConfig }) {
                 formData,
             );
 
-            const nextHeaders = preview.headers ?? [];
+            const nextHeaders = (preview.headers ?? []).filter(
+                (header) => header.trim() !== '',
+            );
             const nextMapping = (config.mappingTargets ?? []).reduce(
                 (acc, target) => {
                     acc[target.key] = nextHeaders.includes(target.key)
@@ -260,8 +282,11 @@ export function ImportDialog({ config }: { config: ImportConfig }) {
             setSignature(preview.signature ?? '');
             setMapping(nextMapping);
             setStep('mapping');
-        } catch {
-            setError('Failed to read the file headers.');
+        } catch (err) {
+            const error = err as Error;
+            setError(
+                `Failed to read the file headers. ${error.message || ''}`.trim(),
+            );
         } finally {
             setIsPreviewing(false);
         }

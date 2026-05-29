@@ -34,8 +34,8 @@ import { index as millingPeriodsIndex } from '@/routes/MillingPeriods';
 import type { NavItem, SharedData } from '@/types';
 import AppLogo from './app-logo';
 
-import { index as attendanceIndex } from '@/routes/attendance';
-import { index as payrollIndex } from '@/routes/payroll';
+import attendanceRoutes from '@/routes/attendance';
+import payrollRoutes from '@/routes/payroll';
 
 export function AppSidebar() {
     const { auth } = usePage<SharedData>().props;
@@ -85,12 +85,12 @@ export function AppSidebar() {
         },
         {
             title: 'Attendance',
-            href: attendanceIndex(),
+            href: attendanceRoutes.index(),
             icon: Clipboard,
         },
         {
             title: 'Payroll',
-            href: payrollIndex(),
+            href: payrollRoutes.index(),
             icon: DollarSign,
         },
 

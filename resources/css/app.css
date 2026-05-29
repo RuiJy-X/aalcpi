@@ -111,41 +111,41 @@
 }
 
 .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.145 0 0);
-    --card-foreground: #1e293b;
-    --popover: oklch(0.145 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.985 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.396 0.141 25.723);
-    --destructive-foreground: oklch(0.637 0.237 25.331);
-    --border: oklch(0.269 0 0);
-    --input: oklch(0.269 0 0);
-    --ring: oklch(0.439 0 0);
+    --background: #0b1510;
+    --foreground: #e6f2e7;
+    --card: #0f1c15;
+    --card-foreground: #e6f2e7;
+    --popover: #0f1c15;
+    --popover-foreground: #e6f2e7;
+    --primary: #42b655;
+    --primary-foreground: #0b1510;
+    --secondary: #18261e;
+    --secondary-foreground: #d5e7d9;
+    --muted: #17241c;
+    --muted-foreground: #a8b9ad;
+    --accent: #1e2f24;
+    --accent-foreground: #e6f2e7;
+    --destructive: #c45151;
+    --destructive-foreground: #f8eaea;
+    --border: #24362b;
+    --input: #24362b;
+    --ring: #42b655;
     --chart-1: oklch(0.488 0.243 264.376);
     --chart-2: oklch(0.696 0.17 162.48);
     --chart-3: oklch(0.769 0.188 70.08);
     --chart-4: oklch(0.627 0.265 303.9);
     --chart-5: oklch(0.645 0.246 16.439);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.985 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(0.269 0 0);
-    --sidebar-ring: oklch(0.439 0 0);
-    --scrollbar-thumb: #4a8c53;
-    --scrollbar-thumb-hover: #6fb579;
-    --scrollbar-track: #606060;
+    --sidebar: #0c1711;
+    --sidebar-foreground: #e4f0e6;
+    --sidebar-primary: #42b655;
+    --sidebar-primary-foreground: #0b1510;
+    --sidebar-accent: #1b2a21;
+    --sidebar-accent-foreground: #e6f2e7;
+    --sidebar-border: #22342a;
+    --sidebar-ring: #42b655;
+    --scrollbar-thumb: #2e5b3a;
+    --scrollbar-thumb-hover: #4a7a55;
+    --scrollbar-track: #101c15;
 }
 
 @layer base {

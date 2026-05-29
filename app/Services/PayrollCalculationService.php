@@ -52,6 +52,7 @@ class PayrollCalculationService
                 'total_days' => $totalDays,
                 'total_hours' => $totalHours,
                 'hours_worked' => $totalHours,
+                'hourly_rate' => $hourlyRate,
                 'basic_pay' => $summary['basic_pay'],
                 'holidays' => $holidays,
                 'gross_pay' => $summary['gross_pay'],

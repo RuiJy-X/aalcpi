@@ -6,10 +6,12 @@ export type PayrollType = {
     employee_name: string | null;
     period_start: string;
     period_end: string;
+    payroll_date?: string | null;
     days_worked: number;
     total_days: number;
     total_hours: number;
     hours_worked: number;
+    hourly_rate?: string | number | null;
     basic_pay: string | number;
     holidays: number;
     gross_pay: string | number;
