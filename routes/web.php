@@ -24,13 +24,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 
     // --- MANAGER ---
-    Route::middleware('role:manager')->group(function () {
+    Route::middleware('role:manager,admin')->group(function () {
         // User Management
         Route::get('/Users', [UserController::class, 'index'])->name('users.index');
         Route::post('/Users', [UserController::class, 'store'])->name('users.store');
+        Route::delete('/Users/bulk-delete', [UserController::class, 'bulkDestroy'])->name('users.bulk-destroy');
         Route::delete('/Users/{id}', [UserController::class, 'destroy'])->name('users.destroy');
         Route::get('/Users/{id}', [UserController::class, 'show'])->name('users.show');
 
+        Route::delete('/Employees/bulk-delete', [EmployeeController::class, 'bulkDestroy'])->name('employees.bulk-destroy');
         Route::resource('/Employees', EmployeeController::class)->whereNumber('Employee');
         Route::patch(
             '/Employees/hourly-rate-settings',
@@ -40,11 +42,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::post('/Attendance/import', [AttendanceController::class, 'import'])->name('attendance.import');
 
+        Route::delete('/Attendance/bulk-delete', [AttendanceController::class, 'bulkDestroy'])->name('attendance.bulk-destroy');
         Route::resource('/Attendance', AttendanceController::class)->whereNumber('Attendance');
 
         Route::post('/Payroll/preview', [PayrollController::class, 'preview'])->name('payroll.preview');
         Route::post('/Payroll/generate', [PayrollController::class, 'generate'])->name('payroll.generate');
         Route::patch('/Payroll/{payroll}/status', [PayrollController::class, 'updateStatus'])->name('payroll.update-status');
+        Route::delete('/Payroll/bulk-delete', [PayrollController::class, 'bulkDestroy'])->name('payroll.bulk-destroy');
         Route::resource('/Payroll', PayrollController::class)->whereNumber('Payroll');
 
         Route::delete('/MillingPeriods/bulk-delete', [MillingPeriodsController::class, 'bulkDestroy'])->name('milling-periods.bulk-destroy');
@@ -58,7 +62,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     // --- MANAGER & CERTIFICATION OFFICER ---
-    Route::middleware('role:manager,cert_officer')->group(function () {
+    Route::middleware('role:manager,cert_officer,employee')->group(function () {
 
         Route::post('/Imports/preview', [ImportMappingController::class, 'preview'])->name('imports.preview');
         Route::post('/Imports/mappings', [ImportMappingController::class, 'store'])->name('imports.mappings.store');

@@ -25,6 +25,10 @@ import type { AttendanceType } from '../Attendance/attendance-types';
 import { attendanceColumns } from '../Attendance/attendance-column-def';
 import type { PayrollType } from '../Payroll/payroll-types';
 import { payrollColumns } from '../Payroll/payroll-column-def';
+import {
+    attendanceBulkDelete,
+    payrollBulkDelete,
+} from '@/components/data-table/bulk-delete';
 
 function formatDateTime(value?: string | null) {
     if (!value) return 'NA';
@@ -42,6 +46,19 @@ function formatCurrency(value?: string | number | null) {
         currency: 'PHP',
         minimumFractionDigits: 2,
     }).format(num);
+}
+
+function calculateHourlyRate(
+    monthlySalary: string,
+    settings: { days_per_month: number; hours_per_day: number },
+) {
+    const salary = parseFloat(monthlySalary);
+    if (!Number.isFinite(salary) || salary <= 0) return '';
+    if (settings.days_per_month <= 0 || settings.hours_per_day <= 0) return '';
+    return (
+        salary /
+        (settings.days_per_month * settings.hours_per_day)
+    ).toFixed(2);
 }
 
 function getInitials(name: string) {
@@ -112,10 +129,12 @@ export default function Show({
     employee,
     attendance,
     payrolls,
+    hourlyRateSettings,
 }: {
     employee: EmployeeType;
     attendance: AttendanceType[];
     payrolls: PayrollType[];
+    hourlyRateSettings: { days_per_month: number; hours_per_day: number };
 }) {
     const employeeHref = employeeShow(employee.id).url;
     const attendanceRecords = attendance ?? [];
@@ -418,6 +437,11 @@ export default function Show({
                                 error={errors.name}
                             />
                             <EditField
+                                label="Employee code"
+                                value={data.employee_code}
+                                readOnly
+                            />
+                            <EditField
                                 label="Position"
                                 value={data.position}
                                 onChange={(v) => setData('position', v)}
@@ -438,7 +462,16 @@ export default function Show({
                             <EditField
                                 label="Base salary"
                                 value={data.base_salary}
-                                onChange={(v) => setData('base_salary', v)}
+                                onChange={(v) => {
+                                    setData('base_salary', v);
+                                    setData(
+                                        'hourly_rate',
+                                        calculateHourlyRate(
+                                            v,
+                                            hourlyRateSettings,
+                                        ),
+                                    );
+                                }}
                                 error={errors.base_salary}
                             />
                             <EditField
@@ -529,6 +562,7 @@ export default function Show({
                         <DataTable
                             data={attendanceRecords}
                             columns={attendanceColumns}
+                            bulkDelete={attendanceBulkDelete}
                         />
                     </TabsContent>
 
@@ -537,6 +571,7 @@ export default function Show({
                             data={payrollRecords}
                             columns={payrollColumns}
                             onRowDoubleClick={(row) => payrollShow(row.id).url}
+                            bulkDelete={payrollBulkDelete}
                         />
                     </TabsContent>
                 </Tabs>

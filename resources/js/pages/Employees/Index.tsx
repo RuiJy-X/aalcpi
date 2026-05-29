@@ -21,6 +21,7 @@ import { useState } from 'react';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { employeeBulkDelete } from '@/components/data-table/bulk-delete';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -78,6 +79,7 @@ export default function Dashboard({
                     onRowDoubleClick={(employee) =>
                         employeeShow(employee.id).url
                     }
+                    bulkDelete={employeeBulkDelete}
                 />
             </Container>
             <Container>

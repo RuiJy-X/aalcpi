@@ -12,6 +12,7 @@ import {
 import CreateUserForm from '@/components/users/create-user-form';
 import { usersColumns } from '@/components/data-table/users-columns';
 import type { UserRow } from '@/components/types/usertypes';
+import { userBulkDelete } from '@/components/data-table/bulk-delete';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -39,6 +40,7 @@ export default function Index({ users }: { users: UserRow[] }) {
                     columns={usersColumns}
                     data={users}
                     onRowDoubleClick={(user) => userShow(user.id).url}
+                    bulkDelete={userBulkDelete}
                 />
             </Container>
         </AppLayout>

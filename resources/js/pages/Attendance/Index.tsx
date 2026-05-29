@@ -1,15 +1,16 @@
 import AppLayout from '@/layouts/app-layout';
 import React, { useMemo } from 'react';
-import type { BreadcrumbItem } from '@/types';
+import type { BreadcrumbItem, SharedData } from '@/types';
 import type { EmployeeType } from '../Employees/employeeTypes';
 import {
     Container,
     ContainerHeader,
     ContainerHeaderEnd,
 } from '@/components/container';
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import { AttendanceType } from './attendance-types';
 import { attendanceColumns } from './attendance-column-def';
+import { attendanceBulkDelete } from '@/components/data-table/bulk-delete';
 
 import { DataTable } from '@/components/data-table/data-table';
 import ImportAttendance from './import-attendance';
@@ -74,7 +75,11 @@ const Index = ({
 
             <Container>
                 <ContainerHeader>Attendance Table</ContainerHeader>
-                <DataTable data={attendance} columns={attendanceColumns} />
+                <DataTable
+                    data={attendance}
+                    columns={attendanceColumns}
+                    bulkDelete={attendanceBulkDelete}
+                />
             </Container>
         </AppLayout>
     );

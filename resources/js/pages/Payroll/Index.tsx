@@ -12,6 +12,7 @@ import { payrollColumns } from './payroll-column-def';
 import { DataTable } from '@/components/data-table/data-table';
 import GeneratePayrollModal from './generate-payroll-modal';
 import { show as payrollShow } from '@/routes/payroll';
+import { payrollBulkDelete } from '@/components/data-table/bulk-delete';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -36,6 +37,7 @@ const Index = ({ payrolls }: { payrolls: PayrollType[] }) => {
                     data={payrolls}
                     columns={payrollColumns}
                     onRowDoubleClick={(row) => payrollShow(row.id).url}
+                    bulkDelete={payrollBulkDelete}
                 />
             </Container>
         </AppLayout>

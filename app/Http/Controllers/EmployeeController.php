@@ -31,6 +31,7 @@ class EmployeeController extends Controller
     public function show($id)
     {
         $employee = Employee::findOrFail($id);
+        $settings = PayrollCalculationSetting::query()->first();
 
         $attendance = $employee->attendances()
             ->latest('date')
@@ -78,6 +79,10 @@ class EmployeeController extends Controller
             'employee' => $employee,
             'attendance' => $attendance,
             'payrolls' => $payrolls,
+            'hourlyRateSettings' => [
+                'days_per_month' => $settings?->days_per_month ?? 24,
+                'hours_per_day' => $settings?->hours_per_day ?? 8,
+            ],
         ]);
     }
 
@@ -213,6 +218,20 @@ class EmployeeController extends Controller
         $employee = Employee::findOrFail($id);
         $employee->delete();
         return redirect()->back()->with('success', 'Employee removed successfully!');
+    }
+
+    public function bulkDestroy(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer', 'distinct', 'exists:employees,id'],
+        ]);
+
+        Employee::whereIn('id', $validated['ids'])->delete();
+
+        return redirect()
+            ->back()
+            ->with('success', 'Selected employee records deleted successfully.');
     }
 
 }

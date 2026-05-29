@@ -70,6 +70,11 @@ export function AppSidebar() {
             href: '/Weekly',
             icon: CalendarDays,
         },
+        {
+            title: 'Milling Periods',
+            href: millingPeriodsIndex(),
+            icon: ShieldCheck,
+        },
     ];
 
     const adminNavItems: NavItem[] = [
@@ -94,11 +99,6 @@ export function AppSidebar() {
         //     href: userIndex(),
         //     icon: Clipboard,
         // },
-        {
-            title: 'Milling Periods',
-            href: millingPeriodsIndex(),
-            icon: ShieldCheck,
-        },
     ];
 
     const mainNavItems: NavItem[] = [

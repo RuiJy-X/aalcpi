@@ -46,4 +46,24 @@ class UserController extends Controller
             'user' => $user,
         ]);
     }
+
+    public function destroy($id)
+    {
+        $user = User::findOrFail($id);
+        $user->delete();
+
+        return back()->with('success', 'User deleted successfully.');
+    }
+
+    public function bulkDestroy(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer', 'distinct', 'exists:users,id'],
+        ]);
+
+        User::whereIn('id', $validated['ids'])->delete();
+
+        return back()->with('success', 'Selected users deleted successfully.');
+    }
 }

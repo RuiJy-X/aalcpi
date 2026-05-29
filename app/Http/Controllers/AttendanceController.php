@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Jobs\ProcessExcelImportJob;
-use App\Models\ImportJob;
+use App\Imports\AttendanceImport;
 use App\Models\Attendance;
 use App\Models\Employee;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Validation\ValidationException;
+use Maatwebsite\Excel\Facades\Excel;
 
 class AttendanceController extends Controller
 {
@@ -90,27 +91,45 @@ class AttendanceController extends Controller
         return response()->json(['message' => 'Attendance record deleted']);
     }
 
+    public function bulkDestroy(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer', 'distinct', 'exists:attendances,id'],
+        ]);
+
+        Attendance::whereIn('id', $validated['ids'])->delete();
+
+        return redirect()
+            ->back()
+            ->with('success', 'Selected attendance records deleted successfully.');
+    }
+
     public function import(Request $request): RedirectResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'file' => ['required', 'file', 'mimes:xlsx,xls,csv'],
         ]);
+        try {
+            $import = new AttendanceImport();
+            Excel::import($import, $validated['file']);
 
-        $storedPath = $request->file('file')->store('imports', 'local');
-        $importJob = ImportJob::create([
-            'user_id' => $request->user()?->id,
-            'type' => 'attendance_excel',
-            'status' => ImportJob::STATUS_QUEUED,
-        ]);
+            if ($import->importedCount === 0) {
+                throw ValidationException::withMessages([
+                    'file' => 'No attendance records were imported from the file.',
+                ]);
+            }
 
-        ProcessExcelImportJob::dispatch(
-            $importJob->id,
-            'attendance_excel',
-            $storedPath,
-        );
-
-        return back()
-            ->with('success', 'Attendance import queued. You can keep using the app while it processes.')
-            ->with('import_job_id', $importJob->id);
+            return back()->with(
+                'success',
+                "Attendance imported successfully ({$import->importedCount} rows)."
+            );
+        } catch (ValidationException $exception) {
+            throw $exception;
+        } catch (\Throwable $exception) {
+            throw ValidationException::withMessages([
+                'file' => 'Error importing attendance: ' . $exception->getMessage(),
+            ]);
+        }
     }
 }

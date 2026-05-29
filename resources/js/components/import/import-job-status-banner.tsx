@@ -93,6 +93,18 @@ export function ImportJobStatusBanner() {
                     },
                 });
 
+                if (response.status === 404 || response.status === 403) {
+                    if (typeof window !== 'undefined') {
+                        window.localStorage.removeItem(STORAGE_KEY);
+                    }
+                    if (isMounted) {
+                        setJobId(null);
+                        setStatus(null);
+                        setError(null);
+                    }
+                    return;
+                }
+
                 if (!response.ok) {
                     throw new Error(`Unable to load import status (${response.status}).`);
                 }

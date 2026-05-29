@@ -26,6 +26,7 @@ import { Separator } from '@/components/ui/separator';
 import { formatMoney } from './generate-payroll.utils';
 import type { PayrollDetailType } from './payroll-types';
 import { attendanceColumns } from '../Attendance/attendance-column-def';
+import { attendanceBulkDelete } from '@/components/data-table/bulk-delete';
 
 const statusStyles: Record<string, string> = {
     draft: 'border-yellow-200 bg-yellow-50 text-yellow-800',
@@ -304,6 +305,7 @@ export default function Show({ payroll }: { payroll: PayrollDetailType }) {
                             <DataTable
                                 data={attendanceRecords}
                                 columns={attendanceColumns}
+                                bulkDelete={attendanceBulkDelete}
                             />
                         </CardContent>
                     </Card>

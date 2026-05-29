@@ -1,6 +1,6 @@
 import React from 'react';
 import { format } from 'date-fns';
-import { useForm } from '@inertiajs/react';
+import { useForm, usePage } from '@inertiajs/react';
 import type { DateRange } from 'react-day-picker';
 import {
     Dialog,
@@ -24,12 +24,19 @@ import {
 } from '@/components/ui/select';
 import { Import } from 'lucide-react';
 import type { EmployeeType } from '../Employees/employeeTypes';
+import { SharedData } from '@/types';
 
 const ImportAttendance = ({
     employees,
 }: {
     employees: Pick<EmployeeType, 'id' | 'name'>[];
 }) => {
+    const page = usePage<SharedData>();
+    const flashSuccess = page.props.flash?.success;
+    const [successMessage, setSuccessMessage] = React.useState<string | null>(
+        flashSuccess ?? null,
+    );
+
     const { data, setData, post, processing, errors, reset } = useForm<{
         file: File | null;
     }>({
@@ -62,6 +69,20 @@ const ImportAttendance = ({
         });
     };
 
+    React.useEffect(() => {
+        if (!flashSuccess) {
+            return;
+        }
+
+        setSuccessMessage(flashSuccess);
+
+        const timeout = window.setTimeout(() => {
+            setSuccessMessage(null);
+        }, 5000);
+
+        return () => window.clearTimeout(timeout);
+    }, [flashSuccess]);
+
     return (
         <Dialog
             onOpenChange={(open) => {
@@ -76,6 +97,32 @@ const ImportAttendance = ({
             </DialogTrigger>
 
             <DialogContent>
+                {successMessage && (
+                    <div className="mb-4 rounded-md bg-green-50 p-4">
+                        <div className="flex">
+                            <div className="flex-shrink-0">
+                                <svg
+                                    className="h-5 w-5 text-green-400"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 20 20"
+                                    fill="currentColor"
+                                    aria-hidden="true"
+                                >
+                                    <path
+                                        fillRule="evenodd"
+                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.707a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                        clipRule="evenodd"
+                                    />
+                                </svg>
+                            </div>
+                            <div className="ml-3">
+                                <p className="text-sm font-medium text-green-800">
+                                    {successMessage}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
                 <form onSubmit={handleSubmit}>
                     <DialogHeader>
                         <DialogTitle>Import Attendance</DialogTitle>

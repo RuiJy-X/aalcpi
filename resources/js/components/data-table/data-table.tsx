@@ -564,7 +564,7 @@ export function DataTable<TData, TValue>({
                         Delete ({selectedCount})
                     </Button>
                 )}
-                {selectedCount > 0 && (
+                {bulkDownload && selectedCount > 0 && (
                     <Button variant="outline" onClick={handleBulkDownload}>
                         <DownloadIcon />
                         Export ({selectedCount})

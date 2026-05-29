@@ -365,4 +365,18 @@ class PayrollController extends Controller
         $payroll->delete();
         return back()->with('success', 'Payroll record deleted successfully!');
     }
+
+    public function bulkDestroy(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer', 'distinct', 'exists:payrolls,id'],
+        ]);
+
+        Payroll::whereIn('id', $validated['ids'])->delete();
+
+        return redirect()
+            ->back()
+            ->with('success', 'Selected payroll records deleted successfully.');
+    }
 }
