@@ -9,6 +9,7 @@ export function WeeklyList({
     selectedIds,
     currentPage,
     totalPages,
+    pagination,
     onPageChange,
     onToggleSelection,
     onOpenPreview,
@@ -18,6 +19,12 @@ export function WeeklyList({
     selectedIds: number[];
     currentPage: number;
     totalPages: number;
+    pagination: {
+        total: number;
+        per_page: number;
+        current_page: number;
+        last_page: number;
+    };
     onPageChange: (page: number) => void;
     onToggleSelection: (item: WeeklyRecord, checked: boolean) => void;
     onOpenPreview: (item: WeeklyRecord) => void;
@@ -46,9 +53,16 @@ export function WeeklyList({
             {totalPages > 1 && (
                 <div className="flex items-center justify-between border-t pt-4">
                     <p className="text-sm text-muted-foreground">
-                        Showing {(currentPage - 1) * 10 + 1} to{' '}
-                        {Math.min(currentPage * 10, groupedWeeklies.length)} of{' '}
-                        {groupedWeeklies.length} planters
+                        Showing{' '}
+                        {pagination.total === 0
+                            ? 0
+                            : (currentPage - 1) * pagination.per_page + 1}{' '}
+                        to{' '}
+                        {Math.min(
+                            currentPage * pagination.per_page,
+                            pagination.total,
+                        )}{' '}
+                        of {pagination.total} files
                     </p>
                     <div className="flex gap-2">
                         <Button

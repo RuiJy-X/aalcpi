@@ -1,65 +1,52 @@
-import { useEffect, useMemo, useState } from 'react';
+import { router } from '@inertiajs/react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
+import { index as weeklyIndex } from '@/routes/weekly';
 import type { WeeklyPlanterGroup, WeeklyRecord } from '../types';
 import { sortNumericStrings } from '../utils';
-
-const ITEMS_PER_PAGE = 10;
 
 export function useWeeklyFilters({
     weeklies,
     weeksByCropYear,
+    pagination,
+    tableState,
 }: {
     weeklies: WeeklyRecord[];
     weeksByCropYear: Record<string, string[]>;
+    pagination: {
+        total: number;
+        per_page: number;
+        current_page: number;
+        last_page: number;
+    };
+    tableState?: {
+        search?: string;
+        crop_year?: string;
+        week?: string;
+    };
 }) {
-    const [search, setSearch] = useState('');
-    const [selectedCropYear, setSelectedCropYear] = useState('all');
-    const [selectedWeek, setSelectedWeek] = useState('all');
+    const [search, setSearch] = useState(tableState?.search ?? '');
+    const [selectedCropYear, setSelectedCropYear] = useState(
+        tableState?.crop_year && tableState.crop_year !== ''
+            ? tableState.crop_year
+            : 'all',
+    );
+    const [selectedWeek, setSelectedWeek] = useState(
+        tableState?.week && tableState.week !== '' ? tableState.week : 'all',
+    );
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const [previewId, setPreviewId] = useState<number | null>(null);
-    const [currentPage, setCurrentPage] = useState(1);
+    const isFirstRender = useRef(true);
 
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [search, selectedCropYear, selectedWeek]);
-
-    const allWeeks = useMemo(
-        () => sortNumericStrings(weeklies.map((item) => item.week)),
-        [weeklies],
-    );
+    const allWeeks = useMemo(() => {
+        const allValues = Object.values(weeksByCropYear).flat();
+        return sortNumericStrings(Array.from(new Set(allValues)));
+    }, [weeksByCropYear]);
 
     const weekOptions =
         selectedCropYear === 'all'
             ? allWeeks
             : sortNumericStrings(weeksByCropYear[selectedCropYear] ?? []);
-
-    const filteredWeeklies = useMemo(() => {
-        const needle = search.trim().toLowerCase();
-
-        return weeklies.filter((item) => {
-            const matchesSearch =
-                needle === '' ||
-                [
-                    item.planter_code,
-                    item.planter_name,
-                    item.crop_year,
-                    item.week,
-                    item.page,
-                    item.segment,
-                ]
-                    .join(' ')
-                    .toLowerCase()
-                    .includes(needle);
-
-            const matchesCropYear =
-                selectedCropYear === 'all' ||
-                item.crop_year === selectedCropYear;
-            const matchesWeek =
-                selectedWeek === 'all' || item.week === selectedWeek;
-
-            return matchesSearch && matchesCropYear && matchesWeek;
-        });
-    }, [search, selectedCropYear, selectedWeek, weeklies]);
 
     const groupedWeeklies = useMemo<WeeklyPlanterGroup[]>(() => {
         const groups = new Map<
@@ -73,7 +60,7 @@ export function useWeeklyFilters({
             }
         >();
 
-        filteredWeeklies.forEach((item) => {
+        weeklies.forEach((item) => {
             const key = `${item.planter_code}::${item.planter_name}`;
             const existingGroup = groups.get(key);
 
@@ -125,11 +112,11 @@ export function useWeeklyFilters({
             .sort((left, right) =>
                 left.planter_name.localeCompare(right.planter_name),
             );
-    }, [filteredWeeklies]);
+    }, [weeklies]);
 
     const selectedItems = useMemo(
-        () => filteredWeeklies.filter((item) => selectedIds.includes(item.id)),
-        [filteredWeeklies, selectedIds],
+        () => weeklies.filter((item) => selectedIds.includes(item.id)),
+        [weeklies, selectedIds],
     );
 
     const previewItem =
@@ -141,12 +128,9 @@ export function useWeeklyFilters({
         ? `${previewItem.planter_name} - Week ${previewItem.week}`
         : 'Select a weekly PDF to preview it here';
 
-    const totalPages = Math.ceil(groupedWeeklies.length / ITEMS_PER_PAGE);
-
-    const paginatedGroups = useMemo(() => {
-        const start = (currentPage - 1) * ITEMS_PER_PAGE;
-        return groupedWeeklies.slice(start, start + ITEMS_PER_PAGE);
-    }, [groupedWeeklies, currentPage]);
+    const totalPages = pagination.last_page;
+    const currentPage = pagination.current_page;
+    const paginatedGroups = groupedWeeklies;
 
     const handleCropYearChange = (value: string) => {
         setSelectedCropYear(value);
@@ -189,6 +173,52 @@ export function useWeeklyFilters({
         setPreviewId(null);
     };
 
+    const buildQuery = (page: number) => {
+        const query: Record<string, string | number> = {
+            page,
+            per_page: pagination.per_page,
+        };
+
+        if (search.trim() !== '') {
+            query.search = search.trim();
+        }
+
+        if (selectedCropYear !== 'all') {
+            query.crop_year = selectedCropYear;
+        }
+
+        if (selectedWeek !== 'all') {
+            query.week = selectedWeek;
+        }
+
+        return query;
+    };
+
+    useEffect(() => {
+        if (isFirstRender.current) {
+            isFirstRender.current = false;
+            return;
+        }
+
+        const timeoutId = window.setTimeout(() => {
+            router.get(weeklyIndex().url, buildQuery(1), {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            });
+        }, 250);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [search, selectedCropYear, selectedWeek]);
+
+    const setCurrentPage = (page: number) => {
+        router.get(weeklyIndex().url, buildQuery(page), {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
+
     return {
         search,
         setSearch,
@@ -201,6 +231,7 @@ export function useWeeklyFilters({
         groupedWeeklies,
         paginatedGroups,
         totalPages,
+        pagination,
         previewItem,
         previewTitle,
         handleCropYearChange,

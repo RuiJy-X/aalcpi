@@ -28,6 +28,8 @@ export default function Index({
     weeklies,
     crop_years,
     weeks_by_crop_year,
+    pagination,
+    table_state,
 }: WeeklyIndexProps) {
     const [isImporting, setIsImporting] = useState(false);
 
@@ -53,6 +55,8 @@ export default function Index({
     } = useWeeklyFilters({
         weeklies,
         weeksByCropYear: weeks_by_crop_year,
+        pagination,
+        tableState: table_state,
     });
 
     return (
@@ -95,13 +99,14 @@ export default function Index({
                         </ContainerHeaderEnd>
                     </ContainerHeader>
                     <div className="flex gap-2">
-                        <div className="mt-4 grid w-full">
+                        <div className="mt-4 grid w-full content-start items-start">
                             <WeeklyList
                                 groupedWeeklies={groupedWeeklies}
                                 paginatedGroups={paginatedGroups}
                                 selectedIds={selectedIds}
                                 currentPage={currentPage}
                                 totalPages={totalPages}
+                                pagination={pagination}
                                 onPageChange={setCurrentPage}
                                 onToggleSelection={toggleSelection}
                                 onOpenPreview={openPreview}

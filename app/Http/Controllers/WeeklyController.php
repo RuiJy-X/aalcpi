@@ -8,6 +8,7 @@ use App\Models\Weekly;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -16,14 +17,59 @@ use RuntimeException;
 
 class WeeklyController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        $weeklies = Weekly::query()
+        $selectedCropYear = $request->string('crop_year')->toString();
+        $selectedWeek = $request->string('week')->toString();
+        $perPage = min(max(1, $request->integer('per_page', 10)), 100);
+        $search = $request->string('search')->toString();
+        $driver = Schema::getConnection()->getDriverName();
+        $likeOperator = $driver === 'pgsql' ? 'ilike' : 'like';
+        $useCaseInsensitiveLike = $driver === 'sqlite';
+        $applyLike = function ($query, string $column, string $value, string $boolean = 'and') use ($likeOperator, $useCaseInsensitiveLike) {
+            if ($useCaseInsensitiveLike) {
+                $grammar = method_exists($query, 'getQuery') ? $query->getQuery()->getGrammar() : $query->getGrammar();
+                $wrapped = $grammar->wrap($column);
+                $query->whereRaw('lower(' . $wrapped . ') like ?', [strtolower($value)], $boolean);
+
+                return;
+            }
+
+            $query->where($column, $likeOperator, $value, $boolean);
+        };
+
+        $baseQuery = Weekly::query();
+
+        if ($selectedCropYear !== '' && $selectedCropYear !== 'all') {
+            $baseQuery->where('crop_year', $selectedCropYear);
+        }
+
+        if ($selectedWeek !== '' && $selectedWeek !== 'all') {
+            $baseQuery->where('week', $selectedWeek);
+        }
+
+        if ($search !== '') {
+            $like = '%' . $search . '%';
+            $baseQuery->where(function ($query) use ($applyLike, $like) {
+                $applyLike($query, 'planter_code', $like, 'or');
+                $applyLike($query, 'planter_name', $like, 'or');
+                $applyLike($query, 'crop_year', $like, 'or');
+                $applyLike($query, 'week', $like, 'or');
+                $applyLike($query, 'page', $like, 'or');
+                $applyLike($query, 'segment', $like, 'or');
+            });
+        }
+
+        $baseQuery
             ->orderByDesc('crop_year')
             ->orderByDesc('week')
             ->orderBy('planter_name')
-            ->orderBy('page')
-            ->get()
+            ->orderBy('page');
+
+        $paginatedWeeklies = $baseQuery->paginate($perPage)->withQueryString();
+
+        $weeklies = $paginatedWeeklies
+            ->getCollection()
             ->map(function (Weekly $weekly): array {
                 return [
                     'id' => $weekly->id,
@@ -41,22 +87,40 @@ class WeeklyController extends Controller
             })
             ->values();
 
-        $cropYears = $weeklies
+        $cropYears = Weekly::query()
+            ->select('crop_year')
+            ->whereNotNull('crop_year')
+            ->distinct()
+            ->orderByDesc('crop_year')
             ->pluck('crop_year')
-            ->filter()
-            ->unique()
-            ->sortDesc()
             ->values();
 
-        $weeksByCropYear = $weeklies
+        $weeksByCropYear = Weekly::query()
+            ->select(['crop_year', 'week'])
+            ->whereNotNull('crop_year')
+            ->whereNotNull('week')
+            ->distinct()
+            ->orderBy('week')
+            ->get()
             ->groupBy('crop_year')
-            ->map(fn (Collection $items) => $items->pluck('week')->filter()->unique()->sort()->values()->all())
+            ->map(fn (Collection $items) => $items->pluck('week')->values()->all())
             ->toArray();
 
         return Inertia::render('Weekly/Index', [
             'weeklies' => $weeklies,
             'crop_years' => $cropYears,
             'weeks_by_crop_year' => $weeksByCropYear,
+            'pagination' => [
+                'total' => $paginatedWeeklies->total(),
+                'per_page' => $paginatedWeeklies->perPage(),
+                'current_page' => $paginatedWeeklies->currentPage(),
+                'last_page' => $paginatedWeeklies->lastPage(),
+            ],
+            'table_state' => [
+                'search' => $search,
+                'crop_year' => $selectedCropYear,
+                'week' => $selectedWeek,
+            ],
         ]);
     }
 

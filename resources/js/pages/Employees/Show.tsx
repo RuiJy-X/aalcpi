@@ -2,11 +2,11 @@ import { Head, Link, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import type { EmployeeType } from './employeeTypes';
 import AppLayout from '@/layouts/app-layout';
-import { index as employeeIndex } from '@/routes/Employees';
 import {
+    index as employeeIndex,
     show as employeeShow,
     update as employeeUpdate,
-} from '@/routes/Employees';
+} from '@/actions/App/Http/Controllers/EmployeeController';
 import { show as payrollShow } from '@/routes/payroll';
 import type { BreadcrumbItem } from '@/types';
 import {
@@ -205,11 +205,9 @@ export default function Show({
                             </div>
                         </ContainerHeaderEnd>
                     </ContainerHeader>
-
                     {/* ── VIEW MODE ── */}
                     {!isEditing && (
                         <div className="space-y-6">
-                            {/* Profile header */}
                             <div className="flex flex-col items-start gap-4 rounded-xl border border-border/50 bg-muted/40 p-5 sm:flex-row sm:items-center">
                                 <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xl font-semibold text-primary">
                                     {getInitials(employee.name ?? '?')}
@@ -252,7 +250,6 @@ export default function Show({
                                         )}
                                     </div>
                                 </div>
-                                {/* Salary summary */}
                                 <div className="flex shrink-0 gap-4 sm:flex-col sm:gap-1 sm:text-right">
                                     <div>
                                         <p className="text-xs tracking-wide text-muted-foreground uppercase">
@@ -277,9 +274,7 @@ export default function Show({
                                 </div>
                             </div>
 
-                            {/* Detail cards */}
                             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                {/* Contact info */}
                                 <div className="rounded-xl border border-border/50 px-4 py-2">
                                     <p className="pt-2 pb-1 text-xs font-semibold tracking-widest text-muted-foreground uppercase">
                                         Contact information
@@ -325,7 +320,6 @@ export default function Show({
                                     />
                                 </div>
 
-                                {/* Tax & compliance */}
                                 <div className="rounded-xl border border-border/50 px-4 py-2">
                                     <p className="pt-2 pb-1 text-xs font-semibold tracking-widest text-muted-foreground uppercase">
                                         Tax & compliance
@@ -450,8 +444,7 @@ export default function Show({
                             <EditField
                                 label="Hourly rate"
                                 value={data.hourly_rate}
-                                onChange={(v) => setData('hourly_rate', v)}
-                                error={errors.hourly_rate}
+                                readOnly
                             />
                             <EditField
                                 label="Contact number"

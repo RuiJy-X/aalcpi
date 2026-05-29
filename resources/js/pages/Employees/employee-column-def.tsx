@@ -6,7 +6,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { ArrowUpDown, Contact } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { destroy as employeeDelete } from '@/routes/Employees';
+import { destroy as employeeDelete } from '@/actions/App/Http/Controllers/EmployeeController';
 
 import type { EmployeeType } from './employeeTypes';
 import EmployeeActions from '@/pages/Employees/employee-actions';

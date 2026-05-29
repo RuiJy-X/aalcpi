@@ -25,7 +25,7 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
-import { index as employeeIndex } from '@/routes/Employees';
+import { index as employeeIndex } from '@/actions/App/Http/Controllers/EmployeeController';
 import { index as haciendasIndex } from '@/routes/haciendas';
 import { index as plantersIndex } from '@/routes/planters';
 import { index as productionsIndex } from '@/routes/productions';

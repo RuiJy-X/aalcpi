@@ -2,7 +2,7 @@ import { Head, Link, router, useForm } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
 import { index as payrollIndex, show as payrollShow } from '@/routes/payroll';
-import { show as employeeShow } from '@/routes/Employees';
+import { show as employeeShow } from '@/actions/App/Http/Controllers/EmployeeController';
 import {
     Container,
     ContainerHeader,

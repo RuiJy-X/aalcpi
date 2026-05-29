@@ -100,6 +100,7 @@ export function WeeklyPlanterGroupCard({
         <Collapsible
             key={`${group.planter_code}::${group.planter_name}`}
             defaultOpen={defaultOpen}
+            className="min-h-0"
         >
             <div className="border bg-card shadow-sm">
                 <CollapsibleTrigger className="flex w-full items-center justify-between gap-4 px-4 py-4 text-left transition-colors hover:bg-muted/40 [&[data-state=open]>svg]:rotate-180">

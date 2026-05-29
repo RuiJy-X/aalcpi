@@ -32,6 +32,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/Users/{id}', [UserController::class, 'show'])->name('users.show');
 
         Route::resource('/Employees', EmployeeController::class)->whereNumber('Employee');
+        Route::patch(
+            '/Employees/hourly-rate-settings',
+            [EmployeeController::class, 'updateHourlyRateSettings']
+        )->name('employees.hourly-rate-settings');
         // Add later the other routes like payroll, attendance, ... of all the employees records
 
         Route::post('/Attendance/import', [AttendanceController::class, 'import'])->name('attendance.import');

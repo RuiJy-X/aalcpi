@@ -24,4 +24,15 @@ export type WeeklyIndexProps = {
     weeklies: WeeklyRecord[];
     crop_years: string[];
     weeks_by_crop_year: Record<string, string[]>;
+    pagination: {
+        total: number;
+        per_page: number;
+        current_page: number;
+        last_page: number;
+    };
+    table_state?: {
+        search?: string;
+        crop_year?: string;
+        week?: string;
+    };
 };
