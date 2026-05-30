@@ -19,7 +19,7 @@ class NativeAppServiceProvider implements ProvidesPhpIni
 
         $this->seedUsersIfNeeded();
 
-        Window::open();
+        Window::open()->width(800)->height(600)->maximized();
     }
 
     /**
