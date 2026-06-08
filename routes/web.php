@@ -31,6 +31,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('/Users/bulk-delete', [UserController::class, 'bulkDestroy'])->name('users.bulk-destroy');
         Route::delete('/Users/{id}', [UserController::class, 'destroy'])->name('users.destroy');
         Route::get('/Users/{id}', [UserController::class, 'show'])->name('users.show');
+        Route::patch('/Users/{id}', [UserController::class, 'update'])->name('users.update');
 
         Route::delete('/Employees/bulk-delete', [EmployeeController::class, 'bulkDestroy'])->name('employees.bulk-destroy');
         Route::resource('/Employees', EmployeeController::class)->whereNumber('Employee');

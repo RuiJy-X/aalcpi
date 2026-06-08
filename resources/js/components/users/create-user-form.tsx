@@ -4,11 +4,14 @@ import { Input } from '../ui/input';
 import { Field } from '../ui/field';
 import { Label } from '../ui/label';
 import { Button } from '../ui/button';
+import { User } from 'lucide-react';
+import { store as userStore } from '@/routes/users';
 
 const CreateUserForm = () => {
-    const { data, setData, errors, processing, reset } = useForm({
+    const { data, setData, errors, processing, reset, post } = useForm({
         name: '',
         email: '',
+        username: '',
         password: '',
         role: '',
     });
@@ -16,7 +19,11 @@ const CreateUserForm = () => {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         console.log(data);
-        reset();
+        post(userStore().url, {
+            onSuccess: () => {
+                reset();
+            },
+        });
     };
 
     return (
@@ -39,6 +46,21 @@ const CreateUserForm = () => {
                         </p>
                     )}
                 </Field>
+
+                <Field>
+                    <Label>Username</Label>
+                    <Input
+                        type="text"
+                        value={data.username}
+                        onChange={(e) => setData('username', e.target.value)}
+                    />
+                    {errors.username && (
+                        <p className="mt-1 text-sm text-red-500">
+                            {errors.username}
+                        </p>
+                    )}
+                </Field>
+
                 <Field>
                     <Label>Email</Label>
                     <Input
@@ -78,6 +100,7 @@ const CreateUserForm = () => {
                         </p>
                     )}
                 </Field>
+                <div></div>
                 <Button type="submit" disabled={processing} className="w-30">
                     Create User
                 </Button>

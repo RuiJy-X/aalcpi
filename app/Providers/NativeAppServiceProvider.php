@@ -18,6 +18,8 @@ class NativeAppServiceProvider implements ProvidesPhpIni
         Artisan::call('migrate', ['--force' => true]);
 
         $this->seedUsersIfNeeded();
+        Log::info('PHP binary: ' . PHP_BINARY);
+        Log::info('Extensions: ' . implode(', ', get_loaded_extensions()));
 
         Window::open()->width(800)->height(600)->maximized();
     }
@@ -32,6 +34,7 @@ class NativeAppServiceProvider implements ProvidesPhpIni
             'upload_max_filesize' => '100M',
             'post_max_size' => '100M',
             'display_errors' => '1',
+            'extension'=>'xml'
         ];
     }
 

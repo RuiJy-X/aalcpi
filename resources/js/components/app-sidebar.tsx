@@ -94,11 +94,11 @@ export function AppSidebar() {
             icon: DollarSign,
         },
 
-        // {
-        //     title: 'User Management',
-        //     href: userIndex(),
-        //     icon: Clipboard,
-        // },
+        {
+            title: 'User Management',
+            href: userIndex(),
+            icon: Clipboard,
+        },
     ];
 
     const mainNavItems: NavItem[] = [

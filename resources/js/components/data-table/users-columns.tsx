@@ -78,6 +78,28 @@ export const usersColumns: ColumnDef<UserRow>[] = [
         },
     },
     {
+        accessorKey: 'password',
+        header: ({ column }) => (
+            <Button
+                variant="ghost"
+                onClick={() =>
+                    column.toggleSorting(column.getIsSorted() === 'asc')
+                }
+            >
+                Password
+                <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+        ),
+        cell: ({ row }) => {
+            const user = row.original;
+            return (
+                <div className="flex items-center">
+                    <div className="ml-2 truncate">{'••••••••'}</div>
+                </div>
+            );
+        },
+    },
+    {
         accessorKey: 'role',
         header: ({ column }) => (
             <Button
