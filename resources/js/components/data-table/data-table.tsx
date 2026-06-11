@@ -834,7 +834,7 @@ export function DataTable<TData, TValue>({
                                     data-state={
                                         row.getIsSelected() && 'selected'
                                     }
-                                    className={`duration-150 ease-in hover:bg-green-100 ${onRowDoubleClick ? 'cursor-pointer' : ''}`}
+                                    className={`duration-150 ease-in ${onRowDoubleClick ? 'cursor-pointer' : ''}`}
                                     onDoubleClick={(event) =>
                                         handleRowDoubleClick(
                                             event,
@@ -847,6 +847,16 @@ export function DataTable<TData, TValue>({
                                             key={cell.id}
                                             style={{
                                                 width: cell.column.getSize(),
+                                                backgroundColor:
+                                                    (
+                                                        row.original as Record<
+                                                            string,
+                                                            unknown
+                                                        >
+                                                    )?.status === 'completed'
+                                                        ? '#b7ff6b'
+                                                        : cell.column.columnDef
+                                                              .meta?.color,
                                             }}
                                         >
                                             {flexRender(

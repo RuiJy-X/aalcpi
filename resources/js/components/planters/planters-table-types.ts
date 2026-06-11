@@ -82,6 +82,7 @@ export type ProductionRow = {
     financial_rejection_reason?: string | null;
     created_at?: string;
     updated_at?: string;
+    status: 'draft' | 'completed';
 };
 
 export type CertificationRow = {

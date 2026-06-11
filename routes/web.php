@@ -91,6 +91,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('/certification', [ProductionController::class,'certification'])->name('certification');
             Route::get('/bulk-download', [ProductionController::class,'bulkDownload'])->name('bulk_download');
             Route::patch('/view/update/{productionId}', [ProductionController::class,'update'])->name('update');
+            Route::patch('/view/{productionId}/status', [ProductionController::class,'updateStatus'])->name('update-status');
             Route::post('/import', [ProductionController::class,'import'])->name('import');
             Route::delete('/bulk-delete', [ProductionController::class, 'bulkDestroy'])->name('bulk-destroy');
             Route::delete('/delete-by-crop-year', [ProductionController::class, 'destroyByCropYear'])->name('destroy-by-crop-year');

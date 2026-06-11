@@ -7,7 +7,16 @@ import { ArrowUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import ProductionActions from './production-actions';
+import ProductionStatusSelect from './production-status-select';
 import type { ProductionRow } from '@/components/planters/planters-table-types';
+import {
+    Select,
+    SelectContent,
+    SelectGroup,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '../ui/select';
 
 const formatPrice = (value: unknown) => {
     if (value === null || value === undefined || value === '') {
@@ -44,6 +53,26 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
         ),
         enableSorting: false,
         enableHiding: false,
+    },
+    {
+        accessorKey: 'status',
+        header: ({ column }) => {
+            return (
+                <Button
+                    variant="ghost"
+                    onClick={() =>
+                        column.toggleSorting(column.getIsSorted() === 'asc')
+                    }
+                >
+                    Status
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                </Button>
+            );
+        },
+        cell: ({ row }) => {
+            const production = row.original;
+            return <ProductionStatusSelect production={production} />;
+        },
     },
     {
         accessorKey: 'planter_code',
@@ -294,6 +323,9 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
                 </div>
             );
         },
+        meta: {
+            color: '#d1edfa', //tailwind blue-100
+        },
     },
     {
         accessorKey: 'trucks',
@@ -369,6 +401,10 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
                 </div>
             );
         },
+        meta: {
+            //orange-500
+            color: '#ffb061', //tailwind orange-500
+        },
     },
     {
         accessorKey: 'pshr_net_lkg',
@@ -392,6 +428,9 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
                     </div>
                 </div>
             );
+        },
+        meta: {
+            color: '#ffe8d1',
         },
     },
     {
@@ -465,6 +504,9 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
                 </div>
             );
         },
+        meta: {
+            color: '#9bf88e', //tailwind green-500
+        },
     },
     {
         accessorKey: 'pshr_net_mol',
@@ -488,6 +530,9 @@ export const productionColumns: ColumnDef<ProductionRow>[] = [
                     </div>
                 </div>
             );
+        },
+        meta: {
+            color: '#b8f7b0', //tailwind green-500
         },
     },
     {

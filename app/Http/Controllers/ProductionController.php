@@ -66,6 +66,7 @@ class ProductionController extends Controller
             'production_date' => 'productions.production_date',
             'created_at' => 'productions.created_at',
             'updated_at' => 'productions.updated_at',
+            'status' => 'productions.status',
         ];
 
         $baseQuery = Production::query()
@@ -397,6 +398,20 @@ class ProductionController extends Controller
 
         return redirect()->route('productions.show', $production->id)
             ->with('success', 'Production information updated successfully.');
+    }
+
+    public function updateStatus(Request $request, $productionId)
+    {
+        $production = Production::findOrFail($productionId);
+
+        $validated = $request->validate([
+            'status' => 'required|string|in:draft,completed',
+        ]);
+
+        $production->update(['status' => $validated['status']]);
+
+        return redirect()->back()->with('success', 'Production status updated successfully.');
+        
     }
 
     public function finalData($id)
