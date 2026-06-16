@@ -31,11 +31,10 @@ import { index as plantersIndex } from '@/routes/planters';
 import { index as productionsIndex } from '@/routes/productions';
 import { index as userIndex } from '@/routes/users';
 import { index as millingPeriodsIndex } from '@/routes/MillingPeriods';
+import { index as attendanceRoutes } from '@/routes/attendance';
+import { index as payrollRoutes } from '@/routes/payroll';
 import type { NavItem, SharedData } from '@/types';
 import AppLogo from './app-logo';
-
-import attendanceRoutes from '@/routes/attendance';
-import payrollRoutes from '@/routes/payroll';
 
 export function AppSidebar() {
     const { auth } = usePage<SharedData>().props;
@@ -85,12 +84,12 @@ export function AppSidebar() {
         },
         {
             title: 'Attendance',
-            href: attendanceRoutes.index(),
+            href: attendanceRoutes(),
             icon: Clipboard,
         },
         {
             title: 'Payroll',
-            href: payrollRoutes.index(),
+            href: payrollRoutes(),
             icon: DollarSign,
         },
 

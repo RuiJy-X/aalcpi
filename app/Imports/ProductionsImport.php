@@ -92,7 +92,7 @@ class ProductionsImport implements ToModel, WithHeadingRow, ShouldQueue, WithChu
                 'crop_year'     => $this->importCropYear,
                 ],
                 [
-                'trucks' => $toNum($row['trucks'] ?? 0),
+                'trucks' => (int) ($row['trucks'] ?? 0),
                 'trans_code'    => $row['trans_code'] ?? '0',
                 'planter_id'           => $planter->id,
                 'hacienda_id'          => $hacienda->id,

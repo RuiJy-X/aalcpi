@@ -76,7 +76,7 @@ class DashboardController extends Controller
             ->selectRaw(
                 'productions.planter_id as planter_id,
                  planters.name as planter_name,
-                 COALESCE(MIN(haciendas.name), "") as hacienda_name,
+                 COALESCE(MIN(haciendas.name), \'\') as hacienda_name,
                  COALESCE(SUM(gross_cw), 0) as gross_cw,
                  COALESCE(SUM(net_cw), 0) as net_cw,
                  COALESCE(SUM(trucks), 0) as trucks,

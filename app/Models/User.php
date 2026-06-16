@@ -61,7 +61,7 @@ class User extends Authenticatable
 
     public function isManager(): bool
     {
-        return $this->role === 'manager';
+        return in_array($this->role, ['manager', 'admin', 'administrator']);
     }
 
     public function isCertOfficer(): bool
