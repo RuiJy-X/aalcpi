@@ -11,6 +11,8 @@ use App\Http\Controllers\WeeklyController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\PayrollController;
+use App\Http\Controllers\BankReconciliationController;
+use App\Http\Controllers\BankReconciliationImportController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -119,6 +121,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('/{weekly}', [WeeklyController::class, 'show'])->name('show');
             Route::get('/{weekly}/download', [WeeklyController::class, 'download'])->name('download');
         });
+
+        //Bank Reconciliation
+        Route::prefix('BankReconciliation')->name('bank_reconciliation.')->group(function () {
+            Route::get('/', [BankReconciliationController::class, 'index'])->name('index');
+            Route::post('/import', [BankReconciliationController::class, 'store'])->name('import');
+            Route::delete('/clear', [BankReconciliationController::class, 'clear'])->name('clear');
+            Route::delete('/delete-by-crop-year-week', [BankReconciliationController::class, 'destroyByCropYearWeek'])->name('destroy-by-crop-year-week');
+            Route::get('/{bankReconciliation}', [BankReconciliationController::class, 'show'])->name('show');
+            Route::get('/{bankReconciliation}/download', [BankReconciliationController::class, 'download'])->name('download');
+        });
+
+        Route::post('/bank-reconciliation-import/import', [BankReconciliationImportController::class, 'import'])->name('bank-reconciliation-import.import');
+        
+
     });
 
     // --- NORMAL EMPLOYEE ---

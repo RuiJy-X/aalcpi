@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge';
 const POLL_INTERVAL_MS = 4000;
 const STORAGE_KEY = 'import_job_id';
 
+
+
 type ImportJobStatus = {
     id: number;
     type: string;

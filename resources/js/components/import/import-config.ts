@@ -77,7 +77,7 @@ export const plantersImportConfig = {
 
 export const productionsImportConfig = {
     route: productions.import.url(),
-    label: 'Productions Data',
+    label: 'Import Productions Data',
     requireCropYear: true,
     mappingType: 'productions' as const,
     extraFields: [

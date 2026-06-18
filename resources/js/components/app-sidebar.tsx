@@ -33,6 +33,7 @@ import { index as userIndex } from '@/routes/users';
 import { index as millingPeriodsIndex } from '@/routes/MillingPeriods';
 import { index as attendanceRoutes } from '@/routes/attendance';
 import { index as payrollRoutes } from '@/routes/payroll';
+import { index as bankReconciliationIndex } from '@/routes/bank_reconciliation';
 import type { NavItem, SharedData } from '@/types';
 import AppLogo from './app-logo';
 
@@ -73,6 +74,11 @@ export function AppSidebar() {
             title: 'Milling Periods',
             href: millingPeriodsIndex(),
             icon: ShieldCheck,
+        },
+        {
+            title: 'Bank Reconciliation',
+            href: bankReconciliationIndex(),
+            icon: Truck,
         },
     ];
 
