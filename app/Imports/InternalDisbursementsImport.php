@@ -60,6 +60,7 @@ class InternalDisbursementsImport implements ToModel, WithHeadingRow, WithEvents
                 'check_amount' => $checkAmount,
                 'date_return' => $dateReturn,
                 'bank_statement_id' => $matchedBankRecord?->id ?? null, 
+                'import_job_id' => $this->importJobId,
             ]
         );
     }

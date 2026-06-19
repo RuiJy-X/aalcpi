@@ -29,6 +29,7 @@ class BankReconciliationImportController extends Controller
             'user_id' => $request->user()?->id,
             'type' => 'bank_recon_' . $type, // bank_recon_internal or bank_recon_bank
             'status' => ImportJob::STATUS_QUEUED, // Use your model's queue string constant
+            'file_name' => $request->file('file')->getClientOriginalName(), // Store original file name for reference
             'context' => [
                 'file_path' => $storedPath,
                 'target_type' => $type,

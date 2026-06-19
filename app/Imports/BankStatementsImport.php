@@ -67,6 +67,7 @@ class BankStatementsImport implements ToModel, WithHeadingRow
                 'debit' => $toNum($row['debit'] ?? null),
                 'credit' => $toNum($row['credit'] ?? null),
                 'currency' => $row['currency'] ?? 'PHP',
+                'import_job_id' => $this->importJobId,
             ]
         );
     }

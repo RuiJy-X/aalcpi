@@ -23,6 +23,8 @@ export type ReconciliationWorkspaceType = {
     description: string;
     internal_amount: number | null;
     bank_amount: number | null;
+    internal_source: string | null; // e.g. "Internal Disbursement #123"
+    bank_source: string | null; // e.g. "Bank Statement #456"
     status: ReconciliationStatus;
-}
+};
     

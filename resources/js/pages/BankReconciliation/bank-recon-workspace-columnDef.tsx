@@ -46,14 +46,16 @@ export const bankReconWorkspaceColumns: ColumnDef<ReconciliationWorkspaceType>[]
     },
     {
         accessorKey: 'source_id',
-        header: ({column}) => (
+        header: ({ column }) => (
             <Button
                 variant="ghost"
-                onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+                onClick={() =>
+                    column.toggleSorting(column.getIsSorted() === 'asc')
+                }
                 className="flex items-center gap-2"
             >
                 Source ID
-                <ArrowUpDown className="w-4 h-4" />
+                <ArrowUpDown className="h-4 w-4" />
             </Button>
         ),
         cell: ({ row }) => (
@@ -64,14 +66,16 @@ export const bankReconWorkspaceColumns: ColumnDef<ReconciliationWorkspaceType>[]
     },
     {
         accessorKey: 'source',
-        header: ({column}) => (
+        header: ({ column }) => (
             <Button
                 variant="ghost"
-                onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+                onClick={() =>
+                    column.toggleSorting(column.getIsSorted() === 'asc')
+                }
                 className="flex items-center gap-2"
             >
                 Source
-                <ArrowUpDown className="w-4 h-4" />
+                <ArrowUpDown className="h-4 w-4" />
             </Button>
         ),
         cell: ({ row }) => (
@@ -81,15 +85,57 @@ export const bankReconWorkspaceColumns: ColumnDef<ReconciliationWorkspaceType>[]
         ),
     },
     {
-        accessorKey: 'transaction_date',
-        header: ({column}) => (
+        accessorKey: 'internal_source',
+        header: ({ column }) => (
             <Button
                 variant="ghost"
-                onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+                onClick={() =>
+                    column.toggleSorting(column.getIsSorted() === 'asc')
+                }
+                className="flex items-center gap-2"
+            >
+                Internal Source
+                <ArrowUpDown className="h-4 w-4" />
+            </Button>
+        ),
+        cell: ({ row }) => (
+            <div className="flex items-center">
+                <span>{row.getValue('internal_source') ?? '—'}</span>
+            </div>
+        ),
+    },
+    {
+        accessorKey: 'bank_source',
+        header: ({ column }) => (
+            <Button
+                variant="ghost"
+                onClick={() =>
+                    column.toggleSorting(column.getIsSorted() === 'asc')
+                }
+                className="flex items-center gap-2"
+            >
+                Bank Source
+                <ArrowUpDown className="h-4 w-4" />
+            </Button>
+        ),
+        cell: ({ row }) => (
+            <div className="flex items-center">
+                <span>{row.getValue('bank_source') ?? '—'}</span>
+            </div>
+        ),
+    },
+    {
+        accessorKey: 'transaction_date',
+        header: ({ column }) => (
+            <Button
+                variant="ghost"
+                onClick={() =>
+                    column.toggleSorting(column.getIsSorted() === 'asc')
+                }
                 className="flex items-center gap-2"
             >
                 Transaction Date
-                <ArrowUpDown className="w-4 h-4" />
+                <ArrowUpDown className="h-4 w-4" />
             </Button>
         ),
         cell: ({ row }) => (
@@ -100,14 +146,16 @@ export const bankReconWorkspaceColumns: ColumnDef<ReconciliationWorkspaceType>[]
     },
     {
         accessorKey: 'ref_no',
-        header: ({column}) => (
+        header: ({ column }) => (
             <Button
                 variant="ghost"
-                onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+                onClick={() =>
+                    column.toggleSorting(column.getIsSorted() === 'asc')
+                }
                 className="flex items-center gap-2"
             >
                 Reference No
-                <ArrowUpDown className="w-4 h-4" />
+                <ArrowUpDown className="h-4 w-4" />
             </Button>
         ),
         cell: ({ row }) => (
@@ -118,14 +166,16 @@ export const bankReconWorkspaceColumns: ColumnDef<ReconciliationWorkspaceType>[]
     },
     {
         accessorKey: 'description',
-        header: ({column}) => (
+        header: ({ column }) => (
             <Button
                 variant="ghost"
-                onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+                onClick={() =>
+                    column.toggleSorting(column.getIsSorted() === 'asc')
+                }
                 className="flex items-center gap-2"
             >
                 Description
-                <ArrowUpDown className="w-4 h-4" />
+                <ArrowUpDown className="h-4 w-4" />
             </Button>
         ),
         cell: ({ row }) => (
@@ -136,14 +186,16 @@ export const bankReconWorkspaceColumns: ColumnDef<ReconciliationWorkspaceType>[]
     },
     {
         accessorKey: 'internal_amount',
-        header: ({column}) => (
+        header: ({ column }) => (
             <Button
                 variant="ghost"
-                onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+                onClick={() =>
+                    column.toggleSorting(column.getIsSorted() === 'asc')
+                }
                 className="flex items-center gap-2"
             >
                 Internal Amount
-                <ArrowUpDown className="w-4 h-4" />
+                <ArrowUpDown className="h-4 w-4" />
             </Button>
         ),
         cell: ({ row }) => (
@@ -154,14 +206,16 @@ export const bankReconWorkspaceColumns: ColumnDef<ReconciliationWorkspaceType>[]
     },
     {
         accessorKey: 'bank_amount',
-        header: ({column}) => (
+        header: ({ column }) => (
             <Button
                 variant="ghost"
-                onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+                onClick={() =>
+                    column.toggleSorting(column.getIsSorted() === 'asc')
+                }
                 className="flex items-center gap-2"
             >
                 Bank Amount
-                <ArrowUpDown className="w-4 h-4" />
+                <ArrowUpDown className="h-4 w-4" />
             </Button>
         ),
         cell: ({ row }) => (
@@ -172,14 +226,16 @@ export const bankReconWorkspaceColumns: ColumnDef<ReconciliationWorkspaceType>[]
     },
     {
         accessorKey: 'status',
-        header: ({column}) => (
+        header: ({ column }) => (
             <Button
                 variant="ghost"
-                onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+                onClick={() =>
+                    column.toggleSorting(column.getIsSorted() === 'asc')
+                }
                 className="flex items-center gap-2"
             >
                 Status
-                <ArrowUpDown className="w-4 h-4" />
+                <ArrowUpDown className="h-4 w-4" />
             </Button>
         ),
         cell: ({ row }) => (
@@ -187,5 +243,5 @@ export const bankReconWorkspaceColumns: ColumnDef<ReconciliationWorkspaceType>[]
                 <span>{row.getValue('status')}</span>
             </div>
         ),
-    }
+    },
 ];

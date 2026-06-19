@@ -48,6 +48,8 @@ class BankReconciliationController extends Controller
             'transaction_date' => 'reconciliation_workspace.transaction_date',
             'created_at' => 'reconciliation_workspace.created_at',
             'updated_at' => 'reconciliation_workspace.updated_at',
+            'internal_source' => 'reconciliation_workspace.internal_source',
+            'bank_source' => 'reconciliation_workspace.bank_source',
         ];
 
         $baseQuery = ReconciliationWorkspace::query();
