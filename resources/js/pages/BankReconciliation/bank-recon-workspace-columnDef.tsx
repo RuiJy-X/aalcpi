@@ -140,7 +140,7 @@ export const bankReconWorkspaceColumns: ColumnDef<ReconciliationWorkspaceType>[]
         ),
         cell: ({ row }) => (
             <div className="flex items-center">
-                <span>{row.getValue('transaction_date')}</span>
+                <span>{row.getValue('transaction_date').split('T')[0]}</span>
             </div>
         ),
     },
@@ -154,7 +154,7 @@ export const bankReconWorkspaceColumns: ColumnDef<ReconciliationWorkspaceType>[]
                 }
                 className="flex items-center gap-2"
             >
-                Reference No
+                Check No
                 <ArrowUpDown className="h-4 w-4" />
             </Button>
         ),
@@ -199,8 +199,8 @@ export const bankReconWorkspaceColumns: ColumnDef<ReconciliationWorkspaceType>[]
             </Button>
         ),
         cell: ({ row }) => (
-            <div className="flex items-center">
-                <span>{row.getValue('internal_amount')}</span>
+            <div className="flex items-center text-lg font-semibold">
+                <span>₱{row.getValue('internal_amount')}</span>
             </div>
         ),
     },
@@ -219,8 +219,8 @@ export const bankReconWorkspaceColumns: ColumnDef<ReconciliationWorkspaceType>[]
             </Button>
         ),
         cell: ({ row }) => (
-            <div className="flex items-center">
-                <span>{row.getValue('bank_amount')}</span>
+            <div className="flex items-center text-lg font-semibold">
+                <span>₱{row.getValue('bank_amount')}</span>
             </div>
         ),
     },
@@ -239,7 +239,7 @@ export const bankReconWorkspaceColumns: ColumnDef<ReconciliationWorkspaceType>[]
             </Button>
         ),
         cell: ({ row }) => (
-            <div className="flex items-center">
+            <div className="flex items-center font-semibold">
                 <span>{row.getValue('status')}</span>
             </div>
         ),

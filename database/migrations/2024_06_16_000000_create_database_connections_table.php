@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('database_connections', function (Blueprint $table) {
             $table->id();
             $table->string('connection_name')->unique();
-            $table->string('driver')->default('pgsql');
+            $table->string('driver')->default('sqlite');
             $table->string('host');
             $table->unsignedInteger('port')->default(5432);
             $table->string('database');
