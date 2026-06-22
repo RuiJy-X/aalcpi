@@ -9,6 +9,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use App\Services\DatabaseConfigurationService;
 
 class DatabaseConnectionController extends Controller
 {
@@ -89,6 +90,22 @@ class DatabaseConnectionController extends Controller
      */
     public function activate(DatabaseConnection $connection): RedirectResponse
     {
+        $isReachable = DatabaseConfigurationService::testConnection(
+            $connection->driver,
+            $connection->host,
+            $connection->port,
+            $connection->database,
+            $connection->username,
+            $connection->password
+        );
+
+        if (! $isReachable) {
+            return back()->with([
+                'test_success' => false,
+                'test_message' => "Could not activate '{$connection->connection_name}': connection failed. The app will remain on the current database.",
+            ]);
+        }
+
         $connection->makeActive();
 
         return redirect()->route('database.edit')

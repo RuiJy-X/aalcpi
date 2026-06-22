@@ -1,6 +1,6 @@
 import { Transition } from '@headlessui/react';
 import { Form, Head, usePage, useForm, router } from '@inertiajs/react';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -61,6 +61,10 @@ export default function DatabaseSettings({
     status?: string;
     currentDefaultDriver: string;
 }) {
+    const { props } = usePage<
+        SharedData & { test_success?: boolean; test_message?: string }
+    >();
+
     const [showForm, setShowForm] = useState(false);
     const [testMessage, setTestMessage] = useState<{
         type: 'success' | 'error';
@@ -168,6 +172,15 @@ export default function DatabaseSettings({
             },
         );
     };
+    
+    useEffect(() => {
+        if (props.test_message) {
+            setTestMessage({
+                type: props.test_success ? 'success' : 'error',
+                message: props.test_message,
+            });
+        }
+    }, [props.test_message, props.test_success]);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
