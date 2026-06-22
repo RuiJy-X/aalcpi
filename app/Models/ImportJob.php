@@ -19,6 +19,7 @@ class ImportJob extends Model
         'context',
         'started_at',
         'finished_at',
+        'file_name', // Store original file name for reference
     ];
 
     protected $casts = [

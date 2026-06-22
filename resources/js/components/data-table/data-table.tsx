@@ -13,6 +13,8 @@ import {
     getPaginationRowModel,
     useReactTable,
     getFilteredRowModel,
+    Row,
+    Cell,
 } from '@tanstack/react-table';
 
 import {
@@ -512,6 +514,21 @@ export function DataTable<TData, TValue>({
     const selectedEntityLabel =
         selectedCount === 1 ? entityLabel : `${entityLabel}s`;
 
+    
+    const getBgColor = (row: Row<TData>, cell: Cell<TData, unknown>) => {
+        const rowStatus = (row.original as Record<string, unknown>)?.status;
+        if (rowStatus === 'completed' || rowStatus === 'Matched') {
+            return '#85f01241';
+        } else if (rowStatus === 'Outstanding') {
+            return '#0ec4f138';
+        } else if (rowStatus === 'Unrecorded Bank Entry') {
+            return '#ebe71960';
+        } else if (rowStatus === 'Amount Mismatch') {
+            return '#ce29293d';
+        } else {
+            return 'transparent';
+        }
+    };
     return (
         <div className="bg-white">
             {errorMessage && (
@@ -847,16 +864,10 @@ export function DataTable<TData, TValue>({
                                             key={cell.id}
                                             style={{
                                                 width: cell.column.getSize(),
-                                                backgroundColor:
-                                                    (
-                                                        row.original as Record<
-                                                            string,
-                                                            unknown
-                                                        >
-                                                    )?.status === 'completed'
-                                                        ? '#b7ff6b'
-                                                        : cell.column.columnDef
-                                                              .meta?.color,
+                                                backgroundColor: getBgColor(
+                                                    row,
+                                                    cell,
+                                                ),
                                             }}
                                         >
                                             {flexRender(

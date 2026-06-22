@@ -6,6 +6,7 @@ use App\Models\MillingPeriod;
 use App\Models\Production;
 use App\Observers\MillingPeriodObserver;
 use App\Observers\ProductionObserver;
+use App\Services\DatabaseConfigurationService;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -28,8 +29,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
-
-
+        DatabaseConfigurationService::loadActiveConnection();
     }
 
     protected function configureDefaults(): void

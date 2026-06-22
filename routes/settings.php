@@ -3,6 +3,7 @@
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\TwoFactorAuthenticationController;
+use App\Http\Controllers\Settings\DatabaseConnectionController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -11,6 +12,11 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('settings/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('settings/profile', [ProfileController::class, 'update'])->name('profile.update');
+
+    // Database Settings
+    Route::get('settings/database', [DatabaseConnectionController::class, 'index'])->name('database.edit');
+    Route::post('settings/database', [DatabaseConnectionController::class, 'store'])->name('database.store');
+    Route::post('settings/database/test', [DatabaseConnectionController::class, 'test'])->name('database.test');
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -28,4 +34,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('settings/two-factor', [TwoFactorAuthenticationController::class, 'show'])
         ->name('two-factor.show');
+
+    // Database Settings - Activate and Delete
+    Route::post('settings/database/{connection}/activate', [DatabaseConnectionController::class, 'activate'])->name('database.activate');
+    Route::delete('settings/database/{connection}', [DatabaseConnectionController::class, 'destroy'])->name('database.destroy');
+    // routes/database.php — add alongside your existing store/test/activate/destroy
+    Route::post('/database/{connection}/deactivate', [DatabaseConnectionController::class, 'deactivate'])
+        ->name('database.deactivate');
 });

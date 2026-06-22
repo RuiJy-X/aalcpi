@@ -16,7 +16,7 @@ return [
     |
     */
 
-    'default' => env('DB_CONNECTION', 'pgsql'),
+    'default' => env('DB_CONNECTION', 'sqlite'),
 
     /*
     |--------------------------------------------------------------------------
@@ -83,7 +83,7 @@ return [
             ]) : [],
         ],
 
-        'pgsql' => [
+    'pgsql' => [
             'driver' => 'pgsql',
             'url' => env('DB_URL'),
             'host' => env('DB_HOST', '127.0.0.1'),
@@ -112,6 +112,13 @@ return [
             // 'encrypt' => env('DB_ENCRYPT', 'yes'),
             // 'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', 'false'),
         ],
+
+        'connection_registry' => [
+        'driver' => 'sqlite',
+        'database' => database_path('database.sqlite'), // match your real sqlite path
+        'prefix' => '',
+        'foreign_key_constraints' => true,
+    ],
 
     ],
 

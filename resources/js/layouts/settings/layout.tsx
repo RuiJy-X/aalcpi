@@ -9,6 +9,7 @@ import { edit as editAppearance } from '@/routes/appearance';
 import { edit } from '@/routes/profile';
 import { show } from '@/routes/two-factor';
 import { edit as editPassword } from '@/routes/user-password';
+import { edit as editDatabase } from '@/routes/database';
 import type { NavItem } from '@/types';
 
 const sidebarNavItems: NavItem[] = [
@@ -30,6 +31,11 @@ const sidebarNavItems: NavItem[] = [
     {
         title: 'Appearance',
         href: editAppearance(),
+        icon: null,
+    },
+    {
+        title: 'Database',
+        href: editDatabase(),
         icon: null,
     },
 ];
