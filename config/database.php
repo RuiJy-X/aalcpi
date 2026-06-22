@@ -114,10 +114,10 @@ return [
         ],
 
         'connection_registry' => [
-        'driver' => 'sqlite',
-        'database' => database_path('database.sqlite'), // match your real sqlite path
-        'prefix' => '',
-        'foreign_key_constraints' => true,
+            'driver' => 'sqlite',
+            'database' => database_path('nativephp.sqlite'),
+            'prefix' => '',
+            'foreign_key_constraints' => true,
     ],
 
     ],
