@@ -38,4 +38,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Database Settings - Activate and Delete
     Route::post('settings/database/{connection}/activate', [DatabaseConnectionController::class, 'activate'])->name('database.activate');
     Route::delete('settings/database/{connection}', [DatabaseConnectionController::class, 'destroy'])->name('database.destroy');
+    // routes/database.php — add alongside your existing store/test/activate/destroy
+    Route::post('/database/{connection}/deactivate', [DatabaseConnectionController::class, 'deactivate'])
+        ->name('database.deactivate');
 });

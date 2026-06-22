@@ -8,16 +8,14 @@ use PDO;
 
 class DatabaseConfigurationService
 {
-    /**
-     * Load the active database connection configuration
-     */
     public static function loadActiveConnection(): void
     {
         try {
+            // Safe: DatabaseConnection always hits 'connection_registry' (sqlite),
+            // never the dynamically-set default.
             $activeConnection = DatabaseConnection::getActiveConnection();
 
             if ($activeConnection) {
-                // Update the configuration for the active driver
                 $connectionConfig = [
                     'driver' => $activeConnection->driver,
                     'host' => $activeConnection->host,
@@ -28,7 +26,6 @@ class DatabaseConfigurationService
                     'charset' => $activeConnection->charset ?? 'utf8',
                 ];
 
-                // Add driver-specific configurations
                 if ($activeConnection->driver === 'pgsql') {
                     $connectionConfig['sslmode'] = 'prefer';
                     $connectionConfig['prefix'] = '';
@@ -36,7 +33,6 @@ class DatabaseConfigurationService
                     $connectionConfig['search_path'] = 'public';
                 }
 
-                // Update the configuration
                 $currentConnections = config('database.connections');
                 $currentConnections[$activeConnection->driver] = array_merge(
                     $currentConnections[$activeConnection->driver] ?? [],
@@ -47,19 +43,13 @@ class DatabaseConfigurationService
                 Config::set('database.default', $activeConnection->driver);
             }
         } catch (\Exception $e) {
-            // If the database_connections table doesn't exist yet, continue with default config
-            // This happens on first run before migrations are executed
             if (str_contains($e->getMessage(), 'database_connections')) {
                 return;
             }
-
             throw $e;
         }
     }
 
-    /**
-     * Test a database connection without establishing it permanently
-     */
     public static function testConnection(
         string $driver,
         string $host,

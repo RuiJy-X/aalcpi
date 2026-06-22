@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class DatabaseConnection extends Model
 {
     protected $table = 'database_connections';
+    protected $connection = 'connection_registry';
 
     protected $fillable = [
         'connection_name',
@@ -48,6 +49,15 @@ class DatabaseConnection extends Model
         // Activate this one
         $this->update(['is_active' => true]);
         
+        return $this;
+    }
+    /**
+     * Deactivate this connection (falls back to default/sqlite on next boot)
+     */
+    public function makeInactive()
+    {
+        $this->update(['is_active' => false]);
+
         return $this;
     }
 

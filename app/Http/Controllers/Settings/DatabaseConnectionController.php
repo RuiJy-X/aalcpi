@@ -17,22 +17,21 @@ class DatabaseConnectionController extends Controller
      */
     public function index(Request $request): Response
     {
-        $connections = DatabaseConnection::all()->map(function ($conn) {
-            return [
-                'id' => $conn->id,
-                'connection_name' => $conn->connection_name,
-                'driver' => $conn->driver,
-                'host' => $conn->host,
-                'port' => $conn->port,
-                'database' => $conn->database,
-                'username' => $conn->username,
-                'is_active' => $conn->is_active,
-                'created_at' => $conn->created_at->toDateTimeString(),
-            ];
-        });
+        $connections = DatabaseConnection::all()->map(fn ($conn) => [
+            'id' => $conn->id,
+            'connection_name' => $conn->connection_name,
+            'driver' => $conn->driver,
+            'host' => $conn->host,
+            'port' => $conn->port,
+            'database' => $conn->database,
+            'username' => $conn->username,
+            'is_active' => $conn->is_active,
+            'created_at' => $conn->created_at->toDateTimeString(),
+        ]);
 
         return Inertia::render('settings/database', [
             'connections' => $connections,
+            'currentDefaultDriver' => config('database.default'), // what's actually live right now
             'status' => $request->session()->get('status'),
         ]);
     }
@@ -109,5 +108,19 @@ class DatabaseConnectionController extends Controller
 
         return redirect()->route('database.edit')
             ->with('status', 'Database connection deleted successfully!');
+    }
+    /**
+     * Deactivate a database connection, falling back to SQLite.
+     */
+    public function deactivate(DatabaseConnection $connection): RedirectResponse
+    {
+        if (! $connection->is_active) {
+            return back()->with('status', 'This connection is already inactive.');
+        }
+
+        $connection->makeInactive();
+
+        return redirect()->route('database.edit')
+            ->with('status', 'Switched back to local SQLite database. Restart the app to fully apply this change.');
     }
 }

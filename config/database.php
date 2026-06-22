@@ -113,6 +113,13 @@ return [
             // 'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', 'false'),
         ],
 
+        'connection_registry' => [
+        'driver' => 'sqlite',
+        'database' => database_path('database.sqlite'), // match your real sqlite path
+        'prefix' => '',
+        'foreign_key_constraints' => true,
+    ],
+
     ],
 
     /*
