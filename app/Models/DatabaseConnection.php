@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class DatabaseConnection extends Model
 {
     protected $table = 'database_connections';
-    protected $connection = 'connection_registry';
+    protected $connection = 'sqlite';
 
     protected $fillable = [
         'connection_name',

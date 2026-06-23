@@ -1,0 +1,40 @@
+{
+    "Environment": {
+        "PHP": {
+            "Version": "8.3.31",
+            "Path": "C:\\php8.3\\php.exe"
+        },
+        "Laravel": {
+            "Version": "12.60.2",
+            "ConfigCached": false,
+            "RoutesCached": false,
+            "DebugEnabled": true
+        },
+        "Node": {
+            "Version": "v22.15.1",
+            "Path": "C:\\nvm4w\\nodejs\\node.exe"
+        },
+        "NPM": {
+            "Version": "11.7.0",
+            "Path": "C:\\nvm4w\\nodejs\\npm\r\nC:\\nvm4w\\nodejs\\npm.cmd\r\nC:\\Users\\User\\AppData\\Roaming\\npm\\npm\r\nC:\\Users\\User\\AppData\\Roaming\\npm\\npm.cmd"
+        },
+        "OperatingSystem": "WINNT",
+        "ElectronRoot": "nativephp/electron/"
+    },
+    "NativePHP": {
+        "Versions": {
+            "nativephp/desktop": "2.2.0.0",
+            "nativephp/php-bin": "1.2.0.0"
+        },
+        "Configuration": {
+            "Provider": "App\\Providers\\NativeAppServiceProvider",
+            "BuildHooks": {
+                "Pre": [],
+                "Post": []
+            },
+            "NotarizationEnabled": false,
+            "AzureTrustedSigningEnabled": false,
+            "CustomPHPBinary": ""
+        }
+    }
+}
