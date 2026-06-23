@@ -76,3 +76,9 @@ export const userBulkDelete: BulkDeleteConfig<UserRow> = {
     entityName: 'user',
     getRowId: (row) => row.id,
 };
+
+export const bankReconciliationBulkDelete: BulkDeleteConfig<any> = {
+    endpoint: '/BankReconciliation/bulk-delete',
+    entityName: 'bank reconciliation record',
+    getRowId: (row) => `${row.source}:${row.source_id}`,
+};

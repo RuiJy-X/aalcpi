@@ -27,8 +27,19 @@ import type { BreadcrumbItem } from '@/types';
 import { ReconciliationWorkspaceType } from './bank-recon-types';
 import { bankReconWorkspaceColumns } from './bank-recon-workspace-columnDef';
 import { BankReconImportDialog } from './BankReconImportDialog';
-
+import { clear as bankReconciliationClear } from '@/routes/bank_reconciliation';
 import { index as bankReconciliationIndex } from '@/routes/bank_reconciliation';
+import { bankReconciliationBulkDelete } from '@/components/data-table/bulk-delete';
+import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 
 type DataTableQueryState = {
     sorting: SortingState;
@@ -72,6 +83,18 @@ export default function Index({
         date_to?: string;
     };
 }) {
+    const [isClearOpen, setClearOpen] = React.useState(false);
+    const [isClearing, setIsClearing] = React.useState(false);
+
+    const handleClearAll = () => {
+        setIsClearing(true);
+        router.delete(bankReconciliationClear().url, {
+            data: buildQueryParams(latestQueryRef.current, selectedStatus),
+            preserveScroll: true,
+            onSuccess: () => setClearOpen(false),
+            onFinish: () => setIsClearing(false),
+        });
+    };
     const initialSorting = table_state?.sort
         ? [{ id: table_state.sort, desc: table_state.direction === 'desc' }]
         : [];
@@ -214,6 +237,12 @@ const applyStatusFilter = (nextStatus: string) => {
                 <ContainerHeader>
                     Bank Reconciliation
                     <ContainerHeaderEnd>
+                        <Button
+                            variant="destructive"
+                            onClick={() => setClearOpen(true)}
+                        >
+                            Delete All
+                        </Button>
                         <Select
                             value={selectedStatus}
                             onValueChange={(nextStatus) =>
@@ -236,8 +265,42 @@ const applyStatusFilter = (nextStatus: string) => {
                         </Select>
                         <BankReconImportDialog />
                     </ContainerHeaderEnd>
+                    <Dialog open={isClearOpen} onOpenChange={setClearOpen}>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>
+                                    Delete all matching records?
+                                </DialogTitle>
+                                <DialogDescription>
+                                    This permanently deletes every
+                                    reconciliation record matching your current
+                                    filters
+                                    {selectedStatus !== 'all'
+                                        ? ` (status: ${formatStatusLabel(selectedStatus)})`
+                                        : ''}
+                                    . This cannot be undone.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <DialogFooter>
+                                <DialogClose asChild>
+                                    <Button
+                                        variant="secondary"
+                                        disabled={isClearing}
+                                    >
+                                        Cancel
+                                    </Button>
+                                </DialogClose>
+                                <Button
+                                    variant="destructive"
+                                    onClick={handleClearAll}
+                                    disabled={isClearing}
+                                >
+                                    {isClearing ? 'Deleting…' : 'Delete All'}
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
                 </ContainerHeader>
-
                 <DataTable
                     columns={bankReconWorkspaceColumns}
                     data={reconciliationWorkspaces}
@@ -245,6 +308,7 @@ const applyStatusFilter = (nextStatus: string) => {
                     pageCount={pagination.last_page}
                     totalRows={pagination.total}
                     initialState={initialQueryStateRef.current}
+                    bulkDelete={bankReconciliationBulkDelete}
                     onQueryChange={handleQueryChange}
                 />
             </Container>

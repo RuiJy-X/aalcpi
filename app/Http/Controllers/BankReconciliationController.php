@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\BankStatement;
+use App\Models\InternalDisbursements;
 use Inertia\Inertia;
 use App\Models\ReconciliationWorkspace;
 use Illuminate\Http\Request;
@@ -204,5 +206,146 @@ class BankReconciliationController extends Controller
     public function destroy(string $id)
     {
         //
+    }
+
+    //  public function bulkDestroy(Request $request)
+    // {
+    //     $validated = $request->validate([
+    //         'ids' => ['required', 'array', 'min:1'],
+    //         'ids.*' => ['integer', 'distinct', 'exists:productions,id'],
+    //     ]);
+
+    //     Production::whereIn('id', $validated['ids'])->delete();
+
+    //     return redirect()->back()->with('success', 'Selected production records deleted successfully.');
+    // }
+
+    public function bulkDestroy(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['required', 'string'],
+        ]);
+
+        $internalIds = [];
+        $bankIds = [];
+
+        foreach ($validated['ids'] as $compositeId) {
+            [$source, $sourceId] = array_pad(explode(':', $compositeId, 2), 2, null);
+
+            if (!is_numeric($sourceId)) {
+                continue;
+            }
+
+            if ($source === 'internal') {
+                $internalIds[] = (int) $sourceId;
+            } elseif ($source === 'bank') {
+                $bankIds[] = (int) $sourceId;
+            }
+        }
+
+        if (empty($internalIds) && empty($bankIds)) {
+            return redirect()->back()->with('error', 'No valid records selected.');
+        }
+
+        if (!empty($internalIds)) {
+            InternalDisbursements::whereIn('id', $internalIds)->delete();
+        }
+
+        if (!empty($bankIds)) {
+            BankStatement::whereIn('id', $bankIds)->delete();
+        }
+
+        return redirect()->back()->with('success', 'Selected reconciliation records deleted successfully.');
+    }
+    private function buildFilteredQuery(Request $request)
+    {
+        $search = $request->string('search')->toString();
+        $filters = $request->input('filters', []);
+        $dateColumn = $request->string('date_column')->toString();
+        $dateFrom = $request->string('date_from')->toString();
+        $dateTo = $request->string('date_to')->toString();
+        $driver = Schema::getConnection()->getDriverName();
+        $likeOperator = $driver === 'pgsql' ? 'ilike' : 'like';
+        $useCaseInsensitiveLike = $driver === 'sqlite';
+
+        $applyLike = function ($query, string $column, string $value, string $boolean = 'and') use ($likeOperator, $useCaseInsensitiveLike) {
+            if ($useCaseInsensitiveLike) {
+                $grammar = method_exists($query, 'getQuery') ? $query->getQuery()->getGrammar() : $query->getGrammar();
+                $wrapped = $grammar->wrap($column);
+                $query->whereRaw('lower(' . $wrapped . ') like ?', [strtolower($value)], $boolean);
+                return;
+            }
+            $query->where($column, $likeOperator, $value, $boolean);
+        };
+
+        $columnMap = [
+            'ref_no' => 'reconciliation_workspace.ref_no',
+            'description' => 'reconciliation_workspace.description',
+            'status' => 'reconciliation_workspace.status',
+            'transaction_date' => 'reconciliation_workspace.transaction_date',
+            'created_at' => 'reconciliation_workspace.created_at',
+            'updated_at' => 'reconciliation_workspace.updated_at',
+            'internal_source' => 'reconciliation_workspace.internal_source',
+            'bank_source' => 'reconciliation_workspace.bank_source',
+        ];
+
+        $query = ReconciliationWorkspace::query();
+
+        if ($request->filled('status') && !array_key_exists('status', $filters)) {
+            $filters['status'] = $request->input('status');
+        }
+
+        if (!empty($filters) && is_array($filters)) {
+            foreach ($filters as $column => $value) {
+                if (!array_key_exists($column, $columnMap) || $value === '' || $value === null) {
+                    continue;
+                }
+                $dbColumn = $columnMap[$column];
+                $values = is_array($value) ? $value : [$value];
+                $query->where(function ($q) use ($applyLike, $dbColumn, $values) {
+                    foreach ($values as $filterValue) {
+                        if ($filterValue === '' || $filterValue === null) {
+                            continue;
+                        }
+                        $applyLike($q, $dbColumn, '%' . $filterValue . '%', 'or');
+                    }
+                });
+            }
+        }
+
+        if ($search !== '') {
+            $like = '%' . $search . '%';
+            $query->where(function ($q) use ($applyLike, $like) {
+                $applyLike($q, 'reconciliation_workspace.ref_no', $like, 'or');
+                $applyLike($q, 'reconciliation_workspace.description', $like, 'or');
+            });
+        }
+
+        if ($dateColumn !== '' && isset($columnMap[$dateColumn]) && $dateFrom !== '') {
+            $dbDateColumn = $columnMap[$dateColumn];
+            $toDate = $dateTo !== '' ? $dateTo : $dateFrom;
+            $query->whereBetween($dbDateColumn, [$dateFrom, $toDate]);
+        }
+
+        return $query;
+    }
+
+    public function clear(Request $request)
+    {
+        $matches = $this->buildFilteredQuery($request)->get(['source', 'source_id']);
+
+        $internalIds = $matches->where('source', 'internal')->pluck('source_id');
+        $bankIds = $matches->where('source', 'bank')->pluck('source_id');
+
+        if ($internalIds->isNotEmpty()) {
+            InternalDisbursements::whereIn('id', $internalIds)->delete();
+        }
+
+        if ($bankIds->isNotEmpty()) {
+            BankStatement::whereIn('id', $bankIds)->delete();
+        }
+
+        return redirect()->back()->with('success', 'All matching reconciliation records have been cleared.');
     }
 }

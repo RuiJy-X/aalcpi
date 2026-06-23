@@ -172,7 +172,9 @@ export function DataTable<TData, TValue>({
         },
     );
 
-    const [activeFilters, setActiveFilters] = React.useState<string[]>([]);
+    const [activeFilters, setActiveFilters] = React.useState<string[]>(
+        () => initialState?.columnFilters?.map((filter) => filter.id) ?? [],
+    );
     const [dateRange, setDateRange] = React.useState<DateRange | undefined>(
         initialState?.dateRange,
     );

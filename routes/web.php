@@ -127,6 +127,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('/', [BankReconciliationController::class, 'index'])->name('index');
             Route::post('/import', [BankReconciliationController::class, 'store'])->name('import');
             Route::delete('/clear', [BankReconciliationController::class, 'clear'])->name('clear');
+            Route::delete('/bulk-delete', [BankReconciliationController::class, 'bulkDestroy'])->name('bulk-destroy');
             Route::delete('/delete-by-crop-year-week', [BankReconciliationController::class, 'destroyByCropYearWeek'])->name('destroy-by-crop-year-week');
             Route::get('/{bankReconciliation}', [BankReconciliationController::class, 'show'])->name('show');
             Route::get('/{bankReconciliation}/download', [BankReconciliationController::class, 'download'])->name('download');
