@@ -22,6 +22,7 @@ return new class extends Migration
             $table->decimal('credit', 20, 2)->nullable();
             $table->string('currency')->default('PHP');
             $table->decimal('running_balance', 20, 6);
+            $table->date('bank_date')->nullable();
         });
     }
 

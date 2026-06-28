@@ -10,7 +10,7 @@ export type BankStatementType = {
     running_balance: number;
     created_at: string;
     updated_at: string;
-}
+};
 
 export type ReconciliationStatus = 'Matched' | 'Amount Mismatch' | 'Outstanding' | 'Unrecorded Bank Entry';
 export type ReconciliationSource = 'internal' | 'bank';
@@ -23,8 +23,11 @@ export type ReconciliationWorkspaceType = {
     description: string;
     internal_amount: number | null;
     bank_amount: number | null;
+    internal_date_issued: string | null; // Y-m-d format
+    disbursement_week: string | null;
     internal_source: string | null; // e.g. "Internal Disbursement #123"
     bank_source: string | null; // e.g. "Bank Statement #456"
+    bank_date: Date;
     status: ReconciliationStatus;
 };
     

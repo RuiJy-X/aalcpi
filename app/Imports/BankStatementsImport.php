@@ -7,17 +7,19 @@ use App\Models\ImportJob;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Concerns\ToModel;
-
+use App\Models\InternalDisbursements;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
+use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Events\AfterImport;
 use Maatwebsite\Excel\Events\ImportFailed;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
 
-class BankStatementsImport implements ToModel, WithHeadingRow
+class BankStatementsImport implements ToModel, WithHeadingRow, WithEvents
 {
     public function __construct(
         private readonly ?int $importJobId = null,
         private readonly ?string $storedPath = null,
+        private readonly ?string $bankDate = null
     ) {}
 
     public function model(array $row)
@@ -47,10 +49,9 @@ class BankStatementsImport implements ToModel, WithHeadingRow
             // If Excel imported it as a numeric serial number timestamp
             $parsedDate = Date::excelToDateTimeObject($rawDate)->format('Y-m-d');
         } else {
-            // Force PHP to read it exactly as Day/Month/Year
-            // This safely turns "10/06/2025" into "2025-06-10" for MySQL
-            $dateObj = \DateTime::createFromFormat('d/m/Y', $rawDate);
-            
+            // The bank's export format is Month/Day/Year (e.g. "10/20/2025" = Oct 20, 2025)
+            $dateObj = \DateTime::createFromFormat('m/d/Y', $rawDate);
+
             // Fallback just in case some rows use dashes or alternate formats
             $parsedDate = $dateObj ? $dateObj->format('Y-m-d') : date('Y-m-d', strtotime($rawDate));
         }
@@ -68,6 +69,7 @@ class BankStatementsImport implements ToModel, WithHeadingRow
                 'credit' => $toNum($row['credit'] ?? null),
                 'currency' => $row['currency'] ?? 'PHP',
                 'import_job_id' => $this->importJobId,
+                'bank_date' => $this->bankDate,
             ]
         );
     }
@@ -82,7 +84,11 @@ class BankStatementsImport implements ToModel, WithHeadingRow
         return [
             AfterImport::class => function (): void {
                 if ($this->importJobId !== null) {
-                    ImportJob::find($this->importJobId)?->markDone();
+                    $job = ImportJob::find($this->importJobId);
+                    if ($job) {
+                        $job->update(['status' => 'done']);
+                    }
+                    InternalDisbursements::reconcileUnmatched();
                 }
                 if ($this->storedPath) {
                     Storage::disk('local')->delete($this->storedPath);

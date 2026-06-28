@@ -18,5 +18,6 @@ class ReconciliationWorkspace extends Model
         'transaction_date' => 'date',
         'internal_amount' => 'decimal:2',
         'bank_amount' => 'decimal:2',
+        'bank_date' => 'date',
     ];
 }

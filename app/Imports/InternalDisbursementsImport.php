@@ -8,21 +8,28 @@ use App\Models\ImportJob;
 use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
-use Maatwebsite\Excel\Concerns\WithEvents; // <-- 1. ADD THIS IMPORT
+use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Events\AfterImport;
 use Maatwebsite\Excel\Events\ImportFailed;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
 
-// 2. ADD "WithEvents" TO THE IMPLEMENTS CONTRACT BELOW
 class InternalDisbursementsImport implements ToModel, WithHeadingRow, WithEvents
 {
     protected $importJobId;
-    protected $filePath; // Using $filePath consistently
+    protected $filePath;
+    protected string $dateIssued;
+    protected int $disbursementWeek;
 
-    public function __construct(int $importJobId, string $filePath)
-    {
+    public function __construct(
+        int $importJobId,
+        string $filePath,
+        string $dateIssued,
+        int $disbursementWeek,
+    ) {
         $this->importJobId = $importJobId;
         $this->filePath = $filePath;
+        $this->dateIssued = $dateIssued;
+        $this->disbursementWeek = $disbursementWeek;
     }
 
     public function headingRow(): int
@@ -59,25 +66,23 @@ class InternalDisbursementsImport implements ToModel, WithHeadingRow, WithEvents
                 'payee_name' => $row['payee_name'] ?? 'Unknown Payee',
                 'check_amount' => $checkAmount,
                 'date_return' => $dateReturn,
-                'bank_statement_id' => $matchedBankRecord?->id ?? null, 
+                'disbursement_week' => $this->disbursementWeek,
+                'bank_statement_id' => $matchedBankRecord?->id ?? null,
+                'date_issued' => $this->dateIssued, // disambiguates re-used check numbers across different batches
+
                 'import_job_id' => $this->importJobId,
             ]
         );
     }
-
-    // 3. REMOVE chunkSize() if you aren't using WithChunkReading anymore.
-    // Since ProcessBankReconImportJob handles background execution, 
-    // it processes the sheets in one clean cycle inside the worker process.
 
     public function registerEvents(): array
     {
         return [
             AfterImport::class => function (): void {
                 if ($this->importJobId !== null) {
-                    // Update job tracking state status
                     $job = ImportJob::find($this->importJobId);
                     if ($job) {
-                        $job->update(['status' => 'done']); // or use your $job->markDone() method if defined
+                        $job->update(['status' => 'done']);
                     }
                     InternalDisbursements::reconcileUnmatched();
                 }

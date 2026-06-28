@@ -20,15 +20,27 @@ class ProcessBankReconImportJob implements ShouldQueue
     protected $jobId;
     protected $type;
     protected $filePath;
-
+    protected $dateIssued;
+    protected $disbursementWeek;
+    protected $bankDate;
+    
     /**
      * Only accept strict primitive scalar parameters to avoid serialization failures.
      */
-    public function __construct(int $jobId, string $type, string $filePath)
-    {
+    public function __construct(
+        int $jobId,
+        string $type,
+        string $filePath,
+        ?string $dateIssued = null,
+        ?int $disbursementWeek = null,
+        ?string $bankDate = null
+    ) {
         $this->jobId = $jobId;
         $this->type = $type;
         $this->filePath = $filePath;
+        $this->dateIssued = $dateIssued;
+        $this->disbursementWeek = $disbursementWeek;
+        $this->bankDate = $bankDate;
     }
 
     public function handle()
@@ -43,14 +55,23 @@ class ProcessBankReconImportJob implements ShouldQueue
             // 2. Select and run the appropriate parser using the local file path string
             if ($this->type === 'bank') {
                 Excel::import(
-                    new BankStatementsImport($this->jobId, $this->filePath), 
-                    $this->filePath, 
+                    new BankStatementsImport(
+                        $this->jobId,
+                        $this->filePath,
+                        $this->bankDate
+                    ),
+                    $this->filePath,
                     'local'
                 );
             } else {
                 Excel::import(
-                    new InternalDisbursementsImport($this->jobId, $this->filePath), 
-                    $this->filePath, 
+                    new InternalDisbursementsImport(
+                        $this->jobId,
+                        $this->filePath,
+                        $this->dateIssued,
+                        $this->disbursementWeek,
+                    ),
+                    $this->filePath,
                     'local'
                 );
             }
@@ -68,7 +89,7 @@ class ProcessBankReconImportJob implements ShouldQueue
                     'error_log' => $e->getMessage()
                 ]);
             }
-            
+
             throw $e; // Bubble up error for Laravel queue retry handling mechanisms
         }
     }

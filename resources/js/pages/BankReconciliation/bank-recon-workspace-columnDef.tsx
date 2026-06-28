@@ -12,6 +12,7 @@ import {
     show as payrollShow,
 } from '@/routes/payroll';
 import { ReconciliationWorkspaceType } from './bank-recon-types';
+import { format } from 'date-fns';
 
 interface EditingCell {
     rowId: string | number;
@@ -120,10 +121,43 @@ export const bankReconWorkspaceColumns: ColumnDef<ReconciliationWorkspaceType>[]
         ),
         cell: ({ row }) => (
             <div className="flex items-center">
-                <span>{row.getValue('bank_source') ?? '—'}</span>
+                {row.getValue('bank_source') ? (
+                    <span>{row.getValue('bank_source')}</span>
+                ) : (
+                    <span className="font-semibold text-red-500">Null</span>
+                )}
             </div>
         ),
     },
+    {
+        accessorKey: 'bank_date',
+        header: ({ column }) => (
+            <Button
+                variant="ghost"
+                onClick={() =>
+                    column.toggleSorting(column.getIsSorted() === 'asc')
+                }
+                className="flex items-center gap-2"
+            >
+                Bank Date
+                <ArrowUpDown className="h-4 w-4" />
+            </Button>
+        ),
+
+        cell: ({ row }) => {
+            const bankDate = row.getValue('bank_date') as Date;
+            return (
+                <div className="flex items-center">
+                    {row.getValue('bank_date') ? (
+                        <span>{format(bankDate, 'MMMM yyyy')}</span>
+                    ) : (
+                        <span className="font-semibold text-red-500">Null</span>
+                    )}
+                </div>
+            );
+        },
+    },
+
     {
         accessorKey: 'transaction_date',
         header: ({ column }) => (
@@ -140,7 +174,63 @@ export const bankReconWorkspaceColumns: ColumnDef<ReconciliationWorkspaceType>[]
         ),
         cell: ({ row }) => (
             <div className="flex items-center">
-                <span>{row.getValue('transaction_date').split('T')[0]}</span>
+                {row.getValue('transaction_date') ? (
+                    <span>
+                        {row.getValue('transaction_date')?.split('T')[0]}
+                    </span>
+                ) : (
+                    <span className="font-semibold text-red-500">Null</span>
+                )}
+            </div>
+        ),
+    },
+    {
+        accessorKey: 'internal_date_issued',
+        header: ({ column }) => (
+            <Button
+                variant="ghost"
+                onClick={() =>
+                    column.toggleSorting(column.getIsSorted() === 'asc')
+                }
+                className="flex items-center gap-2"
+            >
+                Internal Date Issued
+                <ArrowUpDown className="h-4 w-4" />
+            </Button>
+        ),
+        cell: ({ row }) => (
+            <div className="flex items-center">
+                {row.getValue('internal_date_issued') ? (
+                    <span>
+                        {row.getValue('internal_date_issued')?.split('T')[0]}
+                    </span>
+                ) : (
+                    <span className="font-semibold text-red-500">Null</span>
+                )}
+            </div>
+        ),
+    },
+    {
+        accessorKey: 'disbursement_week',
+        header: ({ column }) => (
+            <Button
+                variant="ghost"
+                onClick={() =>
+                    column.toggleSorting(column.getIsSorted() === 'asc')
+                }
+                className="flex items-center gap-2"
+            >
+                Disbursement Week
+                <ArrowUpDown className="h-4 w-4" />
+            </Button>
+        ),
+        cell: ({ row }) => (
+            <div className="flex items-center">
+                {row.getValue('disbursement_week') ? (
+                    <span>{row.getValue('disbursement_week')}</span>
+                ) : (
+                    <span className="font-semibold text-red-500">Null</span>
+                )}
             </div>
         ),
     },
@@ -199,7 +289,7 @@ export const bankReconWorkspaceColumns: ColumnDef<ReconciliationWorkspaceType>[]
             </Button>
         ),
         cell: ({ row }) => (
-            <div className="flex items-center text-lg font-semibold">
+            <div className="flex items-center font-semibold">
                 <span>₱{row.getValue('internal_amount')}</span>
             </div>
         ),
@@ -219,7 +309,7 @@ export const bankReconWorkspaceColumns: ColumnDef<ReconciliationWorkspaceType>[]
             </Button>
         ),
         cell: ({ row }) => (
-            <div className="flex items-center text-lg font-semibold">
+            <div className="flex items-center font-semibold">
                 <span>₱{row.getValue('bank_amount')}</span>
             </div>
         ),

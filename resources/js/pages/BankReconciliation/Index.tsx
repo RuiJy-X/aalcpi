@@ -40,6 +40,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { Filter } from 'lucide-react';
 
 type DataTableQueryState = {
     sorting: SortingState;
@@ -61,14 +62,17 @@ const formatStatusLabel = (status: string) =>
 
 export default function Index({
     reconciliationWorkspaces,
-    statuses=[],
+    statuses = [],
     pagination,
     table_state,
+    weekOptions = [],
+    bankDateOptions = [],
+    summaryStats = { total_count: 0, internal_total: 0, bank_total: 0 }, // Accept prop
 }: {
     reconciliationWorkspaces: ReconciliationWorkspaceType[];
     statuses: string[];
     pagination: {
-    total: number;
+        total: number;
         per_page: number;
         current_page: number;
         last_page: number;
@@ -82,9 +86,24 @@ export default function Index({
         date_from?: string;
         date_to?: string;
     };
+    weekOptions?: (string | number)[];
+    bankDateOptions?: Date[];
+    summaryStats?: {
+        total_count: number;
+        internal_total: number;
+        bank_total: number;
+    };
 }) {
     const [isClearOpen, setClearOpen] = React.useState(false);
     const [isClearing, setIsClearing] = React.useState(false);
+    const formatCurrency = (amount: number) => {
+        return new Intl.NumberFormat('en-PH', {
+            style: 'currency',
+            currency: 'PHP',
+        }).format(amount);
+    };
+
+    const variance = summaryStats.internal_total - summaryStats.bank_total;
 
     const handleClearAll = () => {
         setIsClearing(true);
@@ -137,102 +156,283 @@ export default function Index({
             return 'all';
         }
         return Array.isArray(statusFilter)
-            ? statusFilter[0] ?? 'all'
+            ? (statusFilter[0] ?? 'all')
             : statusFilter;
     }, [table_state?.filters?.status]);
 
+    const selectedWeek = React.useMemo(() => {
+        const weekFilter = table_state?.filters?.disbursement_week;
+        if (!weekFilter) {
+            return 'all';
+        }
+        return Array.isArray(weekFilter)
+            ? (weekFilter[0] ?? 'all')
+            : weekFilter;
+    }, [table_state?.filters?.disbursement_week]);
+
+    const selectedBankDate = React.useMemo(() => {
+        const bankDateFilter = table_state?.filters?.bank_date;
+        if (!bankDateFilter) {
+            return 'all';
+        }
+        return Array.isArray(bankDateFilter)
+            ? (bankDateFilter[0] ?? 'all')
+            : bankDateFilter;
+    }, [table_state?.filters?.bank_date]);
+
     const buildQueryParams = React.useCallback(
-    (state: DataTableQueryState, status: string) => {
-        const query: Record<string, any> = {
-            page: state.pagination.pageIndex + 1,
-            per_page: state.pagination.pageSize,
+        (
+            state: DataTableQueryState,
+            status: string,
+            week: string = selectedWeek,
+            bankDate: string = selectedBankDate,
+        ) => {
+            const query: Record<string, any> = {
+                page: state.pagination.pageIndex + 1,
+                per_page: state.pagination.pageSize,
+            };
+
+            if (state.globalFilter) {
+                query.search = state.globalFilter;
+            }
+
+            if (state.sorting.length > 0) {
+                query.sort = state.sorting[0].id;
+                query.direction = state.sorting[0].desc ? 'desc' : 'asc';
+            }
+
+            const filters: Record<string, string | string[]> = {};
+
+            state.columnFilters.forEach((filter) => {
+                if (
+                    filter.id === 'status' ||
+                    filter.id === 'disbursement_week' ||
+                    filter.id === 'bank_source'
+                ) {
+                    return; // these three are handled separately, not via generic columnFilters
+                }
+                if (
+                    filter.value === '' ||
+                    filter.value === null ||
+                    filter.value === undefined
+                ) {
+                    return;
+                }
+                if (Array.isArray(filter.value)) {
+                    filters[filter.id] = filter.value.map((v) => String(v));
+                    return;
+                }
+                filters[filter.id] = String(filter.value);
+            });
+
+            if (status !== 'all') {
+                filters.status = status;
+            }
+
+            if (week !== 'all') {
+                filters.disbursement_week = week;
+            }
+
+            if (bankDate !== 'all') {
+                filters.bank_date = bankDate;
+            }
+
+            if (Object.keys(filters).length > 0) {
+                query.filters = filters;
+            }
+
+            if (state.dateRange?.from && state.dateFilterColumnId) {
+                query.date_column = state.dateFilterColumnId;
+                query.date_from = format(state.dateRange.from, 'yyyy-MM-dd');
+                if (state.dateRange.to) {
+                    query.date_to = format(state.dateRange.to, 'yyyy-MM-dd');
+                }
+            }
+
+            return query;
+        },
+        [selectedWeek, selectedBankDate],
+    );
+
+    const handleQueryChange = React.useCallback(
+        (state: DataTableQueryState) => {
+            latestQueryRef.current = state;
+            const query = buildQueryParams(state, selectedStatus);
+            router.get(bankReconciliationIndex().url, query, {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            });
+        },
+        [buildQueryParams, selectedStatus],
+    );
+
+    const applyStatusFilter = (nextStatus: string) => {
+        const nextState: DataTableQueryState = {
+            ...latestQueryRef.current,
+            pagination: {
+                ...latestQueryRef.current.pagination,
+                pageIndex: 0,
+            },
         };
 
-        if (state.globalFilter) {
-            query.search = state.globalFilter;
-        }
+        latestQueryRef.current = nextState;
+        const query = buildQueryParams(nextState, nextStatus);
 
-        if (state.sorting.length > 0) {
-            query.sort = state.sorting[0].id;
-            query.direction = state.sorting[0].desc ? 'desc' : 'asc';
-        }
-
-        const filters: Record<string, string | string[]> = {};
-
-        state.columnFilters.forEach((filter) => {
-            if (filter.id === 'status') {
-                return; // status is handled separately, not via columnFilters
-            }
-            if (
-                filter.value === '' ||
-                filter.value === null ||
-                filter.value === undefined
-            ) {
-                return;
-            }
-            if (Array.isArray(filter.value)) {
-                filters[filter.id] = filter.value.map((v) => String(v));
-                return;
-            }
-            filters[filter.id] = String(filter.value);
-        });
-
-        if (status !== 'all') {
-            filters.status = status;
-        }
-
-        if (Object.keys(filters).length > 0) {
-            query.filters = filters;
-        }
-
-        if (state.dateRange?.from && state.dateFilterColumnId) {
-            query.date_column = state.dateFilterColumnId;
-            query.date_from = format(state.dateRange.from, 'yyyy-MM-dd');
-            if (state.dateRange.to) {
-                query.date_to = format(state.dateRange.to, 'yyyy-MM-dd');
-            }
-        }
-
-        return query;
-    },
-    [],
-);
-
-const handleQueryChange = React.useCallback(
-    (state: DataTableQueryState) => {
-        latestQueryRef.current = state;
-        const query = buildQueryParams(state, selectedStatus);
         router.get(bankReconciliationIndex().url, query, {
             preserveState: true,
             preserveScroll: true,
             replace: true,
         });
-    },
-    [buildQueryParams, selectedStatus],
-);
-
-const applyStatusFilter = (nextStatus: string) => {
-    const nextState: DataTableQueryState = {
-        ...latestQueryRef.current,
-        pagination: {
-            ...latestQueryRef.current.pagination,
-            pageIndex: 0,
-        },
     };
 
-    latestQueryRef.current = nextState;
-    const query = buildQueryParams(nextState, nextStatus);
+    const applyWeekFilter = (nextWeek: string) => {
+        const nextState: DataTableQueryState = {
+            ...latestQueryRef.current,
+            pagination: {
+                ...latestQueryRef.current.pagination,
+                pageIndex: 0,
+            },
+        };
 
-    router.get(bankReconciliationIndex().url, query, {
-        preserveState: true,
-        preserveScroll: true,
-        replace: true,
-    });
-};
+        latestQueryRef.current = nextState;
+        const query = buildQueryParams(
+            nextState,
+            selectedStatus,
+            nextWeek,
+            selectedBankDate,
+        );
+
+        router.get(bankReconciliationIndex().url, query, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
+
+    const applyBankDateFilter = (nextBankDate: string) => {
+        const nextState: DataTableQueryState = {
+            ...latestQueryRef.current,
+            pagination: {
+                ...latestQueryRef.current.pagination,
+                pageIndex: 0,
+            },
+        };
+
+        latestQueryRef.current = nextState;
+        const query = buildQueryParams(
+            nextState,
+            selectedStatus,
+            selectedWeek,
+            nextBankDate,
+        );
+
+        router.get(bankReconciliationIndex().url, query, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Bank Reconciliation" />
+            <div className="mx-2 mb-6 flex items-center gap-3">
+                <Filter className="flex items-center text-gray-500" />
+                <Select
+                    value={selectedWeek}
+                    onValueChange={(nextWeek) => applyWeekFilter(nextWeek)}
+                >
+                    <SelectTrigger className="w-32 bg-white">
+                        <SelectValue placeholder="Week" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Weeks</SelectItem>
+                        {weekOptions.map((w) => (
+                            <SelectItem key={String(w)} value={String(w)}>
+                                Week {w}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                <Select
+                    value={selectedBankDate}
+                    onValueChange={(nextDate) => applyBankDateFilter(nextDate)}
+                >
+                    <SelectTrigger className="w-56 bg-white">
+                        <SelectValue placeholder="Bank Statement File" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">Year and Month</SelectItem>
+                        {bankDateOptions.map((date) => (
+                            <SelectItem key={date} value={date}>
+                                {/* Format '2025-10-01' to 'October 2025' on the fly */}
+                                {format(new Date(date), 'MMMM yyyy')}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                <Select
+                    value={selectedStatus}
+                    onValueChange={(nextStatus) =>
+                        applyStatusFilter(nextStatus)
+                    }
+                >
+                    <SelectTrigger className="w-44 bg-white">
+                        <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Statuses</SelectItem>
+                        {statuses.map((status) => (
+                            <SelectItem key={status} value={status}>
+                                {formatStatusLabel(status)}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+            {/* NEW SUMMARY SECTION */}
+            <div className="mx-2 mb-6 grid grid-cols-1 gap-4 md:grid-cols-4">
+                <div className="rounded-xl border bg-card p-4 shadow-sm">
+                    <p className="text-sm font-medium text-muted-foreground">
+                        Filtered Records
+                    </p>
+                    <p className="mt-1 truncate text-2xl font-bold">
+                        {summaryStats.total_count}
+                    </p>
+                </div>
+
+                <div className="rounded-xl border bg-card p-4 shadow-sm">
+                    <p className="text-sm font-medium text-muted-foreground">
+                        Internal Total
+                    </p>
+                    <p className="mt-1 truncate text-2xl font-bold text-blue-600">
+                        {formatCurrency(summaryStats.internal_total)}
+                    </p>
+                </div>
+
+                <div className="rounded-xl border bg-card p-4 shadow-sm">
+                    <p className="text-sm font-medium text-muted-foreground">
+                        Bank Total
+                    </p>
+                    <p className="mt-1 truncate text-2xl font-bold text-amber-600">
+                        {formatCurrency(summaryStats.bank_total)}
+                    </p>
+                </div>
+
+                <div
+                    className={`rounded-xl border p-4 shadow-sm ${variance === 0 ? 'border-emerald-200 bg-emerald-50/50' : 'border-destructive/20 bg-destructive/5'}`}
+                >
+                    <p className="text-sm font-medium text-muted-foreground">
+                        Net Variance
+                    </p>
+                    <p
+                        className={`text-md mt-1 truncate font-bold md:text-2xl ${variance === 0 ? 'text-emerald-600' : 'text-destructive'}`}
+                    >
+                        {formatCurrency(variance)}
+                    </p>
+                </div>
+            </div>
             <Container>
                 <ContainerHeader>
                     Bank Reconciliation
@@ -243,26 +443,7 @@ const applyStatusFilter = (nextStatus: string) => {
                         >
                             Delete All
                         </Button>
-                        <Select
-                            value={selectedStatus}
-                            onValueChange={(nextStatus) =>
-                                applyStatusFilter(nextStatus)
-                            }
-                        >
-                            <SelectTrigger className="w-44">
-                                <SelectValue placeholder="Status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">
-                                    All Statuses
-                                </SelectItem>
-                                {statuses.map((status) => (
-                                    <SelectItem key={status} value={status}>
-                                        {formatStatusLabel(status)}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+
                         <BankReconImportDialog />
                     </ContainerHeaderEnd>
                     <Dialog open={isClearOpen} onOpenChange={setClearOpen}>
@@ -277,6 +458,12 @@ const applyStatusFilter = (nextStatus: string) => {
                                     filters
                                     {selectedStatus !== 'all'
                                         ? ` (status: ${formatStatusLabel(selectedStatus)})`
+                                        : ''}
+                                    {selectedWeek !== 'all'
+                                        ? ` (week: ${selectedWeek})`
+                                        : ''}
+                                    {selectedBankDate !== 'all'
+                                        ? ` (bank date: ${selectedBankDate})`
                                         : ''}
                                     . This cannot be undone.
                                 </DialogDescription>

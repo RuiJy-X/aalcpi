@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class BankStatement extends Model
 {
     protected $fillable = [
-        'tdate', 'checkno', 'branch_description', 'partic', 'debit', 'credit', 'currency', 'running_balance', 'import_job_id'
+        'tdate', 'checkno', 'branch_description', 'partic', 'debit', 'credit', 'currency', 'running_balance', 'import_job_id', 'bank_date'
     ];
 
     protected $casts = [
@@ -16,6 +16,7 @@ class BankStatement extends Model
         'debit' => 'decimal:2',
         'credit' => 'decimal:2',
         'running_balance' => 'decimal:6',
+        'bank_date' => 'date',
     ];
 
     /**

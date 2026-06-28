@@ -13,6 +13,12 @@ use Illuminate\Support\Facades\Schema;
 class BankReconciliationController extends Controller
 {
     /**
+     * Shared column map for sorting/filtering. Centralized so index() and
+     * buildFilteredQuery() can never drift out of sync.
+     */
+
+
+    /**
      * Display a listing of the resource.
      */
     public function index(Request $request)
@@ -50,14 +56,29 @@ class BankReconciliationController extends Controller
             'transaction_date' => 'reconciliation_workspace.transaction_date',
             'created_at' => 'reconciliation_workspace.created_at',
             'updated_at' => 'reconciliation_workspace.updated_at',
+            'source' => 'reconciliation_workspace.source',
             'internal_source' => 'reconciliation_workspace.internal_source',
-            'bank_source' => 'reconciliation_workspace.bank_source',
+            'variance' => 'reconciliation_workspace.variance',
+            'days_outstanding' => 'reconciliation_workspace.days_outstanding',
+            'disbursement_week' => 'reconciliation_workspace.disbursement_week',
+            'internal_date_issued' => 'reconciliation_workspace.internal_date_issued',
+            'bank_date' => 'reconciliation_workspace.bank_date',
+            'debit' => 'reconciliation_workspace.debit',
+            'internal_amount' => 'reconciliation_workspace.internal_amount',
         ];
 
         $baseQuery = ReconciliationWorkspace::query();
 
         if ($request->filled('status') && !array_key_exists('status', $filters)) {
             $filters['status'] = $request->input('status');
+        }
+
+        if ($request->filled('disbursement_week') && !array_key_exists('disbursement_week', $filters)) {
+            $filters['disbursement_week'] = $request->input('disbursement_week');
+        }
+
+        if ($request->filled('bank_date') && !array_key_exists('bank_date', $filters)) {
+            $filters['bank_date'] = $request->input('bank_date');
         }
 
         if (!empty($filters) && is_array($filters)) {
@@ -73,13 +94,21 @@ class BankReconciliationController extends Controller
                 $dbColumn = $columnMap[$column];
                 $values = is_array($value) ? $value : [$value];
 
-                $baseQuery->where(function ($query) use ($applyLike, $dbColumn, $values) {
+                // disbursement_week and bank_date are exact-match dropdowns,
+                // everything else stays a partial LIKE match.
+                $isExactMatch = in_array($column, ['disbursement_week', 'bank_date'], true);
+
+                $baseQuery->where(function ($query) use ($applyLike, $dbColumn, $values, $isExactMatch) {
                     foreach ($values as $filterValue) {
                         if ($filterValue === '' || $filterValue === null) {
                             continue;
                         }
 
-                        $applyLike($query, $dbColumn, '%' . $filterValue . '%', 'or');
+                        if ($isExactMatch) {
+                            $query->orWhere($dbColumn, $filterValue);
+                        } else {
+                            $applyLike($query, $dbColumn, '%' . $filterValue . '%', 'or');
+                        }
                     }
                 });
             }
@@ -110,7 +139,20 @@ class BankReconciliationController extends Controller
             ->distinct()
             ->orderBy('status')
             ->pluck('status');
-            
+
+        $weekOptions = ReconciliationWorkspace::query()
+            ->whereNotNull('disbursement_week')
+            ->distinct()
+            ->orderBy('disbursement_week')
+            ->pluck('disbursement_week');
+
+        $bankDate = ReconciliationWorkspace::query()
+            ->whereNotNull('bank_date')
+            ->distinct()
+            ->orderBy('bank_date')
+            ->pluck('bank_date')
+            ->map(fn($date) => \Carbon\Carbon::parse($date)->format('Y-m-d'));
+
         if ($showAll) {
             $allWorkspaces = $baseQuery->get();
 
@@ -133,11 +175,28 @@ class BankReconciliationController extends Controller
                     'per_page' => 'all',
                 ],
                 'statuses' => $statusOptions,
-                
+                'weekOptions' => $weekOptions,
+                'bankDateOptions' => $bankDate,
             ]);
         }
 
         $paginatedWorkspaces = $baseQuery->paginate($perPage)->withQueryString();
+
+        $summaryQuery = clone $baseQuery;
+        $totalCount = $summaryQuery->count();
+
+        // 1. Internal Total: Pull ONLY from rows where 'source' is internal
+        $internalTotal = $summaryQuery->sum('internal_amount');
+
+        // 2. Bank Total: Pull ONLY from rows where the bank record actually exists inside the ledger scope
+        $bankTotal = $summaryQuery->sum('bank_amount');
+
+        // Get totals directly from the database matching the exact user filters
+        $summaryStats = [
+            'total_count'    => $totalCount,
+            'internal_total' => $internalTotal, 
+            'bank_total'     => $bankTotal,    
+        ];
 
         return Inertia::render('BankReconciliation/Index', [
             'reconciliationWorkspaces' => $paginatedWorkspaces->items(),
@@ -157,6 +216,9 @@ class BankReconciliationController extends Controller
                 'date_to' => $dateTo,
             ],
             'statuses' => $statusOptions,
+            'weekOptions' => $weekOptions,
+            'bankDateOptions' => $bankDate,
+            'summaryStats'             => $summaryStats, // Add this line
         ]);
     }
 
@@ -208,18 +270,6 @@ class BankReconciliationController extends Controller
         //
     }
 
-    //  public function bulkDestroy(Request $request)
-    // {
-    //     $validated = $request->validate([
-    //         'ids' => ['required', 'array', 'min:1'],
-    //         'ids.*' => ['integer', 'distinct', 'exists:productions,id'],
-    //     ]);
-
-    //     Production::whereIn('id', $validated['ids'])->delete();
-
-    //     return redirect()->back()->with('success', 'Selected production records deleted successfully.');
-    // }
-
     public function bulkDestroy(Request $request)
     {
         $validated = $request->validate([
@@ -258,6 +308,7 @@ class BankReconciliationController extends Controller
 
         return redirect()->back()->with('success', 'Selected reconciliation records deleted successfully.');
     }
+
     private function buildFilteredQuery(Request $request)
     {
         $search = $request->string('search')->toString();
@@ -287,13 +338,25 @@ class BankReconciliationController extends Controller
             'created_at' => 'reconciliation_workspace.created_at',
             'updated_at' => 'reconciliation_workspace.updated_at',
             'internal_source' => 'reconciliation_workspace.internal_source',
-            'bank_source' => 'reconciliation_workspace.bank_source',
+            'variance' => 'reconciliation_workspace.variance',
+            'days_outstanding' => 'reconciliation_workspace.days_outstanding',
+            'disbursement_week' => 'reconciliation_workspace.disbursement_week',
+            'internal_date_issued' => 'reconciliation_workspace.internal_date_issued',
+            'bank_date' => 'reconciliation_workspace.bank_date',
         ];
 
         $query = ReconciliationWorkspace::query();
 
         if ($request->filled('status') && !array_key_exists('status', $filters)) {
             $filters['status'] = $request->input('status');
+        }
+
+        if ($request->filled('disbursement_week') && !array_key_exists('disbursement_week', $filters)) {
+            $filters['disbursement_week'] = $request->input('disbursement_week');
+        }
+
+        if ($request->filled('bank_date') && !array_key_exists('bank_date', $filters)) {
+            $filters['bank_date'] = $request->input('bank_date');
         }
 
         if (!empty($filters) && is_array($filters)) {
@@ -303,12 +366,18 @@ class BankReconciliationController extends Controller
                 }
                 $dbColumn = $columnMap[$column];
                 $values = is_array($value) ? $value : [$value];
-                $query->where(function ($q) use ($applyLike, $dbColumn, $values) {
+                $isExactMatch = in_array($column, ['disbursement_week', 'bank_date'], true);
+
+                $query->where(function ($q) use ($applyLike, $dbColumn, $values, $isExactMatch) {
                     foreach ($values as $filterValue) {
                         if ($filterValue === '' || $filterValue === null) {
                             continue;
                         }
-                        $applyLike($q, $dbColumn, '%' . $filterValue . '%', 'or');
+                        if ($isExactMatch) {
+                            $q->orWhere($dbColumn, $filterValue);
+                        } else {
+                            $applyLike($q, $dbColumn, '%' . $filterValue . '%', 'or');
+                        }
                     }
                 });
             }

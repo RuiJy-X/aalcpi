@@ -10,7 +10,7 @@ class InternalDisbursements extends Model
 {
     protected $table = 'internal_disbursements';
     protected $fillable = [
-        'audit_no', 'payee_name', 'check_no', 'check_amount', 'date_return', 'bank_statement_id', 'import_job_id'
+        'audit_no', 'payee_name', 'check_no', 'check_amount', 'date_return', 'bank_statement_id', 'import_job_id', 'date_issued', 'disbursement_week'
     ];
 
     protected $casts = [
