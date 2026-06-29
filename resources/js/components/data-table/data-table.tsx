@@ -523,8 +523,6 @@ export function DataTable<TData, TValue>({
             return '#85f01241';
         } else if (rowStatus === 'Outstanding') {
             return '#0ec4f138';
-        } else if (rowStatus === 'Unrecorded Bank Entry') {
-            return '#ebe71960';
         } else if (rowStatus === 'Amount Mismatch') {
             return '#ce29293d';
         } else {
@@ -820,6 +818,7 @@ export function DataTable<TData, TValue>({
                                             key={header.id}
                                             className="relative border"
                                             style={{ width: header.getSize() }}
+                                            className="border border-black/40"
                                         >
                                             {header.isPlaceholder
                                                 ? null
@@ -871,6 +870,7 @@ export function DataTable<TData, TValue>({
                                                     cell,
                                                 ),
                                             }}
+                                            className="border border-black/40"
                                         >
                                             {flexRender(
                                                 cell.column.columnDef.cell,

@@ -15,6 +15,7 @@ import {
     ContainerHeaderEnd,
 } from '@/components/container';
 import { DataTable } from '@/components/data-table/data-table';
+import { DatePickerWithRange } from '@/components/date-range';
 import {
     Select,
     SelectContent,
@@ -40,7 +41,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Filter } from 'lucide-react';
+import { Filter, X } from 'lucide-react';
 
 type DataTableQueryState = {
     sorting: SortingState;
@@ -66,8 +67,7 @@ export default function Index({
     pagination,
     table_state,
     weekOptions = [],
-    bankDateOptions = [],
-    summaryStats = { total_count: 0, internal_total: 0, bank_total: 0 }, // Accept prop
+    summaryStats = { total_count: 0, internal_total: 0, bank_total: 0 },
 }: {
     reconciliationWorkspaces: ReconciliationWorkspaceType[];
     statuses: string[];
@@ -85,9 +85,10 @@ export default function Index({
         date_column?: string;
         date_from?: string;
         date_to?: string;
+        period_from?: string;
+        period_to?: string;
     };
     weekOptions?: (string | number)[];
-    bankDateOptions?: Date[];
     summaryStats?: {
         total_count: number;
         internal_total: number;
@@ -105,10 +106,29 @@ export default function Index({
 
     const variance = summaryStats.internal_total - summaryStats.bank_total;
 
+    // Period filter: matches a row if EITHER internal_date_issued OR
+    // transaction_date falls inside this range. Independent of the
+    // generic per-column date range used by the DataTable itself.
+    const [periodRange, setPeriodRange] = React.useState<DateRange | undefined>(
+        table_state?.period_from
+            ? {
+                  from: new Date(table_state.period_from),
+                  to: table_state.period_to
+                      ? new Date(table_state.period_to)
+                      : undefined,
+              }
+            : undefined,
+    );
+
     const handleClearAll = () => {
         setIsClearing(true);
         router.delete(bankReconciliationClear().url, {
-            data: buildQueryParams(latestQueryRef.current, selectedStatus),
+            data: buildQueryParams(
+                latestQueryRef.current,
+                selectedStatus,
+                selectedWeek,
+                periodRange,
+            ),
             preserveScroll: true,
             onSuccess: () => setClearOpen(false),
             onFinish: () => setIsClearing(false),
@@ -170,22 +190,12 @@ export default function Index({
             : weekFilter;
     }, [table_state?.filters?.disbursement_week]);
 
-    const selectedBankDate = React.useMemo(() => {
-        const bankDateFilter = table_state?.filters?.bank_date;
-        if (!bankDateFilter) {
-            return 'all';
-        }
-        return Array.isArray(bankDateFilter)
-            ? (bankDateFilter[0] ?? 'all')
-            : bankDateFilter;
-    }, [table_state?.filters?.bank_date]);
-
     const buildQueryParams = React.useCallback(
         (
             state: DataTableQueryState,
             status: string,
             week: string = selectedWeek,
-            bankDate: string = selectedBankDate,
+            period: DateRange | undefined = periodRange,
         ) => {
             const query: Record<string, any> = {
                 page: state.pagination.pageIndex + 1,
@@ -209,7 +219,7 @@ export default function Index({
                     filter.id === 'disbursement_week' ||
                     filter.id === 'bank_source'
                 ) {
-                    return; // these three are handled separately, not via generic columnFilters
+                    return; // these are handled separately, not via generic columnFilters
                 }
                 if (
                     filter.value === '' ||
@@ -233,10 +243,6 @@ export default function Index({
                 filters.disbursement_week = week;
             }
 
-            if (bankDate !== 'all') {
-                filters.bank_date = bankDate;
-            }
-
             if (Object.keys(filters).length > 0) {
                 query.filters = filters;
             }
@@ -249,9 +255,16 @@ export default function Index({
                 }
             }
 
+            if (period?.from) {
+                query.period_from = format(period.from, 'yyyy-MM-dd');
+                if (period.to) {
+                    query.period_to = format(period.to, 'yyyy-MM-dd');
+                }
+            }
+
             return query;
         },
-        [selectedWeek, selectedBankDate],
+        [selectedWeek, periodRange],
     );
 
     const handleQueryChange = React.useCallback(
@@ -296,12 +309,7 @@ export default function Index({
         };
 
         latestQueryRef.current = nextState;
-        const query = buildQueryParams(
-            nextState,
-            selectedStatus,
-            nextWeek,
-            selectedBankDate,
-        );
+        const query = buildQueryParams(nextState, selectedStatus, nextWeek);
 
         router.get(bankReconciliationIndex().url, query, {
             preserveState: true,
@@ -310,7 +318,9 @@ export default function Index({
         });
     };
 
-    const applyBankDateFilter = (nextBankDate: string) => {
+    const applyPeriodFilter = (nextPeriod: DateRange | undefined) => {
+        setPeriodRange(nextPeriod);
+
         const nextState: DataTableQueryState = {
             ...latestQueryRef.current,
             pagination: {
@@ -324,10 +334,31 @@ export default function Index({
             nextState,
             selectedStatus,
             selectedWeek,
-            nextBankDate,
+            nextPeriod,
         );
 
         router.get(bankReconciliationIndex().url, query, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
+
+    const hasActiveFilters =
+        selectedStatus !== 'all' ||
+        selectedWeek !== 'all' ||
+        Boolean(periodRange?.from) ||
+        Boolean(latestQueryRef.current.globalFilter) ||
+        Boolean(latestQueryRef.current.dateRange?.from) ||
+        latestQueryRef.current.columnFilters.some(
+            (filter) =>
+                filter.id !== 'status' && filter.id !== 'disbursement_week',
+        ) ||
+        latestQueryRef.current.sorting.length > 0;
+
+    const clearAllFilters = () => {
+        setPeriodRange(undefined);
+        router.get(bankReconciliationIndex().url, {
             preserveState: true,
             preserveScroll: true,
             replace: true,
@@ -355,23 +386,16 @@ export default function Index({
                         ))}
                     </SelectContent>
                 </Select>
-                <Select
-                    value={selectedBankDate}
-                    onValueChange={(nextDate) => applyBankDateFilter(nextDate)}
-                >
-                    <SelectTrigger className="w-56 bg-white">
-                        <SelectValue placeholder="Bank Statement File" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">Year and Month</SelectItem>
-                        {bankDateOptions.map((date) => (
-                            <SelectItem key={date} value={date}>
-                                {/* Format '2025-10-01' to 'October 2025' on the fly */}
-                                {format(new Date(date), 'MMMM yyyy')}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                {/*
+                    Period filter: matches internal_date_issued OR
+                    transaction_date. bank_date is no longer used for
+                    filtering — it's just an upload-batch label now.
+                */}
+                <DatePickerWithRange
+                    className="w-64 bg-white"
+                    value={periodRange}
+                    onChange={(nextRange) => applyPeriodFilter(nextRange)}
+                />
                 <Select
                     value={selectedStatus}
                     onValueChange={(nextStatus) =>
@@ -390,8 +414,18 @@ export default function Index({
                         ))}
                     </SelectContent>
                 </Select>
+                {hasActiveFilters && (
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={clearAllFilters}
+                        className="gap-1.5 border border-slate-200 bg-red-200 text-foreground hover:bg-red-300 hover:text-foreground"
+                    >
+                        <X className="h-3.5 w-3.5" />
+                        Clear filters
+                    </Button>
+                )}
             </div>
-            {/* NEW SUMMARY SECTION */}
             <div className="mx-2 mb-6 grid grid-cols-1 gap-4 md:grid-cols-4">
                 <div className="rounded-xl border bg-card p-4 shadow-sm">
                     <p className="text-sm font-medium text-muted-foreground">
@@ -462,8 +496,8 @@ export default function Index({
                                     {selectedWeek !== 'all'
                                         ? ` (week: ${selectedWeek})`
                                         : ''}
-                                    {selectedBankDate !== 'all'
-                                        ? ` (bank date: ${selectedBankDate})`
+                                    {periodRange?.from
+                                        ? ` (period: ${format(periodRange.from, 'MMM d, yyyy')}${periodRange.to ? ` – ${format(periodRange.to, 'MMM d, yyyy')}` : ''})`
                                         : ''}
                                     . This cannot be undone.
                                 </DialogDescription>

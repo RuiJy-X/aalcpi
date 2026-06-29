@@ -13,12 +13,6 @@ use Illuminate\Support\Facades\Schema;
 class BankReconciliationController extends Controller
 {
     /**
-     * Shared column map for sorting/filtering. Centralized so index() and
-     * buildFilteredQuery() can never drift out of sync.
-     */
-
-
-    /**
      * Display a listing of the resource.
      */
     public function index(Request $request)
@@ -34,6 +28,16 @@ class BankReconciliationController extends Controller
         $dateColumn = $request->string('date_column')->toString();
         $dateFrom = $request->string('date_from')->toString();
         $dateTo = $request->string('date_to')->toString();
+
+        // Period filter: independent of the generic single-column date range above.
+        // Matches a row if EITHER internal_date_issued OR transaction_date falls
+        // inside the selected range. This is what lets outstanding internal rows
+        // (no bank match yet, transaction_date is NULL) and matched/unrecorded
+        // bank rows (transaction_date populated) both surface under "this period",
+        // rather than relying on bank_date, which is just an upload-batch label.
+        $periodFrom = $request->string('period_from')->toString();
+        $periodTo = $request->string('period_to')->toString();
+
         $driver = Schema::getConnection()->getDriverName();
         $likeOperator = $driver === 'pgsql' ? 'ilike' : 'like';
         $useCaseInsensitiveLike = $driver === 'sqlite';
@@ -62,7 +66,6 @@ class BankReconciliationController extends Controller
             'days_outstanding' => 'reconciliation_workspace.days_outstanding',
             'disbursement_week' => 'reconciliation_workspace.disbursement_week',
             'internal_date_issued' => 'reconciliation_workspace.internal_date_issued',
-            'bank_date' => 'reconciliation_workspace.bank_date',
             'debit' => 'reconciliation_workspace.debit',
             'internal_amount' => 'reconciliation_workspace.internal_amount',
         ];
@@ -75,10 +78,6 @@ class BankReconciliationController extends Controller
 
         if ($request->filled('disbursement_week') && !array_key_exists('disbursement_week', $filters)) {
             $filters['disbursement_week'] = $request->input('disbursement_week');
-        }
-
-        if ($request->filled('bank_date') && !array_key_exists('bank_date', $filters)) {
-            $filters['bank_date'] = $request->input('bank_date');
         }
 
         if (!empty($filters) && is_array($filters)) {
@@ -94,9 +93,9 @@ class BankReconciliationController extends Controller
                 $dbColumn = $columnMap[$column];
                 $values = is_array($value) ? $value : [$value];
 
-                // disbursement_week and bank_date are exact-match dropdowns,
-                // everything else stays a partial LIKE match.
-                $isExactMatch = in_array($column, ['disbursement_week', 'bank_date'], true);
+                // disbursement_week is the only remaining exact-match dropdown;
+                // bank_date has been retired from filtering entirely.
+                $isExactMatch = in_array($column, ['disbursement_week'], true);
 
                 $baseQuery->where(function ($query) use ($applyLike, $dbColumn, $values, $isExactMatch) {
                     foreach ($values as $filterValue) {
@@ -128,6 +127,14 @@ class BankReconciliationController extends Controller
             $baseQuery->whereBetween($dbDateColumn, [$dateFrom, $toDate]);
         }
 
+        if ($periodFrom !== '') {
+            $periodToResolved = $periodTo !== '' ? $periodTo : $periodFrom;
+            $baseQuery->where(function ($query) use ($periodFrom, $periodToResolved) {
+                $query->whereBetween('reconciliation_workspace.internal_date_issued', [$periodFrom, $periodToResolved])
+                    ->orWhereBetween('reconciliation_workspace.transaction_date', [$periodFrom, $periodToResolved]);
+            });
+        }
+
         if ($sort !== '' && isset($columnMap[$sort])) {
             $baseQuery->orderBy($columnMap[$sort], $direction);
         } else {
@@ -145,13 +152,6 @@ class BankReconciliationController extends Controller
             ->distinct()
             ->orderBy('disbursement_week')
             ->pluck('disbursement_week');
-
-        $bankDate = ReconciliationWorkspace::query()
-            ->whereNotNull('bank_date')
-            ->distinct()
-            ->orderBy('bank_date')
-            ->pluck('bank_date')
-            ->map(fn($date) => \Carbon\Carbon::parse($date)->format('Y-m-d'));
 
         if ($showAll) {
             $allWorkspaces = $baseQuery->get();
@@ -172,31 +172,28 @@ class BankReconciliationController extends Controller
                     'date_column' => $dateColumn,
                     'date_from' => $dateFrom,
                     'date_to' => $dateTo,
+                    'period_from' => $periodFrom,
+                    'period_to' => $periodTo,
                     'per_page' => 'all',
                 ],
                 'statuses' => $statusOptions,
                 'weekOptions' => $weekOptions,
-                'bankDateOptions' => $bankDate,
             ]);
         }
 
-        $paginatedWorkspaces = $baseQuery->paginate($perPage)->withQueryString();
-
         $summaryQuery = clone $baseQuery;
         $totalCount = $summaryQuery->count();
-
-        // 1. Internal Total: Pull ONLY from rows where 'source' is internal
         $internalTotal = $summaryQuery->sum('internal_amount');
-
-        // 2. Bank Total: Pull ONLY from rows where the bank record actually exists inside the ledger scope
         $bankTotal = $summaryQuery->sum('bank_amount');
 
-        // Get totals directly from the database matching the exact user filters
         $summaryStats = [
             'total_count'    => $totalCount,
-            'internal_total' => $internalTotal, 
-            'bank_total'     => $bankTotal,    
+            'internal_total' => $internalTotal,
+            'bank_total'     => $bankTotal,
         ];
+        
+        $paginatedWorkspaces = $baseQuery->paginate($perPage)->withQueryString();
+
 
         return Inertia::render('BankReconciliation/Index', [
             'reconciliationWorkspaces' => $paginatedWorkspaces->items(),
@@ -214,57 +211,40 @@ class BankReconciliationController extends Controller
                 'date_column' => $dateColumn,
                 'date_from' => $dateFrom,
                 'date_to' => $dateTo,
+                'period_from' => $periodFrom,
+                'period_to' => $periodTo,
             ],
             'statuses' => $statusOptions,
             'weekOptions' => $weekOptions,
-            'bankDateOptions' => $bankDate,
-            'summaryStats'             => $summaryStats, // Add this line
+            'summaryStats' => $summaryStats,
         ]);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
         //
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
         //
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(string $id)
     {
         //
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
     public function edit(string $id)
     {
         //
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, string $id)
     {
         //
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(string $id)
     {
         //
@@ -316,6 +296,8 @@ class BankReconciliationController extends Controller
         $dateColumn = $request->string('date_column')->toString();
         $dateFrom = $request->string('date_from')->toString();
         $dateTo = $request->string('date_to')->toString();
+        $periodFrom = $request->string('period_from')->toString();
+        $periodTo = $request->string('period_to')->toString();
         $driver = Schema::getConnection()->getDriverName();
         $likeOperator = $driver === 'pgsql' ? 'ilike' : 'like';
         $useCaseInsensitiveLike = $driver === 'sqlite';
@@ -342,7 +324,6 @@ class BankReconciliationController extends Controller
             'days_outstanding' => 'reconciliation_workspace.days_outstanding',
             'disbursement_week' => 'reconciliation_workspace.disbursement_week',
             'internal_date_issued' => 'reconciliation_workspace.internal_date_issued',
-            'bank_date' => 'reconciliation_workspace.bank_date',
         ];
 
         $query = ReconciliationWorkspace::query();
@@ -355,10 +336,6 @@ class BankReconciliationController extends Controller
             $filters['disbursement_week'] = $request->input('disbursement_week');
         }
 
-        if ($request->filled('bank_date') && !array_key_exists('bank_date', $filters)) {
-            $filters['bank_date'] = $request->input('bank_date');
-        }
-
         if (!empty($filters) && is_array($filters)) {
             foreach ($filters as $column => $value) {
                 if (!array_key_exists($column, $columnMap) || $value === '' || $value === null) {
@@ -366,7 +343,7 @@ class BankReconciliationController extends Controller
                 }
                 $dbColumn = $columnMap[$column];
                 $values = is_array($value) ? $value : [$value];
-                $isExactMatch = in_array($column, ['disbursement_week', 'bank_date'], true);
+                $isExactMatch = in_array($column, ['disbursement_week'], true);
 
                 $query->where(function ($q) use ($applyLike, $dbColumn, $values, $isExactMatch) {
                     foreach ($values as $filterValue) {
@@ -395,6 +372,14 @@ class BankReconciliationController extends Controller
             $dbDateColumn = $columnMap[$dateColumn];
             $toDate = $dateTo !== '' ? $dateTo : $dateFrom;
             $query->whereBetween($dbDateColumn, [$dateFrom, $toDate]);
+        }
+
+        if ($periodFrom !== '') {
+            $periodToResolved = $periodTo !== '' ? $periodTo : $periodFrom;
+            $query->where(function ($q) use ($periodFrom, $periodToResolved) {
+                $q->whereBetween('reconciliation_workspace.internal_date_issued', [$periodFrom, $periodToResolved])
+                    ->orWhereBetween('reconciliation_workspace.transaction_date', [$periodFrom, $periodToResolved]);
+            });
         }
 
         return $query;
