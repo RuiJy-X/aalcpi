@@ -33,6 +33,14 @@
 <body>
     @php
         $records = isset($productions) ? $productions : collect([$production]);
+        $logoPath = resource_path('views/pdfs/aalcpilogoprint.jpg');
+        $signaturePath = resource_path('views/pdfs/aalcpisign.jpg');
+        $logoDataUri = file_exists($logoPath)
+            ? 'data:image/jpeg;base64,' . base64_encode(file_get_contents($logoPath))
+            : null;
+        $signatureDataUri = file_exists($signaturePath)
+            ? 'data:image/jpeg;base64,' . base64_encode(file_get_contents($signaturePath))
+            : null;
     @endphp
 
     @foreach ($records as $production)
@@ -40,7 +48,16 @@
         $compositeSugarPrice = $production->composite_sugar_price;
         $compositeMolassesPrice = $production->composite_molasses_price;
     @endphp
-    <h2 style="text-align: center; font-size: 16px;">ASSOCIACION DE AGRICULTORES DE LA CARLOTA Y PONTEVEDRA, INC. P.O Box 18, Brgy. RSB, La Carlota City</h2>
+    <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+            <td style="width: 18%; vertical-align: middle; text-align: center; padding: 0;">
+                <img src="{{ $logoDataUri }}" alt="AALCPI Logo" style="max-width: 100%; height: auto;">
+            </td>
+            <td style="width: 82%; vertical-align: middle; text-align: center; padding: 0;">
+                <h2 style="text-align: center; font-size: 16px; margin: 0;">ASSOCIACION DE AGRICULTORES DE LA CARLOTA Y PONTEVEDRA, INC. P.O Box 18, Brgy. RSB, La Carlota City</h2>
+            </td>
+        </tr>
+    </table>
     <br><br>
     <h1 style="text-align: center; font-family: 'Times New Roman', Times, serif;"><strong>C E R T I F I C A T I O N</strong></h1>
     <h3><strong>TO WHOM IT MAY CONCERN:</strong></h3>
@@ -92,11 +109,7 @@
                 
             </td>
             <td style="width: 40%; text-align: center">
-                <h5>
-                    ASSOCIACION DE AGRICULTORES DE LA CARLOTA Y PONTEVEDRA, INC. BY:<br><br><br>
-                    DAVID JOHN THADDEUS P. ALBA<br>
-                    General Manager
-                </h5>
+                <img src="{{ $signatureDataUri }}" alt="AALCPI Signature" style="width: 85%; height: auto;">
             </td>
         </tr>
     </tbody>
