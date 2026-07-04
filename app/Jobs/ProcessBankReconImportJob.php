@@ -2,7 +2,9 @@
 
 namespace App\Jobs;
 
+use App\Models\BankStatement;
 use App\Models\ImportJob;
+use App\Models\InternalDisbursements;
 use App\Imports\InternalDisbursementsImport;
 use App\Imports\BankStatementsImport;
 use Maatwebsite\Excel\Facades\Excel;
@@ -11,7 +13,8 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Exception;
+use Illuminate\Support\Facades\Storage;
+use Throwable;
 
 class ProcessBankReconImportJob implements ShouldQueue
 {
@@ -23,10 +26,7 @@ class ProcessBankReconImportJob implements ShouldQueue
     protected $dateIssued;
     protected $disbursementWeek;
     protected $bankDate;
-    
-    /**
-     * Only accept strict primitive scalar parameters to avoid serialization failures.
-     */
+
     public function __construct(
         int $jobId,
         string $type,
@@ -45,21 +45,15 @@ class ProcessBankReconImportJob implements ShouldQueue
 
     public function handle()
     {
-        // 1. Fetch the database tracking master stub and mark as processing
         $importJob = ImportJob::find($this->jobId);
-        if ($importJob) {
-            $importJob->update(['status' => 'processing']); // or your model constant
-        }
+        $importJob?->markRunning();
 
         try {
-            // 2. Select and run the appropriate parser using the local file path string
+            $this->replacePriorBatch();
+
             if ($this->type === 'bank') {
                 Excel::import(
-                    new BankStatementsImport(
-                        $this->jobId,
-                        $this->filePath,
-                        $this->bankDate
-                    ),
+                    new BankStatementsImport($this->jobId, $this->filePath, $this->bankDate),
                     $this->filePath,
                     'local'
                 );
@@ -76,21 +70,60 @@ class ProcessBankReconImportJob implements ShouldQueue
                 );
             }
 
-            // 3. Mark the transaction audit log as completed on structural success
-            if ($importJob) {
-                $importJob->update(['status' => 'done']);
+            // The importer's AfterImport event marks the job done already;
+            // this only covers the (unlikely) case that event never fired.
+            $importJob?->refresh();
+            if ($importJob && $importJob->status === ImportJob::STATUS_RUNNING) {
+                $importJob->markDone();
+            }
+        } catch (Throwable $e) {
+            // Throwable, not just Exception — a malformed row can throw a
+            // plain TypeError, which extends Error and slips straight past
+            // catch(Exception), leaving the job stuck at "running" forever.
+            $importJob?->markFailed($e->getMessage());
+
+            throw $e;
+        } finally {
+            if (Storage::disk('local')->exists($this->filePath)) {
+                Storage::disk('local')->delete($this->filePath);
+            }
+        }
+    }
+
+    /**
+     * Re-importing the same file for the same batch (same date_issued +
+     * disbursement_week for internal, same bank_date month for bank)
+     * should replace that batch, not stack another 5,000 rows on top of
+     * the last upload. Delete whatever already exists for this exact
+     * batch key before the importer inserts anything new.
+     */
+    private function replacePriorBatch(): void
+    {
+        if ($this->type === 'bank') {
+            if (!$this->bankDate) {
+                return;
             }
 
-        } catch (Exception $e) {
-            // 4. Catch failures gracefully and mark the tracking job state as failed
-            if ($importJob) {
-                $importJob->update([
-                    'status' => 'failed',
-                    'error_log' => $e->getMessage()
-                ]);
+            $existingIds = BankStatement::where('bank_date', $this->bankDate)->pluck('id');
+
+            if ($existingIds->isEmpty()) {
+                return;
             }
 
-            throw $e; // Bubble up error for Laravel queue retry handling mechanisms
+            // Detach internal disbursements pointing at bank rows we're
+            // about to delete, so the delete doesn't leave dangling FKs.
+            InternalDisbursements::whereIn('bank_statement_id', $existingIds)
+                ->update(['bank_statement_id' => null]);
+
+            BankStatement::whereIn('id', $existingIds)->delete();
+        } else {
+            if (!$this->dateIssued || !$this->disbursementWeek) {
+                return;
+            }
+
+            InternalDisbursements::where('date_issued', $this->dateIssued)
+                ->where('disbursement_week', $this->disbursementWeek)
+                ->delete();
         }
     }
 }

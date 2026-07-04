@@ -3,17 +3,17 @@
 namespace App\Imports;
 
 use App\Models\InternalDisbursements;
-use App\Models\BankStatement;
 use App\Models\ImportJob;
 use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Concerns\WithChunkReading;
 use Maatwebsite\Excel\Events\AfterImport;
 use Maatwebsite\Excel\Events\ImportFailed;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
 
-class InternalDisbursementsImport implements ToModel, WithHeadingRow, WithEvents
+class InternalDisbursementsImport implements ToModel, WithHeadingRow, WithEvents, WithChunkReading
 {
     protected $importJobId;
     protected $filePath;
@@ -37,14 +37,20 @@ class InternalDisbursementsImport implements ToModel, WithHeadingRow, WithEvents
         return 6;
     }
 
+    public function chunkSize(): int
+    {
+        return 1000;
+    }
+
     public function model(array $row)
     {
         if (empty($row['check_no']) && empty($row['audit_no'])) {
             return null;
         }
 
-        $checkNo = trim((string)($row['check_no'] ?? $row['check_no.'] ?? ''));
-        $checkAmount = is_numeric($row['check_amount']) ? (float)$row['check_amount'] : 0.00;
+        $checkNo = trim((string) ($row['check_no'] ?? $row['check_no.'] ?? ''));
+        $auditNo = !empty($row['audit_no']) ? trim((string) $row['audit_no']) : null;
+        $checkAmount = is_numeric($row['check_amount']) ? (float) $row['check_amount'] : 0.00;
 
         $dateReturn = null;
         if (!empty($row['date_return'])) {
@@ -53,26 +59,30 @@ class InternalDisbursementsImport implements ToModel, WithHeadingRow, WithEvents
                 : date('Y-m-d', strtotime($row['date_return']));
         }
 
-        $matchedBankRecord = BankStatement::where('checkno', $checkNo)
-            ->whereDoesntHave('internalDisbursement')
-            ->first();
-
-        return InternalDisbursements::updateOrCreate(
-            [
-                'audit_no' => !empty($row['audit_no']) ? trim((string)$row['audit_no']) : null,
-                'check_no' => $checkNo,
-            ],
-            [
-                'payee_name' => $row['payee_name'] ?? 'Unknown Payee',
-                'check_amount' => $checkAmount,
-                'date_return' => $dateReturn,
-                'disbursement_week' => $this->disbursementWeek,
-                'bank_statement_id' => $matchedBankRecord?->id ?? null,
-                'date_issued' => $this->dateIssued, // disambiguates re-used check numbers across different batches
-
-                'import_job_id' => $this->importJobId,
-            ]
+        $matchedBankRecord = InternalDisbursements::findBankMatchFor(
+            $checkNo,
+            $checkAmount,
+            $this->dateIssued,
         );
+
+        // Always insert — duplicates (same check_no appearing more than
+        // once) are intentionally kept, not merged. refreshDuplicateFlags()
+        // in AfterImport below marks them so they're visible in the UI,
+        // and the caller (ProcessBankReconImportJob) already deleted any
+        // prior rows for this exact date_issued + disbursement_week batch
+        // before this import ran, so re-uploading the same file replaces
+        // the old batch instead of stacking on top of it.
+        return InternalDisbursements::create([
+            'audit_no' => $auditNo,
+            'check_no' => $checkNo,
+            'payee_name' => $row['payee_name'] ?? 'Unknown Payee',
+            'check_amount' => $checkAmount,
+            'date_return' => $dateReturn,
+            'disbursement_week' => $this->disbursementWeek,
+            'bank_statement_id' => $matchedBankRecord?->id,
+            'date_issued' => $this->dateIssued,
+            'import_job_id' => $this->importJobId,
+        ]);
     }
 
     public function registerEvents(): array
@@ -80,11 +90,16 @@ class InternalDisbursementsImport implements ToModel, WithHeadingRow, WithEvents
         return [
             AfterImport::class => function (): void {
                 if ($this->importJobId !== null) {
-                    $job = ImportJob::find($this->importJobId);
-                    if ($job) {
-                        $job->update(['status' => 'done']);
-                    }
                     InternalDisbursements::reconcileUnmatched();
+                    InternalDisbursements::refreshDuplicateFlags();
+
+                    $duplicateCount = InternalDisbursements::where('is_duplicate', true)->count();
+
+                    ImportJob::find($this->importJobId)?->markDone(
+                        $duplicateCount > 0
+                            ? "Import complete. {$duplicateCount} row(s) currently share a check number with another record."
+                            : 'Import complete.'
+                    );
                 }
                 if ($this->filePath) {
                     Storage::disk('local')->delete($this->filePath);
@@ -92,13 +107,9 @@ class InternalDisbursementsImport implements ToModel, WithHeadingRow, WithEvents
             },
             ImportFailed::class => function (ImportFailed $event): void {
                 if ($this->importJobId !== null) {
-                    $job = ImportJob::find($this->importJobId);
-                    if ($job) {
-                        $job->update([
-                            'status' => 'failed',
-                            'error_log' => $event->getException()->getMessage()
-                        ]);
-                    }
+                    ImportJob::find($this->importJobId)?->markFailed(
+                        $event->getException()->getMessage()
+                    );
                 }
                 if ($this->filePath) {
                     Storage::disk('local')->delete($this->filePath);

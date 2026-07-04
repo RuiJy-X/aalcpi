@@ -8,6 +8,7 @@ use App\Models\InternalDisbursements;
 use Inertia\Inertia;
 use App\Models\ReconciliationWorkspace;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 class BankReconciliationController extends Controller
@@ -31,10 +32,7 @@ class BankReconciliationController extends Controller
 
         // Period filter: independent of the generic single-column date range above.
         // Matches a row if EITHER internal_date_issued OR transaction_date falls
-        // inside the selected range. This is what lets outstanding internal rows
-        // (no bank match yet, transaction_date is NULL) and matched/unrecorded
-        // bank rows (transaction_date populated) both surface under "this period",
-        // rather than relying on bank_date, which is just an upload-batch label.
+        // inside the selected range.
         $periodFrom = $request->string('period_from')->toString();
         $periodTo = $request->string('period_to')->toString();
 
@@ -67,6 +65,7 @@ class BankReconciliationController extends Controller
             'disbursement_week' => 'reconciliation_workspace.disbursement_week',
             'internal_date_issued' => 'reconciliation_workspace.internal_date_issued',
             'debit' => 'reconciliation_workspace.debit',
+            'is_duplicate' => 'reconciliation_workspace.is_duplicate',
             'internal_amount' => 'reconciliation_workspace.internal_amount',
         ];
 
@@ -78,6 +77,9 @@ class BankReconciliationController extends Controller
 
         if ($request->filled('disbursement_week') && !array_key_exists('disbursement_week', $filters)) {
             $filters['disbursement_week'] = $request->input('disbursement_week');
+        }
+        if ($request->filled('is_duplicate') && !array_key_exists('is_duplicate', $filters)) {
+            $filters['is_duplicate'] = $request->input('is_duplicate');
         }
 
         if (!empty($filters) && is_array($filters)) {
@@ -93,9 +95,7 @@ class BankReconciliationController extends Controller
                 $dbColumn = $columnMap[$column];
                 $values = is_array($value) ? $value : [$value];
 
-                // disbursement_week is the only remaining exact-match dropdown;
-                // bank_date has been retired from filtering entirely.
-                $isExactMatch = in_array($column, ['disbursement_week'], true);
+                $isExactMatch = in_array($column, ['disbursement_week', 'is_duplicate'], true);
 
                 $baseQuery->where(function ($query) use ($applyLike, $dbColumn, $values, $isExactMatch) {
                     foreach ($values as $filterValue) {
@@ -153,6 +153,13 @@ class BankReconciliationController extends Controller
             ->orderBy('disbursement_week')
             ->pluck('disbursement_week');
 
+        // Static KPIs: driven ONLY by the period date range, never by
+        // status/week/is_duplicate/search. These give the user a fixed
+        // read of "how many matched/outstanding/duplicate/unrecorded
+        // records exist in this date range" regardless of what they're
+        // currently drilling into with the other filters.
+        $kpiStats = $this->buildKpiStats($periodFrom, $periodTo);
+
         if ($showAll) {
             $allWorkspaces = $baseQuery->get();
 
@@ -178,6 +185,7 @@ class BankReconciliationController extends Controller
                 ],
                 'statuses' => $statusOptions,
                 'weekOptions' => $weekOptions,
+                'kpiStats' => $kpiStats,
             ]);
         }
 
@@ -191,9 +199,8 @@ class BankReconciliationController extends Controller
             'internal_total' => $internalTotal,
             'bank_total'     => $bankTotal,
         ];
-        
-        $paginatedWorkspaces = $baseQuery->paginate($perPage)->withQueryString();
 
+        $paginatedWorkspaces = $baseQuery->paginate($perPage)->withQueryString();
 
         return Inertia::render('BankReconciliation/Index', [
             'reconciliationWorkspaces' => $paginatedWorkspaces->items(),
@@ -217,7 +224,45 @@ class BankReconciliationController extends Controller
             'statuses' => $statusOptions,
             'weekOptions' => $weekOptions,
             'summaryStats' => $summaryStats,
+            'kpiStats' => $kpiStats,
         ]);
+    }
+
+    /**
+     * Counts by status plus a duplicate count, scoped ONLY by the period
+     * date range (internal_date_issued OR transaction_date within range).
+     * Deliberately starts a fresh query rather than reusing $baseQuery,
+     * since $baseQuery already carries status/week/is_duplicate/search
+     * filters that these KPIs must stay independent of.
+     */
+    private function buildKpiStats(string $periodFrom, string $periodTo): array
+    {
+        $query = ReconciliationWorkspace::query();
+
+        if ($periodFrom !== '') {
+            $periodToResolved = $periodTo !== '' ? $periodTo : $periodFrom;
+            $query->where(function ($q) use ($periodFrom, $periodToResolved) {
+                $q->whereBetween('reconciliation_workspace.internal_date_issued', [$periodFrom, $periodToResolved])
+                    ->orWhereBetween('reconciliation_workspace.transaction_date', [$periodFrom, $periodToResolved]);
+            });
+        }
+
+        $statusCounts = (clone $query)
+            ->select('status', DB::raw('COUNT(*) as aggregate_count'))
+            ->groupBy('status')
+            ->pluck('aggregate_count', 'status');
+
+        $duplicateCount = (clone $query)
+            ->where('reconciliation_workspace.is_duplicate', true)
+            ->count();
+
+        return [
+            'matched' => (int) ($statusCounts['Matched'] ?? 0),
+            'outstanding' => (int) ($statusCounts['Outstanding'] ?? 0),
+            'mismatched' => (int) ($statusCounts['Amount Mismatch'] ?? 0),
+            'unrecorded' => (int) ($statusCounts['Unrecorded Bank Entry'] ?? 0),
+            'duplicates' => $duplicateCount,
+        ];
     }
 
     public function create()
@@ -323,6 +368,7 @@ class BankReconciliationController extends Controller
             'variance' => 'reconciliation_workspace.variance',
             'days_outstanding' => 'reconciliation_workspace.days_outstanding',
             'disbursement_week' => 'reconciliation_workspace.disbursement_week',
+            'is_duplicate' => 'reconciliation_workspace.is_duplicate',
             'internal_date_issued' => 'reconciliation_workspace.internal_date_issued',
         ];
 
@@ -343,7 +389,7 @@ class BankReconciliationController extends Controller
                 }
                 $dbColumn = $columnMap[$column];
                 $values = is_array($value) ? $value : [$value];
-                $isExactMatch = in_array($column, ['disbursement_week'], true);
+                $isExactMatch = in_array($column, ['disbursement_week', 'is_duplicate'], true);
 
                 $query->where(function ($q) use ($applyLike, $dbColumn, $values, $isExactMatch) {
                     foreach ($values as $filterValue) {

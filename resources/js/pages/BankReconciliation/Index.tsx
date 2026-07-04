@@ -41,7 +41,14 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Filter, X } from 'lucide-react';
+import {
+    CircleCheck,
+    Clock,
+    Copy,
+    Filter,
+    TriangleAlert,
+    X,
+} from 'lucide-react';
 
 type DataTableQueryState = {
     sorting: SortingState;
@@ -68,6 +75,13 @@ export default function Index({
     table_state,
     weekOptions = [],
     summaryStats = { total_count: 0, internal_total: 0, bank_total: 0 },
+    kpiStats = {
+        matched: 0,
+        outstanding: 0,
+        mismatched: 0,
+        unrecorded: 0,
+        duplicates: 0,
+    },
 }: {
     reconciliationWorkspaces: ReconciliationWorkspaceType[];
     statuses: string[];
@@ -94,9 +108,21 @@ export default function Index({
         internal_total: number;
         bank_total: number;
     };
+    // Driven ONLY by the period date range on the backend (see
+    // buildKpiStats in the controller) — never affected by status, week,
+    // duplicate toggle, or search, so these numbers stay a fixed read of
+    // "what's in this date range" while the user drills around below.
+    kpiStats?: {
+        matched: number;
+        outstanding: number;
+        mismatched: number;
+        unrecorded: number;
+        duplicates: number;
+    };
 }) {
     const [isClearOpen, setClearOpen] = React.useState(false);
     const [isClearing, setIsClearing] = React.useState(false);
+
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('en-PH', {
             style: 'currency',
@@ -106,9 +132,6 @@ export default function Index({
 
     const variance = summaryStats.internal_total - summaryStats.bank_total;
 
-    // Period filter: matches a row if EITHER internal_date_issued OR
-    // transaction_date falls inside this range. Independent of the
-    // generic per-column date range used by the DataTable itself.
     const [periodRange, setPeriodRange] = React.useState<DateRange | undefined>(
         table_state?.period_from
             ? {
@@ -120,20 +143,6 @@ export default function Index({
             : undefined,
     );
 
-    const handleClearAll = () => {
-        setIsClearing(true);
-        router.delete(bankReconciliationClear().url, {
-            data: buildQueryParams(
-                latestQueryRef.current,
-                selectedStatus,
-                selectedWeek,
-                periodRange,
-            ),
-            preserveScroll: true,
-            onSuccess: () => setClearOpen(false),
-            onFinish: () => setIsClearing(false),
-        });
-    };
     const initialSorting = table_state?.sort
         ? [{ id: table_state.sort, desc: table_state.direction === 'desc' }]
         : [];
@@ -190,12 +199,23 @@ export default function Index({
             : weekFilter;
     }, [table_state?.filters?.disbursement_week]);
 
+    const initialShowDuplicates = React.useMemo(() => {
+        const dupFilter = table_state?.filters?.is_duplicate;
+        const value = Array.isArray(dupFilter) ? dupFilter[0] : dupFilter;
+        return value === '1' || value === 1 || value === true;
+    }, [table_state?.filters?.is_duplicate]);
+
+    const [showDuplicates, setShowDuplicates] = React.useState(
+        initialShowDuplicates,
+    );
+
     const buildQueryParams = React.useCallback(
         (
             state: DataTableQueryState,
             status: string,
             week: string = selectedWeek,
             period: DateRange | undefined = periodRange,
+            isDuplicate: boolean = showDuplicates,
         ) => {
             const query: Record<string, any> = {
                 page: state.pagination.pageIndex + 1,
@@ -217,9 +237,10 @@ export default function Index({
                 if (
                     filter.id === 'status' ||
                     filter.id === 'disbursement_week' ||
+                    filter.id === 'is_duplicate' ||
                     filter.id === 'bank_source'
                 ) {
-                    return; // these are handled separately, not via generic columnFilters
+                    return;
                 }
                 if (
                     filter.value === '' ||
@@ -243,6 +264,10 @@ export default function Index({
                 filters.disbursement_week = week;
             }
 
+            if (isDuplicate) {
+                filters.is_duplicate = '1';
+            }
+
             if (Object.keys(filters).length > 0) {
                 query.filters = filters;
             }
@@ -264,8 +289,24 @@ export default function Index({
 
             return query;
         },
-        [selectedWeek, periodRange],
+        [selectedWeek, periodRange, showDuplicates],
     );
+
+    const handleClearAll = () => {
+        setIsClearing(true);
+        router.delete(bankReconciliationClear().url, {
+            data: buildQueryParams(
+                latestQueryRef.current,
+                selectedStatus,
+                selectedWeek,
+                periodRange,
+                showDuplicates,
+            ),
+            preserveScroll: true,
+            onSuccess: () => setClearOpen(false),
+            onFinish: () => setIsClearing(false),
+        });
+    };
 
     const handleQueryChange = React.useCallback(
         (state: DataTableQueryState) => {
@@ -344,20 +385,52 @@ export default function Index({
         });
     };
 
+    const toggleDuplicateFilter = () => {
+        const nextValue = !showDuplicates;
+        setShowDuplicates(nextValue);
+
+        const nextState: DataTableQueryState = {
+            ...latestQueryRef.current,
+            pagination: {
+                ...latestQueryRef.current.pagination,
+                pageIndex: 0,
+            },
+        };
+
+        latestQueryRef.current = nextState;
+        const query = buildQueryParams(
+            nextState,
+            selectedStatus,
+            selectedWeek,
+            periodRange,
+            nextValue,
+        );
+
+        router.get(bankReconciliationIndex().url, query, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
+
     const hasActiveFilters =
         selectedStatus !== 'all' ||
         selectedWeek !== 'all' ||
+        showDuplicates ||
         Boolean(periodRange?.from) ||
         Boolean(latestQueryRef.current.globalFilter) ||
         Boolean(latestQueryRef.current.dateRange?.from) ||
         latestQueryRef.current.columnFilters.some(
             (filter) =>
-                filter.id !== 'status' && filter.id !== 'disbursement_week',
+                filter.id !== 'status' &&
+                filter.id !== 'disbursement_week' &&
+                filter.id !== 'is_duplicate',
         ) ||
         latestQueryRef.current.sorting.length > 0;
 
     const clearAllFilters = () => {
         setPeriodRange(undefined);
+        setShowDuplicates(false);
         router.get(bankReconciliationIndex().url, {
             preserveState: true,
             preserveScroll: true,
@@ -386,11 +459,6 @@ export default function Index({
                         ))}
                     </SelectContent>
                 </Select>
-                {/*
-                    Period filter: matches internal_date_issued OR
-                    transaction_date. bank_date is no longer used for
-                    filtering — it's just an upload-batch label now.
-                */}
                 <DatePickerWithRange
                     className="w-64 bg-white"
                     value={periodRange}
@@ -414,6 +482,12 @@ export default function Index({
                         ))}
                     </SelectContent>
                 </Select>
+                <Button
+                    variant={showDuplicates ? 'default' : 'outline'}
+                    onClick={toggleDuplicateFilter}
+                >
+                    {showDuplicates ? 'Showing Duplicates' : 'Show Duplicates'}
+                </Button>
                 {hasActiveFilters && (
                     <Button
                         variant="ghost"
@@ -426,6 +500,65 @@ export default function Index({
                     </Button>
                 )}
             </div>
+
+            <div className="mx-2 mb-2 flex items-center justify-between">
+                <p className="text-sm font-medium text-muted-foreground">
+                    Overview
+                    {periodRange?.from
+                        ? ` — ${format(periodRange.from, 'MMM d, yyyy')}${periodRange.to ? ` to ${format(periodRange.to, 'MMM d, yyyy')}` : ''}`
+                        : ' — all dates'}
+                </p>
+            </div>
+            <div className="mx-2 mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
+                <div className="rounded-xl border bg-card p-4 shadow-sm">
+                    <div className="flex items-center gap-2">
+                        <CircleCheck className="size-4 text-emerald-600" />
+                        <p className="text-sm font-medium text-muted-foreground">
+                            Matched
+                        </p>
+                    </div>
+                    <p className="mt-1 truncate text-2xl font-bold text-emerald-600">
+                        {kpiStats.matched}
+                    </p>
+                </div>
+
+                <div className="rounded-xl border bg-card p-4 shadow-sm">
+                    <div className="flex items-center gap-2">
+                        <Clock className="size-4 text-sky-600" />
+                        <p className="text-sm font-medium text-muted-foreground">
+                            Outstanding
+                        </p>
+                    </div>
+                    <p className="mt-1 truncate text-2xl font-bold text-sky-600">
+                        {kpiStats.outstanding}
+                    </p>
+                </div>
+
+                <div className="rounded-xl border bg-card p-4 shadow-sm">
+                    <div className="flex items-center gap-2">
+                        <Copy className="size-4 text-orange-600" />
+                        <p className="text-sm font-medium text-muted-foreground">
+                            Duplicates
+                        </p>
+                    </div>
+                    <p className="mt-1 truncate text-2xl font-bold text-orange-600">
+                        {kpiStats.duplicates}
+                    </p>
+                </div>
+
+                <div className="rounded-xl border bg-card p-4 shadow-sm">
+                    <div className="flex items-center gap-2">
+                        <TriangleAlert className="size-4 text-red-600" />
+                        <p className="text-sm font-medium text-muted-foreground">
+                            Unrecorded
+                        </p>
+                    </div>
+                    <p className="mt-1 truncate text-2xl font-bold text-red-600">
+                        {kpiStats.unrecorded}
+                    </p>
+                </div>
+            </div>
+
             <div className="mx-2 mb-6 grid grid-cols-1 gap-4 md:grid-cols-4">
                 <div className="rounded-xl border bg-card p-4 shadow-sm">
                     <p className="text-sm font-medium text-muted-foreground">
@@ -496,6 +629,7 @@ export default function Index({
                                     {selectedWeek !== 'all'
                                         ? ` (week: ${selectedWeek})`
                                         : ''}
+                                    {showDuplicates ? ' (duplicates only)' : ''}
                                     {periodRange?.from
                                         ? ` (period: ${format(periodRange.from, 'MMM d, yyyy')}${periodRange.to ? ` – ${format(periodRange.to, 'MMM d, yyyy')}` : ''})`
                                         : ''}

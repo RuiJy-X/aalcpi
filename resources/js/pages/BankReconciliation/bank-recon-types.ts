@@ -28,6 +28,7 @@ export type ReconciliationWorkspaceType = {
     internal_source: string | null; // e.g. "Internal Disbursement #123"
     bank_source: string | null; // e.g. "Bank Statement #456"
     bank_date: Date;
+    is_duplicate: boolean;
     status: ReconciliationStatus;
 };
     

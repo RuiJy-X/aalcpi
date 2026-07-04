@@ -816,9 +816,8 @@ export function DataTable<TData, TValue>({
                                     return (
                                         <TableHead
                                             key={header.id}
-                                            className="relative border"
+                                            className="relative border border-black/40"
                                             style={{ width: header.getSize() }}
-                                            className="border border-black/40"
                                         >
                                             {header.isPlaceholder
                                                 ? null
