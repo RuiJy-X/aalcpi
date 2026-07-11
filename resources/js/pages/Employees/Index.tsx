@@ -6,8 +6,8 @@ import AppLayout from '@/layouts/app-layout';
 import {
     index as employeeIndex,
     show as employeeShow,
-    updateHourlyRateSettings,
-} from '@/actions/App/Http/Controllers/EmployeeController';
+    hourlyRateSettings as updateHourlyRateSettings,
+} from '@/routes/employees';
 import type { BreadcrumbItem } from '@/types';
 import {
     ContainerHeader,

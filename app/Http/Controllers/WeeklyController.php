@@ -21,6 +21,8 @@ class WeeklyController extends Controller
     {
         $selectedCropYear = $request->string('crop_year')->toString();
         $selectedWeek = $request->string('week')->toString();
+        $periodFrom = $request->string('period_from')->toString();
+        $periodTo = $request->string('period_to')->toString();
         $perPage = min(max(1, $request->integer('per_page', 10)), 100);
         $search = $request->string('search')->toString();
         $driver = Schema::getConnection()->getDriverName();
@@ -46,6 +48,11 @@ class WeeklyController extends Controller
 
         if ($selectedWeek !== '' && $selectedWeek !== 'all') {
             $baseQuery->where('week', $selectedWeek);
+        }
+
+        if ($periodFrom !== '') {
+            $periodEnd = $periodTo !== '' ? $periodTo : $periodFrom;
+            $baseQuery->whereBetween('created_at', [$periodFrom, $periodEnd.' 23:59:59']);
         }
 
         if ($search !== '') {
@@ -106,6 +113,35 @@ class WeeklyController extends Controller
             ->map(fn (Collection $items) => $items->pluck('week')->values()->all())
             ->toArray();
 
+        $statsQuery = Weekly::query();
+        if ($selectedCropYear !== '' && $selectedCropYear !== 'all') {
+            $statsQuery->where('crop_year', $selectedCropYear);
+        }
+        if ($selectedWeek !== '' && $selectedWeek !== 'all') {
+            $statsQuery->where('week', $selectedWeek);
+        }
+        if ($periodFrom !== '') {
+            $periodEnd = $periodTo !== '' ? $periodTo : $periodFrom;
+            $statsQuery->whereBetween('created_at', [$periodFrom, $periodEnd.' 23:59:59']);
+        }
+
+        $stats = [
+            'totalDocuments' => (clone $statsQuery)->count(),
+            'uniquePlanters' => (int) (clone $statsQuery)
+                ->whereNotNull('planter_code')
+                ->where('planter_code', '!=', '')
+                ->distinct()
+                ->count('planter_code'),
+            'uniqueWeeks' => (int) (clone $statsQuery)
+                ->whereNotNull('week')
+                ->distinct()
+                ->count('week'),
+            'uniqueCropYears' => (int) (clone $statsQuery)
+                ->whereNotNull('crop_year')
+                ->distinct()
+                ->count('crop_year'),
+        ];
+
         return Inertia::render('Weekly/Index', [
             'weeklies' => $weeklies,
             'crop_years' => $cropYears,
@@ -120,7 +156,10 @@ class WeeklyController extends Controller
                 'search' => $search,
                 'crop_year' => $selectedCropYear,
                 'week' => $selectedWeek,
+                'period_from' => $periodFrom,
+                'period_to' => $periodTo,
             ],
+            'stats' => $stats,
         ]);
     }
 

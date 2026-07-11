@@ -15,7 +15,7 @@ import {
     index as millingPeriodIndex,
     show as millingPeriodShow,
     update as millingPeriodUpdate,
-} from '@/routes/MillingPeriods';
+} from '@/routes/milling-periods';
 import type { BreadcrumbItem } from '@/types';
 import type { MillingPeriodRow } from '@/components/milling-periods/milling-periods-types';
 import type { SharedData } from '@/types';

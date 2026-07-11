@@ -6,14 +6,17 @@ return [
      * It is used to determine if the app needs to be updated.
      * Increment this value every time you release a new version of your app.
      */
-    'version' => env('NATIVEPHP_APP_VERSION', '1.1.2'),
+    'version' => env('NATIVEPHP_APP_VERSION', '1.0.0'),
 
     /**
      * The ID of your application. This should be a unique identifier
      * usually in the form of a reverse domain name.
      * For example: com.nativephp.app
+     *
+     * Keep this stable across releases so the auto-updater can replace
+     * the same installed application.
      */
-    'app_id' => env('NATIVEPHP_APP_ID', 'com.nativephp.app'),
+    'app_id' => env('NATIVEPHP_APP_ID', 'com.aalcpi.app'),
 
     /**
      * If your application allows deep linking, you can specify the scheme
@@ -29,22 +32,22 @@ return [
     /**
      * The author of your application.
      */
-    'author' => env('NATIVEPHP_APP_AUTHOR'),
+    'author' => env('NATIVEPHP_APP_AUTHOR', 'AALCPI'),
 
     /**
      * The copyright notice for your application.
      */
-    'copyright' => env('NATIVEPHP_APP_COPYRIGHT'),
+    'copyright' => env('NATIVEPHP_APP_COPYRIGHT', 'Copyright © AALCPI'),
 
     /**
      * The description of your application.
      */
-    'description' => env('NATIVEPHP_APP_DESCRIPTION', 'An awesome app built with NativePHP'),
+    'description' => env('NATIVEPHP_APP_DESCRIPTION', 'AALCPI operations desktop application'),
 
     /**
      * The Website of your application.
      */
-    'website' => env('NATIVEPHP_APP_WEBSITE', 'https://nativephp.com'),
+    'website' => env('NATIVEPHP_APP_WEBSITE', 'https://github.com/RuiJy-X/aalcpi'),
 
     /**
      * The default service provider for your application. This provider
@@ -103,6 +106,10 @@ return [
          * The updater provider to use.
          * Supported: "github", "s3", "spaces"
          * Note: The "s3" provider is compatible with S3-compatible services like Cloudflare R2.
+         *
+         * With "github", `php artisan native:publish` uploads build artifacts
+         * to the GitHub Release matching NATIVEPHP_APP_VERSION (tag vX.Y.Z).
+         * Installed production apps then poll that release feed for updates.
          */
         'default' => env('NATIVEPHP_UPDATER_PROVIDER', 'github'),
 
@@ -114,9 +121,12 @@ return [
                 'token' => env('GITHUB_TOKEN'),
                 'vPrefixedTagName' => env('GITHUB_V_PREFIXED_TAG_NAME', true),
                 'private' => env('GITHUB_PRIVATE', false),
-                'autoupdate_token' => env('GITHUB_AUTOUPDATE_TOKEN'), // Read-only token used by the updater for private repos
+                // Optional read-only token used by the installed app for private repos
+                'autoupdate_token' => env('GITHUB_AUTOUPDATE_TOKEN'),
                 'channel' => env('GITHUB_CHANNEL', 'latest'),
-                'releaseType' => env('GITHUB_RELEASE_TYPE', 'draft'),
+                // "draft" = attach to a draft release (publish it on GitHub for users to receive it)
+                // "release" = create/update a published release users can download immediately
+                'releaseType' => env('GITHUB_RELEASE_TYPE', 'release'),
             ],
 
             's3' => [
@@ -163,7 +173,7 @@ return [
      * Define your own scripts to run before and after the build process.
      */
     'prebuild' => [
-        // 'npm run build',
+        'npm run build',
     ],
 
     'postbuild' => [

@@ -29,6 +29,19 @@ class PlanterController extends Controller
         $dateColumn = $request->string('date_column')->toString();
         $dateFrom = $request->string('date_from')->toString();
         $dateTo = $request->string('date_to')->toString();
+        $periodFrom = $request->string('period_from')->toString();
+        $periodTo = $request->string('period_to')->toString();
+        // Global period filter uses registration_date (falls back to created_at).
+        if ($periodFrom !== '') {
+            $dateColumn = Schema::hasColumn('planters', 'registration_date')
+                ? 'registration_date'
+                : 'created_at';
+            $dateFrom = $periodFrom;
+            $dateTo = $periodTo !== '' ? $periodTo : $periodFrom;
+            if ($dateColumn === 'created_at') {
+                $dateTo .= ' 23:59:59';
+            }
+        }
         $driver = Schema::getConnection()->getDriverName();
         $likeOperator = $driver === 'pgsql' ? 'ilike' : 'like';
         $useCaseInsensitiveLike = $driver === 'sqlite';
@@ -118,6 +131,33 @@ class PlanterController extends Controller
 
         $paginatedPlanters = $baseQuery->paginate($perPage)->withQueryString();
 
+        $statsPlanters = Planter::query();
+        if ($periodFrom !== '') {
+            $periodColumn = Schema::hasColumn('planters', 'registration_date')
+                ? 'registration_date'
+                : 'created_at';
+            $periodEnd = $periodTo !== '' ? $periodTo : $periodFrom;
+            if ($periodColumn === 'created_at') {
+                $periodEnd .= ' 23:59:59';
+            }
+            $statsPlanters->whereBetween($periodColumn, [$periodFrom, $periodEnd]);
+        }
+
+        $planterIdsForStats = (clone $statsPlanters)->pluck('id');
+
+        $stats = [
+            'totalPlanters' => (clone $statsPlanters)->count(),
+            'totalHaciendas' => Hacienda::query()
+                ->when($periodFrom !== '', fn ($q) => $q->whereIn('planter_id', $planterIdsForStats))
+                ->count(),
+            'totalProductions' => Production::query()
+                ->when($periodFrom !== '', fn ($q) => $q->whereIn('planter_id', $planterIdsForStats))
+                ->count(),
+            'plantersWithHaciendas' => (clone $statsPlanters)
+                ->whereHas('haciendas')
+                ->count(),
+        ];
+
         return Inertia::render('Planters/Index', [
             'planters' => $paginatedPlanters->items(),
             'pagination' => [
@@ -131,10 +171,10 @@ class PlanterController extends Controller
                 'sort' => $sort,
                 'direction' => $direction,
                 'filters' => $filters,
-                'date_column' => $dateColumn,
-                'date_from' => $dateFrom,
-                'date_to' => $dateTo,
+                'period_from' => $periodFrom,
+                'period_to' => $periodTo,
             ],
+            'stats' => $stats,
         ]);
     }
 

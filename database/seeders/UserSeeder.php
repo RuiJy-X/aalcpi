@@ -10,25 +10,34 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        User::create([
-            'name' => 'Juan Certifier',
-            'email' => 'officer2@test.com',
-            'password' => Hash::make('password123'),
-            'role' => 'cert_officer',
-        ]);
+        $certOfficer = User::updateOrCreate(
+            ['email' => 'officer2@test.com'],
+            [
+                'name' => 'Juan Certifier',
+                'username' => 'juan_cert',
+                'password' => Hash::make('password123'),
+            ]
+        );
+        $certOfficer->syncRoles(['cert_officer']);
 
-        User::create([
-            'name' => 'Maria Employee',
-            'email' => 'employee2@test.com',
-            'password' => Hash::make('password123'),
-            'role' => 'employee',
-        ]);
+        $employee = User::updateOrCreate(
+            ['email' => 'employee2@test.com'],
+            [
+                'name' => 'Maria Employee',
+                'username' => 'maria_emp',
+                'password' => Hash::make('password123'),
+            ]
+        );
+        $employee->syncRoles(['employee']);
 
-        User::create([
-            'name' => 'Admin Manager',
-            'email' => 'admin2@test.com',
-            'password' => Hash::make('password123'),
-            'role' => 'manager',
-        ]);
+        $manager = User::updateOrCreate(
+            ['email' => 'admin2@test.com'],
+            [
+                'name' => 'Admin Manager',
+                'username' => 'admin_mgr',
+                'password' => Hash::make('password123'),
+            ]
+        );
+        $manager->syncRoles(['manager']);
     }
 }

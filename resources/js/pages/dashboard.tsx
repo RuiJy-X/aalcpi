@@ -27,7 +27,7 @@ import {
 import { useMemo, useState } from 'react';
 import MillingPeriodsCalendar from '@/components/milling-periods/milling-periods-calendar';
 import type { EventInput } from '@fullcalendar/core';
-import { create as millingPeriodCreate } from '@/routes/MillingPeriods';
+import { create as millingPeriodCreate } from '@/routes/milling-periods';
 
 const metricOptions = [
     { key: 'gross_cw', label: 'Gross CW', decimals: 2 },

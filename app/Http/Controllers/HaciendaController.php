@@ -22,6 +22,13 @@ class HaciendaController extends Controller
         $dateColumn = $request->string('date_column')->toString();
         $dateFrom = $request->string('date_from')->toString();
         $dateTo = $request->string('date_to')->toString();
+        $periodFrom = $request->string('period_from')->toString();
+        $periodTo = $request->string('period_to')->toString();
+        if ($periodFrom !== '') {
+            $dateColumn = 'created_at';
+            $dateFrom = $periodFrom;
+            $dateTo = ($periodTo !== '' ? $periodTo : $periodFrom).' 23:59:59';
+        }
         $driver = Schema::getConnection()->getDriverName();
         $likeOperator = $driver === 'pgsql' ? 'ilike' : 'like';
         $useCaseInsensitiveLike = $driver === 'sqlite';
@@ -139,6 +146,22 @@ class HaciendaController extends Controller
 
         $paginatedHaciendas = $baseQuery->paginate($perPage)->withQueryString();
 
+        $statsQuery = Hacienda::query();
+        if ($periodFrom !== '') {
+            $periodEnd = ($periodTo !== '' ? $periodTo : $periodFrom).' 23:59:59';
+            $statsQuery->whereBetween('created_at', [$periodFrom, $periodEnd]);
+        }
+
+        $stats = [
+            'totalHaciendas' => (clone $statsQuery)->count(),
+            'totalArea' => round((float) (clone $statsQuery)->sum('area_hectares'), 2),
+            'uniquePlanters' => (int) (clone $statsQuery)
+                ->whereNotNull('planter_id')
+                ->distinct()
+                ->count('planter_id'),
+            'activeHaciendas' => (clone $statsQuery)->where('is_active', true)->count(),
+        ];
+
         return Inertia::render('Haciendas/Index', [
             'haciendas' => $paginatedHaciendas->items(),
             'pagination' => [
@@ -152,10 +175,10 @@ class HaciendaController extends Controller
                 'sort' => $sort,
                 'direction' => $direction,
                 'filters' => $filters,
-                'date_column' => $dateColumn,
-                'date_from' => $dateFrom,
-                'date_to' => $dateTo,
+                'period_from' => $periodFrom,
+                'period_to' => $periodTo,
             ],
+            'stats' => $stats,
         ]);
     }
 

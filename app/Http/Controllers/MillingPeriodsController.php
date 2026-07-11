@@ -20,6 +20,8 @@ class MillingPeriodsController extends Controller
     {
         $selectedCropYear = $request->string('crop_year')->toString();
         $selectedWeek = $request->string('week_no')->toString();
+        $periodFrom = $request->string('period_from')->toString();
+        $periodTo = $request->string('period_to')->toString();
 
         $query = MillingPeriod::query()
             ->orderByDesc('crop_year')
@@ -31,6 +33,13 @@ class MillingPeriodsController extends Controller
 
         if ($selectedWeek !== '' && $selectedWeek !== 'all') {
             $query->where('week_no', (int) $selectedWeek);
+        }
+
+        // Period filter: periods that overlap the selected date range.
+        if ($periodFrom !== '') {
+            $periodEnd = $periodTo !== '' ? $periodTo : $periodFrom;
+            $query->whereDate('start_date', '<=', $periodEnd)
+                ->whereDate('end_date', '>=', $periodFrom);
         }
 
         $milling_periods = $query->get();
@@ -51,6 +60,30 @@ class MillingPeriodsController extends Controller
             ->map(fn ($periods) => $periods->pluck('week_no')->unique()->sort()->values())
             ->toArray();
 
+        $today = Carbon::today();
+        // KPIs follow the same filtered set shown in the table/calendar.
+        $statsSource = $milling_periods;
+
+        $stats = [
+            'totalPeriods' => $statsSource->count(),
+            'activeNow' => $statsSource
+                ->filter(function (MillingPeriod $period) use ($today) {
+                    if (! $period->start_date || ! $period->end_date) {
+                        return false;
+                    }
+
+                    $start = Carbon::parse($period->start_date)->startOfDay();
+                    $end = Carbon::parse($period->end_date)->endOfDay();
+
+                    return $today->betweenIncluded($start, $end);
+                })
+                ->count(),
+            'avgSugarPrice' => round((float) $statsSource->avg('sugar_price'), 2),
+            'avgMolPrice' => round((float) $statsSource->avg('mol_price'), 2),
+            'avgSugarFactor' => round((float) $statsSource->avg('sugar_factor'), 4),
+            'cropYearsCount' => $statsSource->pluck('crop_year')->filter()->unique()->count(),
+        ];
+
         return Inertia::render('MillingPeriods/Index', [
             'milling_periods' => $milling_periods,
             'crop_years' => $cropYears,
@@ -58,7 +91,10 @@ class MillingPeriodsController extends Controller
             'filters' => [
                 'crop_year' => $selectedCropYear,
                 'week_no' => $selectedWeek,
+                'period_from' => $periodFrom,
+                'period_to' => $periodTo,
             ],
+            'stats' => $stats,
         ]);
     }
 
@@ -97,7 +133,7 @@ class MillingPeriodsController extends Controller
 
 
         return redirect()
-            ->route('MillingPeriods.show', $millingPeriod->id)
+            ->route('milling-periods.show', $millingPeriod->id)
             ->with('success', 'Milling period created successfully.');
     }
 
@@ -157,7 +193,7 @@ class MillingPeriodsController extends Controller
 
 
         return redirect()
-            ->route('MillingPeriods.show', $millingPeriod->id)
+            ->route('milling-periods.show', $millingPeriod->id)
             ->with('success', 'Milling period updated successfully.');
     }
 
@@ -172,7 +208,7 @@ class MillingPeriodsController extends Controller
         $millingPeriod->delete();
 
         return redirect()
-            ->route('MillingPeriods.index')
+            ->route('milling-periods.index')
             ->with('success', 'Milling period deleted successfully.');
     }
 

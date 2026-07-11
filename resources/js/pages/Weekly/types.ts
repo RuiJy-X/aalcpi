@@ -20,6 +20,13 @@ export type WeeklyPlanterGroup = {
     files: WeeklyRecord[];
 };
 
+export type WeeklyStatsData = {
+    totalDocuments: number;
+    uniquePlanters: number;
+    uniqueWeeks: number;
+    uniqueCropYears: number;
+};
+
 export type WeeklyIndexProps = {
     weeklies: WeeklyRecord[];
     crop_years: string[];
@@ -34,5 +41,8 @@ export type WeeklyIndexProps = {
         search?: string;
         crop_year?: string;
         week?: string;
+        period_from?: string;
+        period_to?: string;
     };
+    stats?: WeeklyStatsData;
 };

@@ -9,9 +9,10 @@ use App\Models\Planter;
 use App\Models\Production;
 use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Support\Permissions;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -20,17 +21,18 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        $this->call([
+            RolePermissionSeeder::class,
+            MillingPeriodSeeder::class,
+        ]);
+
         // User::factory(10)->create();
-        User::factory()->create([
+        $testUser = User::factory()->create([
             'name' => 'Test User',
             'email' => 'admin@gmail.com',
             'password' => Hash::make('admin'),
         ]);
-
-        $this->call([
-            MillingPeriodSeeder::class,
-        ]);
-
+        $testUser->assignRole(Permissions::SUPER_ADMIN_ROLE);
 
         // Planters / haciendas / Production / Certifications
         $planters = Planter::factory()->count(50)->create();
@@ -83,7 +85,6 @@ class DatabaseSeeder extends Seeder
         $this->call([
             AdminSeeder::class,
             UserSeeder::class,
-            RawDataSeeder::class,
         ]);
     }
 }

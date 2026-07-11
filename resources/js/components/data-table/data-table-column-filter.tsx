@@ -68,9 +68,6 @@ export default function Filter<TData, TValue>({
             : `${selectedOptions.length} selected`
         : 'Filter';
 
-    const isDateLikeColumn = /date|timestamp|created|updated/.test(
-        column.id.toLowerCase(),
-    );
     const isCropYearColumn = column.id.toLowerCase() === 'crop_year';
 
     if (filterOptions?.length) {
@@ -139,7 +136,7 @@ export default function Filter<TData, TValue>({
                 {column.id.replaceAll('_', ' ')}
             </Label>
             <Input
-                type={isDateLikeColumn ? 'date' : 'text'}
+                type="text"
                 placeholder={
                     isCropYearColumn
                         ? 'Filter crop year (YYYY-YYYY)...'

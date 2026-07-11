@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { Head } from '@inertiajs/react';
+import { Plus } from 'lucide-react';
 import { DataTable } from '@/components/data-table/data-table';
 import AppLayout from '@/layouts/app-layout';
 import { index as userIndex } from '@/routes/users';
@@ -11,8 +13,14 @@ import {
 } from '@/components/container';
 import CreateUserForm from '@/components/users/create-user-form';
 import { usersColumns } from '@/components/data-table/users-columns';
-import type { UserRow } from '@/components/types/usertypes';
+import type {
+    PermissionItem,
+    RoleOption,
+    UserRow,
+} from '@/components/types/usertypes';
 import { userBulkDelete } from '@/components/data-table/bulk-delete';
+import { useCan } from '@/hooks/use-can';
+import { Button } from '@/components/ui/button';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -21,28 +29,55 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function Index({ users }: { users: UserRow[] }) {
+type Props = {
+    users: UserRow[];
+    roles: RoleOption[];
+    permissionGroups: Record<string, PermissionItem[]>;
+    resourceLabels: Record<string, string>;
+};
+
+export default function Index({
+    users,
+    roles,
+    permissionGroups,
+    resourceLabels,
+}: Props) {
+    const { can } = useCan();
+    const [createOpen, setCreateOpen] = useState(false);
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Users"></Head>
 
             <Container>
-                <ContainerHeader>Create a new User</ContainerHeader>
-                <CreateUserForm />
-            </Container>
-
-            <Container>
                 <ContainerHeader>
-                    Users Table
-                    <ContainerHeaderEnd></ContainerHeaderEnd>
+                    Users
+                    <ContainerHeaderEnd>
+                        {can('users.create') && (
+                            <Button onClick={() => setCreateOpen(true)}>
+                                <Plus className="mr-2 h-4 w-4" />
+                                Create new user
+                            </Button>
+                        )}
+                    </ContainerHeaderEnd>
                 </ContainerHeader>
                 <DataTable
                     columns={usersColumns}
                     data={users}
                     onRowDoubleClick={(user) => userShow(user.id).url}
-                    bulkDelete={userBulkDelete}
+                    bulkDelete={can('users.delete') ? userBulkDelete : undefined}
                 />
             </Container>
+
+            {can('users.create') && (
+                <CreateUserForm
+                    open={createOpen}
+                    onOpenChange={setCreateOpen}
+                    roles={roles}
+                    permissionGroups={permissionGroups}
+                    resourceLabels={resourceLabels}
+                />
+            )}
         </AppLayout>
     );
 }

@@ -2,9 +2,10 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
 use App\Models\User;
+use App\Support\Permissions;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class AdminSeeder extends Seeder
 {
@@ -13,20 +14,24 @@ class AdminSeeder extends Seeder
      */
     public function run(): void
     {
-        User::create([
-            'name' => 'Administrator',
-            'username' => 'admin',
-            'email' => 'admin@test.com',
-            'password' => bcrypt('password123'),
-            'role' => 'admin',
-        ]);
+        $admin = User::updateOrCreate(
+            ['email' => 'admin@test.com'],
+            [
+                'name' => 'Administrator',
+                'username' => 'admin',
+                'password' => Hash::make('password123'),
+            ]
+        );
+        $admin->syncRoles([Permissions::SUPER_ADMIN_ROLE]);
 
-        User::create([
-            'name' => 'Employee User',
-            'username' => 'employee',
-            'email' => 'employee@test.com',
-            'password' => bcrypt('password123'),
-            'role' => 'employee',
-        ]);
+        $employee = User::updateOrCreate(
+            ['email' => 'employee@test.com'],
+            [
+                'name' => 'Employee User',
+                'username' => 'employee',
+                'password' => Hash::make('password123'),
+            ]
+        );
+        $employee->syncRoles(['employee']);
     }
 }

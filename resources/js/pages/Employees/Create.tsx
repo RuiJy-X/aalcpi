@@ -17,7 +17,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { FormEventHandler } from 'react';
-import { store as employeeStore } from '@/actions/App/Http/Controllers/EmployeeController';
+import { store as employeeStore } from '@/routes/employees';
 
 import type { EmployeeType } from './employeeTypes';
 

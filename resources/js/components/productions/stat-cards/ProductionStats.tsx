@@ -1,141 +1,108 @@
-import { BookOpen, Clipboard, LandPlot } from 'lucide-react';
-import React from 'react';
-import type {
-    ProductionRow,
-    PlanterRow,
-} from '@/components/planters/planters-table-types';
-import StatCard from '@/components/stat-card';
+import {
+    BookOpen,
+    Clipboard,
+    DollarSign,
+    LandPlot,
+    Truck,
+    User,
+} from 'lucide-react';
+import { KpiCard } from '@/components/kpi/kpi-card';
+
+export type ProductionStatsData = {
+    totalProductions: number;
+    totalNetCw: number;
+    totalActualLkg: number;
+    totalPshrNetLkg: number;
+    totalActualMol: number;
+    totalPshrNetMol: number;
+    totalTrucks?: number;
+    uniquePlanters?: number;
+    totalPlanterLkgMoney?: number;
+    totalPlanterMolMoney?: number;
+};
+
+function formatNumber(value: number, digits = 2): string {
+    return Number(value ?? 0).toLocaleString(undefined, {
+        maximumFractionDigits: digits,
+        minimumFractionDigits: 0,
+    });
+}
+
+function formatMoney(value: number): string {
+    return Number(value ?? 0).toLocaleString(undefined, {
+        style: 'currency',
+        currency: 'PHP',
+        maximumFractionDigits: 0,
+    });
+}
 
 export default function ProductionStats({
-    productions,
-    planters,
     stats,
 }: {
-    productions: ProductionRow[];
-    planters?: PlanterRow[];
-    stats?: {
-        totalProductions: number;
-        totalNetCw: number;
-        totalActualLkg: number;
-        totalPshrNetLkg: number;
-        totalActualMol: number;
-        totalPshrNetMol: number;
-    };
+    stats: ProductionStatsData;
 }) {
-    const totalProductions = stats?.totalProductions ?? productions.length;
-    const totalNet =
-        stats?.totalNetCw ??
-        productions.reduce((s, p) => s + Number(p.net_cw || 0), 0);
-    const totalActualLKG =
-        stats?.totalActualLkg ??
-        productions.reduce((acc, val) => acc + Number(val.actual_lkg || 0), 0);
-    const totalPSHR =
-        stats?.totalPshrNetLkg ??
-        productions.reduce(
-            (acc, val) => acc + Number(val.pshr_net_lkg || 0),
-            0,
-        );
-    const totalActualMOL =
-        stats?.totalActualMol ??
-        productions.reduce((acc, val) => acc + Number(val.actual_mol || 0), 0);
-    const totalPSHRMOL =
-        stats?.totalPshrNetMol ??
-        productions.reduce(
-            (acc, val) => acc + Number(val.pshr_net_mol || 0),
-            0,
-        );
-    const statCards = [
-        {
-            title: 'Total Productions',
-            value: Number(totalProductions).toFixed(0),
-            icon: BookOpen,
-            color: 'green',
-        },
-        // {
-        //     title: 'Unique Planters',
-        //     value: uniquePlanters,
-        //     icon: User,
-        //     color: 'blue',
-        // },
-        // {
-        //     title: 'Total Gross CW',
-        //     value: totalGross,
-        //     icon: Clipboard,
-        //     color: 'yellow',
-        // },
-        {
-            title: 'Total Net CW',
-            value: Number(totalNet).toFixed(2),
-            icon: LandPlot,
-            color: 'orange',
-        },
-        // {
-        //     title: 'Total Theoretical LKG',
-        //     value: totalTheoreticalLKG,
-        //     icon: Clipboard,
-        //     color: 'cyan',
-        // },
-        {
-            title: 'Total Actual LKG',
-            value: Number(totalActualLKG).toFixed(2),
-            icon: Clipboard,
-            color: 'teal',
-        },
-        {
-            title: 'Total PSHR Net LKG',
-            value: Number(totalPSHR).toFixed(2),
-            icon: Clipboard,
-            color: 'indigo',
-        },
-        // {
-        //     title: 'Total PDPA LKG',
-        //     value: totalPdpaLKG,
-        //     icon: Clipboard,
-        //     color: 'purple',
-        // },
-        // {
-        //     title: 'Total Association Dues LKG',
-        //     value: totalAssociationDuesLKG,
-        //     icon: Clipboard,
-        //     color: 'pink',
-        // },
-        {
-            title: 'Total Actual MOL',
-            value: Number(totalActualMOL).toFixed(2),
-            icon: Clipboard,
-            color: 'gray',
-        },
-        {
-            title: 'Total PSHR Net MOL',
-            value: Number(totalPSHRMOL).toFixed(2),
-            icon: Clipboard,
-            color: 'brown',
-        },
-        // {
-        //     title: 'Total PDPA MOL',
-        //     value: totalPdpaMOL,
-        //     icon: Clipboard,
-        //     color: 'lime',
-        // },
-        // {
-        //     title: 'Total Association Dues MOL',
-        //     value: totalAssociationDuesMOL,
-        //     icon: Clipboard,
-        //     color: 'amber',
-        // },
-    ];
+    const totalMoney =
+        Number(stats.totalPlanterLkgMoney ?? 0) +
+        Number(stats.totalPlanterMolMoney ?? 0);
 
     return (
         <>
-            {statCards.map((stat, index) => (
-                <StatCard
-                    key={index}
-                    title={stat.title}
-                    value={String(Number(stat.value))}
-                    icon={stat.icon}
-                    color={String(stat.color) as any}
-                />
-            ))}
+            <KpiCard
+                title="Total Productions"
+                value={formatNumber(stats.totalProductions ?? 0, 0)}
+                icon={BookOpen}
+                iconClassName="text-emerald-600"
+                valueClassName="text-emerald-600"
+            />
+            <KpiCard
+                title="Total Net CW"
+                value={formatNumber(stats.totalNetCw ?? 0)}
+                icon={LandPlot}
+                iconClassName="text-orange-600"
+                valueClassName="text-orange-600"
+            />
+            <KpiCard
+                title="Actual LKG"
+                value={formatNumber(stats.totalActualLkg ?? 0)}
+                icon={Clipboard}
+                iconClassName="text-teal-600"
+                valueClassName="text-teal-600"
+            />
+            <KpiCard
+                title="PSHR Net LKG"
+                value={formatNumber(stats.totalPshrNetLkg ?? 0)}
+                icon={Clipboard}
+                iconClassName="text-indigo-600"
+                valueClassName="text-indigo-600"
+            />
+            <KpiCard
+                title="Actual MOL"
+                value={formatNumber(stats.totalActualMol ?? 0)}
+                icon={Clipboard}
+                iconClassName="text-slate-600"
+                valueClassName="text-slate-700"
+            />
+            <KpiCard
+                title="Trucks"
+                value={formatNumber(stats.totalTrucks ?? 0, 0)}
+                icon={Truck}
+                iconClassName="text-sky-600"
+                valueClassName="text-sky-600"
+            />
+            <KpiCard
+                title="Planters"
+                value={formatNumber(stats.uniquePlanters ?? 0, 0)}
+                icon={User}
+                iconClassName="text-violet-600"
+                valueClassName="text-violet-600"
+            />
+            <KpiCard
+                title="Planter Share Value"
+                value={formatMoney(totalMoney)}
+                icon={DollarSign}
+                iconClassName="text-amber-600"
+                valueClassName="text-amber-600"
+            />
         </>
     );
 }

@@ -53,7 +53,7 @@ class HandleInertiaRequests extends Middleware
 
     private function filterUser($user): ?array
     {
-        if (!$user) {
+        if (! $user) {
             return null;
         }
 
@@ -61,8 +61,11 @@ class HandleInertiaRequests extends Middleware
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
-            'role' => $user->role,
+            'username' => $user->username,
             'employee_id' => $user->employee_id,
+            'roles' => $user->getRoleNames()->values()->all(),
+            'permissions' => $user->getAllPermissions()->pluck('name')->values()->all(),
+            'is_super_admin' => $user->isSuperAdmin(),
         ];
     }
 }

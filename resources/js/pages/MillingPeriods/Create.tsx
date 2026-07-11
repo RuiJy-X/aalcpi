@@ -10,7 +10,7 @@ import {
     create as millingPeriodCreate,
     index as millingPeriodIndex,
     store as millingPeriodStore,
-} from '@/routes/MillingPeriods';
+} from '@/routes/milling-periods';
 import type { BreadcrumbItem } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [

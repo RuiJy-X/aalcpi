@@ -20,6 +20,14 @@ import {
     ContainerHeader,
     ContainerHeaderEnd,
 } from '@/components/container';
+import HaciendaStats, {
+    type HaciendaStatsData,
+} from '@/components/haciendas/stat-cards/HaciendaStats';
+import { KpiOverview } from '@/components/kpi/kpi-card';
+import {
+    PeriodFilterBar,
+    formatPeriodLabel,
+} from '@/components/period-filter-bar';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -32,6 +40,12 @@ export default function Index({
     haciendas,
     pagination,
     table_state,
+    stats = {
+        totalHaciendas: 0,
+        totalArea: 0,
+        uniquePlanters: 0,
+        activeHaciendas: 0,
+    },
 }: {
     haciendas: HaciendaRow[];
     pagination: {
@@ -45,19 +59,28 @@ export default function Index({
         sort?: string;
         direction?: string;
         filters?: Record<string, string | string[]>;
-        date_column?: string;
-        date_from?: string;
-        date_to?: string;
+        period_from?: string;
+        period_to?: string;
     };
+    stats?: HaciendaStatsData;
 }) {
     type DataTableQueryState = {
         sorting: SortingState;
         columnFilters: ColumnFiltersState;
         globalFilter: string;
         pagination: PaginationState;
-        dateRange?: DateRange;
-        dateFilterColumnId?: string;
     };
+
+    const [periodRange, setPeriodRange] = React.useState<DateRange | undefined>(
+        table_state?.period_from
+            ? {
+                  from: new Date(table_state.period_from),
+                  to: table_state.period_to
+                      ? new Date(table_state.period_to)
+                      : undefined,
+              }
+            : undefined,
+    );
 
     const initialSorting = table_state?.sort
         ? [
@@ -74,16 +97,8 @@ export default function Index({
                   value,
               }))
             : [];
-    const initialDateRange = table_state?.date_from
-        ? {
-              from: new Date(table_state.date_from),
-              to: table_state.date_to
-                  ? new Date(table_state.date_to)
-                  : undefined,
-          }
-        : undefined;
 
-    const initialQueryStateRef = React.useRef<DataTableQueryState>({
+    const latestQueryRef = React.useRef<DataTableQueryState>({
         sorting: initialSorting,
         columnFilters: initialColumnFilters,
         globalFilter: table_state?.search ?? '',
@@ -91,65 +106,67 @@ export default function Index({
             pageIndex: Math.max((pagination?.current_page ?? 1) - 1, 0),
             pageSize: pagination?.per_page ?? 10,
         },
-        dateRange: initialDateRange,
-        dateFilterColumnId: table_state?.date_column ?? '',
     });
 
-    const buildQueryParams = React.useCallback((state: DataTableQueryState) => {
-        const query: Record<string, any> = {
-            page: state.pagination.pageIndex + 1,
-            per_page: state.pagination.pageSize,
-        };
+    const buildQueryParams = React.useCallback(
+        (
+            state: DataTableQueryState,
+            period: DateRange | undefined = periodRange,
+        ) => {
+            const query: Record<string, any> = {
+                page: state.pagination.pageIndex + 1,
+                per_page: state.pagination.pageSize,
+            };
 
-        if (state.globalFilter) {
-            query.search = state.globalFilter;
-        }
+            if (state.globalFilter) {
+                query.search = state.globalFilter;
+            }
 
-        if (state.sorting.length > 0) {
-            query.sort = state.sorting[0].id;
-            query.direction = state.sorting[0].desc ? 'desc' : 'asc';
-        }
+            if (state.sorting.length > 0) {
+                query.sort = state.sorting[0].id;
+                query.direction = state.sorting[0].desc ? 'desc' : 'asc';
+            }
 
-        if (state.columnFilters.length > 0) {
-            query.filters = {} as Record<string, string | string[]>;
-            state.columnFilters.forEach((filter) => {
-                if (
-                    filter.value === '' ||
-                    filter.value === null ||
-                    filter.value === undefined
-                ) {
-                    return;
-                }
+            if (state.columnFilters.length > 0) {
+                query.filters = {} as Record<string, string | string[]>;
+                state.columnFilters.forEach((filter) => {
+                    if (
+                        filter.value === '' ||
+                        filter.value === null ||
+                        filter.value === undefined
+                    ) {
+                        return;
+                    }
 
-                if (Array.isArray(filter.value)) {
+                    if (Array.isArray(filter.value)) {
+                        (query.filters as Record<string, string | string[]>)[
+                            filter.id
+                        ] = filter.value.map((item) => String(item));
+                        return;
+                    }
+
                     (query.filters as Record<string, string | string[]>)[
                         filter.id
-                    ] = filter.value.map((item) => String(item));
-                    return;
-                }
-
-                (query.filters as Record<string, string | string[]>)[
-                    filter.id
-                ] = String(filter.value);
-            });
-        }
-
-        if (state.dateRange?.from && state.dateFilterColumnId) {
-            query.date_column = state.dateFilterColumnId;
-            query.date_from = format(state.dateRange.from, 'yyyy-MM-dd');
-            if (state.dateRange.to) {
-                query.date_to = format(state.dateRange.to, 'yyyy-MM-dd');
+                    ] = String(filter.value);
+                });
             }
-        }
 
-        return query;
-    }, []);
+            if (period?.from) {
+                query.period_from = format(period.from, 'yyyy-MM-dd');
+                if (period.to) {
+                    query.period_to = format(period.to, 'yyyy-MM-dd');
+                }
+            }
+
+            return query;
+        },
+        [periodRange],
+    );
 
     const handleQueryChange = React.useCallback(
         (state: DataTableQueryState) => {
-            const query = buildQueryParams(state);
-
-            router.get(haciendasIndex().url, query, {
+            latestQueryRef.current = state;
+            router.get(haciendasIndex().url, buildQueryParams(state), {
                 preserveState: true,
                 preserveScroll: true,
                 replace: true,
@@ -158,9 +175,36 @@ export default function Index({
         [buildQueryParams],
     );
 
+    const applyPeriodFilter = (nextPeriod: DateRange | undefined) => {
+        setPeriodRange(nextPeriod);
+        const nextState: DataTableQueryState = {
+            ...latestQueryRef.current,
+            pagination: {
+                ...latestQueryRef.current.pagination,
+                pageIndex: 0,
+            },
+        };
+        latestQueryRef.current = nextState;
+        router.get(
+            haciendasIndex().url,
+            buildQueryParams(nextState, nextPeriod),
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            },
+        );
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Haciendas"></Head>
+
+            <PeriodFilterBar value={periodRange} onChange={applyPeriodFilter} />
+
+            <KpiOverview periodLabel={formatPeriodLabel(periodRange)}>
+                <HaciendaStats stats={stats} />
+            </KpiOverview>
 
             <Container>
                 <ContainerHeader>
@@ -173,7 +217,7 @@ export default function Index({
                     serverSide
                     pageCount={pagination.last_page}
                     totalRows={pagination.total}
-                    initialState={initialQueryStateRef.current}
+                    initialState={latestQueryRef.current}
                     onQueryChange={handleQueryChange}
                     bulkDelete={haciendaBulkDelete}
                     onRowDoubleClick={(hacienda) =>

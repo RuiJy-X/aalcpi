@@ -45,6 +45,14 @@ import {
     ContainerHeader,
     ContainerHeaderEnd,
 } from '@/components/container';
+import ProductionStats, {
+    type ProductionStatsData,
+} from '@/components/productions/stat-cards/ProductionStats';
+import { KpiOverview } from '@/components/kpi/kpi-card';
+import {
+    PeriodFilterBar,
+    formatPeriodLabel,
+} from '@/components/period-filter-bar';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -59,6 +67,18 @@ export default function Index({
     filters,
     pagination,
     table_state,
+    stats = {
+        totalProductions: 0,
+        totalNetCw: 0,
+        totalActualLkg: 0,
+        totalPshrNetLkg: 0,
+        totalActualMol: 0,
+        totalPshrNetMol: 0,
+        totalTrucks: 0,
+        uniquePlanters: 0,
+        totalPlanterLkgMoney: 0,
+        totalPlanterMolMoney: 0,
+    },
 }: {
     productions: ProductionRow[];
     crop_years: string[];
@@ -76,24 +96,33 @@ export default function Index({
         sort?: string;
         direction?: string;
         filters?: Record<string, string | string[]>;
-        date_column?: string;
-        date_from?: string;
-        date_to?: string;
+        period_from?: string;
+        period_to?: string;
     };
+    stats?: ProductionStatsData;
 }) {
     type DataTableQueryState = {
         sorting: SortingState;
         columnFilters: ColumnFiltersState;
         globalFilter: string;
         pagination: PaginationState;
-        dateRange?: DateRange;
-        dateFilterColumnId?: string;
     };
 
     const selectedCropYear =
         filters?.crop_year && filters.crop_year !== ''
             ? filters.crop_year
             : 'all';
+
+    const [periodRange, setPeriodRange] = React.useState<DateRange | undefined>(
+        table_state?.period_from
+            ? {
+                  from: new Date(table_state.period_from),
+                  to: table_state.period_to
+                      ? new Date(table_state.period_to)
+                      : undefined,
+              }
+            : undefined,
+    );
 
     const initialSorting = table_state?.sort
         ? [
@@ -110,16 +139,8 @@ export default function Index({
                   value,
               }))
             : [];
-    const initialDateRange = table_state?.date_from
-        ? {
-              from: new Date(table_state.date_from),
-              to: table_state.date_to
-                  ? new Date(table_state.date_to)
-                  : undefined,
-          }
-        : undefined;
 
-    const initialQueryStateRef = React.useRef<DataTableQueryState>({
+    const latestQueryRef = React.useRef<DataTableQueryState>({
         sorting: initialSorting,
         columnFilters: initialColumnFilters,
         globalFilter: table_state?.search ?? '',
@@ -127,13 +148,7 @@ export default function Index({
             pageIndex: Math.max((pagination?.current_page ?? 1) - 1, 0),
             pageSize: pagination?.per_page ?? 10,
         },
-        dateRange: initialDateRange,
-        dateFilterColumnId: table_state?.date_column ?? '',
     });
-
-    const latestQueryRef = React.useRef<DataTableQueryState>(
-        initialQueryStateRef.current,
-    );
 
     const [isDeleteCropYearOpen, setDeleteCropYearOpen] = React.useState(false);
     const [cropYearToDelete, setCropYearToDelete] = React.useState('');
@@ -141,7 +156,11 @@ export default function Index({
         React.useState(false);
 
     const buildQueryParams = React.useCallback(
-        (state: DataTableQueryState, cropYear: string) => {
+        (
+            state: DataTableQueryState,
+            cropYear: string,
+            period: DateRange | undefined = periodRange,
+        ) => {
             const query: Record<string, any> = {
                 page: state.pagination.pageIndex + 1,
                 per_page: state.pagination.pageSize,
@@ -184,17 +203,16 @@ export default function Index({
                 });
             }
 
-            if (state.dateRange?.from && state.dateFilterColumnId) {
-                query.date_column = state.dateFilterColumnId;
-                query.date_from = format(state.dateRange.from, 'yyyy-MM-dd');
-                if (state.dateRange.to) {
-                    query.date_to = format(state.dateRange.to, 'yyyy-MM-dd');
+            if (period?.from) {
+                query.period_from = format(period.from, 'yyyy-MM-dd');
+                if (period.to) {
+                    query.period_to = format(period.to, 'yyyy-MM-dd');
                 }
             }
 
             return query;
         },
-        [],
+        [periodRange],
     );
 
     const applyFilters = (cropYear: string) => {
@@ -213,6 +231,27 @@ export default function Index({
             preserveScroll: true,
             replace: true,
         });
+    };
+
+    const applyPeriodFilter = (nextPeriod: DateRange | undefined) => {
+        setPeriodRange(nextPeriod);
+        const nextState = {
+            ...latestQueryRef.current,
+            pagination: {
+                ...latestQueryRef.current.pagination,
+                pageIndex: 0,
+            },
+        };
+        latestQueryRef.current = nextState;
+        router.get(
+            productionsIndex().url,
+            buildQueryParams(nextState, selectedCropYear, nextPeriod),
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            },
+        );
     };
 
     const handleQueryChange = React.useCallback(
@@ -251,6 +290,12 @@ export default function Index({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Productions"></Head>
+
+            <PeriodFilterBar value={periodRange} onChange={applyPeriodFilter} />
+
+            <KpiOverview periodLabel={formatPeriodLabel(periodRange)}>
+                <ProductionStats stats={stats} />
+            </KpiOverview>
 
             <Container>
                 <ContainerHeader>
@@ -372,7 +417,7 @@ export default function Index({
                     serverSide
                     pageCount={pagination.last_page}
                     totalRows={pagination.total}
-                    initialState={initialQueryStateRef.current}
+                    initialState={latestQueryRef.current}
                     onQueryChange={handleQueryChange}
                     bulkDownload={productionBulkDownload}
                     bulkDelete={productionBulkDelete}

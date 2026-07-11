@@ -11,7 +11,7 @@ import {
     destroy as millingPeriodDelete,
     edit as millingPeriodEdit,
     show as millingPeriodShow,
-} from '@/routes/MillingPeriods';
+} from '@/routes/milling-periods';
 import {
     Dialog,
     DialogClose,

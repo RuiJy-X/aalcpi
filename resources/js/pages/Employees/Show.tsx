@@ -6,7 +6,7 @@ import {
     index as employeeIndex,
     show as employeeShow,
     update as employeeUpdate,
-} from '@/actions/App/Http/Controllers/EmployeeController';
+} from '@/routes/employees';
 import { show as payrollShow } from '@/routes/payroll';
 import type { BreadcrumbItem } from '@/types';
 import {

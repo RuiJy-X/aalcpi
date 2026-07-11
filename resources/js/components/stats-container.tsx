@@ -36,7 +36,7 @@ const StatsContainer = ({
                     </Button>
                 </div>
             </div>
-            <div className="grid grid-cols-4 gap-3">
+            <div className="flex flex-wrap gap-3">
                 {!isMinimized && children}
             </div>
         </div>

@@ -3,16 +3,19 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Support\Permissions;
+use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, TwoFactorAuthenticatable;
+    /** @use HasFactory<UserFactory> */
+    use HasFactory, HasRoles, Notifiable, TwoFactorAuthenticatable;
 
     /**
      * The attributes that are mass assignable.
@@ -24,7 +27,6 @@ class User extends Authenticatable
         'username',
         'email',
         'password',
-        'role',
         'employee_id',
     ];
 
@@ -43,7 +45,7 @@ class User extends Authenticatable
     /**
      * Get the attributes that should be cast.
      *
-     * @return array<string, string>
+     * @return array<string, mixed>
      */
     protected function casts(): array
     {
@@ -59,18 +61,25 @@ class User extends Authenticatable
         return $this->belongsTo(Employee::class);
     }
 
+    public function isSuperAdmin(): bool
+    {
+        return $this->hasRole(Permissions::SUPER_ADMIN_ROLE);
+    }
+
     public function isManager(): bool
     {
-        return in_array($this->role, ['manager', 'admin', 'administrator']);
+        return $this->isSuperAdmin()
+            || $this->hasRole('manager')
+            || $this->can('users.view');
     }
 
     public function isCertOfficer(): bool
     {
-        return $this->role === 'cert_officer';
+        return $this->hasRole('cert_officer');
     }
 
-    public function isEmployee()
+    public function isEmployee(): bool
     {
-        return $this->role === 'employee';
+        return $this->hasRole('employee');
     }
 }

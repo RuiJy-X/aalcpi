@@ -1,5 +1,4 @@
 import { Link } from '@inertiajs/react';
-import { usePage } from '@inertiajs/react';
 import {
     BookOpen,
     Briefcase,
@@ -8,12 +7,14 @@ import {
     DollarSign,
     LandPlot,
     LayoutGrid,
+    Shield,
     ShieldCheck,
     Truck,
     User,
+    Users,
 } from 'lucide-react';
 import { NavFooter } from '@/components/nav-footer';
-import { NavMain } from '@/components/nav-main';
+import { NavMain, type NavGroup } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import {
     Sidebar,
@@ -25,93 +26,116 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
-import { index as employeeIndex } from '@/actions/App/Http/Controllers/EmployeeController';
+import { index as employeeIndex } from '@/routes/employees';
+import { index as attendanceIndex } from '@/routes/attendance';
+import { index as payrollIndex } from '@/routes/payroll';
 import { index as haciendasIndex } from '@/routes/haciendas';
 import { index as plantersIndex } from '@/routes/planters';
 import { index as productionsIndex } from '@/routes/productions';
 import { index as userIndex } from '@/routes/users';
-import { index as millingPeriodsIndex } from '@/routes/MillingPeriods';
-import { index as attendanceRoutes } from '@/routes/attendance';
-import { index as payrollRoutes } from '@/routes/payroll';
+import { index as millingPeriodsIndex } from '@/routes/milling-periods';
 import { index as bankReconciliationIndex } from '@/routes/bank_reconciliation';
-import type { NavItem, SharedData } from '@/types';
+import { index as rolesIndex } from '@/routes/roles';
+import type { NavItem } from '@/types';
 import AppLogo from './app-logo';
+import { useCan } from '@/hooks/use-can';
+
+function optionalItem(
+    allowed: boolean,
+    item: NavItem,
+): NavItem[] {
+    return allowed ? [item] : [];
+}
 
 export function AppSidebar() {
-    const { auth } = usePage<SharedData>().props;
+    const { can } = useCan();
 
-    const isAdmin =
-        auth?.user?.role === 'admin' || auth?.user?.role === 'manager';
-
-    const defaultNavItems: NavItem[] = [
+    const dashboardItems: NavItem[] = [
         {
             title: 'Dashboard',
             href: dashboard(),
             icon: LayoutGrid,
         },
-        {
+    ];
+
+    const operationsItems: NavItem[] = [
+        ...optionalItem(can('planters.view'), {
             title: 'Planters',
             href: plantersIndex(),
             icon: User,
-        },
-        {
+        }),
+        ...optionalItem(can('haciendas.view'), {
             title: 'Haciendas',
             href: haciendasIndex(),
             icon: LandPlot,
-        },
-
-        {
+        }),
+        ...optionalItem(can('productions.view'), {
             title: 'Productions',
             href: productionsIndex(),
             icon: BookOpen,
-        },
-        {
+        }),
+        ...optionalItem(can('weekly.view'), {
             title: 'Weekly Data',
             href: '/Weekly',
             icon: CalendarDays,
-        },
-        {
+        }),
+        ...optionalItem(can('milling_periods.view'), {
             title: 'Milling Periods',
             href: millingPeriodsIndex(),
             icon: ShieldCheck,
-        },
-        {
+        }),
+        ...optionalItem(can('bank_reconciliation.view'), {
             title: 'Bank Reconciliation',
             href: bankReconciliationIndex(),
             icon: Truck,
-        },
+        }),
     ];
 
-    const adminNavItems: NavItem[] = [
-        {
+    const adminItems: NavItem[] = [
+        ...optionalItem(can('employees.view'), {
             title: 'Employees',
             href: employeeIndex(),
             icon: Briefcase,
-        },
-        {
+        }),
+        ...optionalItem(can('attendance.view'), {
             title: 'Attendance',
-            href: attendanceRoutes(),
+            href: attendanceIndex(),
             icon: Clipboard,
-        },
-        {
+        }),
+        ...optionalItem(can('payroll.view'), {
             title: 'Payroll',
-            href: payrollRoutes(),
+            href: payrollIndex(),
             icon: DollarSign,
-        },
-
-        {
+        }),
+        ...optionalItem(can('users.view'), {
             title: 'User Management',
             href: userIndex(),
-            icon: Clipboard,
-        },
+            icon: Users,
+        }),
+        ...optionalItem(can('roles.view'), {
+            title: 'Role Management',
+            href: rolesIndex(),
+            icon: Shield,
+        }),
     ];
 
-    const mainNavItems: NavItem[] = [
-        ...defaultNavItems,
-        ...(isAdmin ? adminNavItems : []),
-    ];
+    const groups: NavGroup[] = [
+        {
+            label: 'Overview',
+            items: dashboardItems,
+        },
+        {
+            label: 'Operations',
+            items: operationsItems,
+        },
+        {
+            label: 'Administration',
+            items: adminItems,
+        },
+    ].filter((group) => group.items.length > 0);
 
     const footerNavItems: NavItem[] = [];
+
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
@@ -127,7 +151,7 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={mainNavItems} />
+                <NavMain groups={groups} />
             </SidebarContent>
 
             <SidebarFooter>

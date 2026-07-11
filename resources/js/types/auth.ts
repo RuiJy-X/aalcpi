@@ -2,6 +2,11 @@ export type User = {
     id: number;
     name: string;
     email: string;
+    username?: string;
+    roles?: string[];
+    permissions?: string[];
+    is_super_admin?: boolean;
+    /** @deprecated use roles */
     role?: string;
     avatar?: string;
     email_verified_at: string | null;

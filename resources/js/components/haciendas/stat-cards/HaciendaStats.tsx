@@ -1,50 +1,49 @@
-import React from 'react';
 import { LandPlot, User, BookOpen, ShieldCheck } from 'lucide-react';
-import StatCard from '@/components/stat-card';
+import { KpiCard } from '@/components/kpi/kpi-card';
+
+export type HaciendaStatsData = {
+    totalHaciendas: number;
+    totalArea: number;
+    uniquePlanters: number;
+    activeHaciendas: number;
+};
 
 export default function HaciendaStats({
     stats,
 }: {
-    stats: {
-        totalHaciendas: number;
-        totalArea: number;
-        uniquePlanters: number;
-        activeHaciendas: number;
-    };
+    stats: HaciendaStatsData;
 }) {
-    const totalHaciendas = stats.totalHaciendas;
-    const totalArea = stats.totalArea;
-    const uniquePlanters = stats.uniquePlanters;
-    const activeHaciendas = stats.activeHaciendas;
-
     return (
         <>
-            <StatCard
+            <KpiCard
                 title="Total Haciendas"
-                value={String(totalHaciendas)}
+                value={stats.totalHaciendas ?? 0}
                 icon={LandPlot}
-                color="green"
+                iconClassName="text-emerald-600"
+                valueClassName="text-emerald-600"
             />
-
-            <StatCard
+            <KpiCard
                 title="Total Area (ha)"
-                value={String(totalArea)}
+                value={Number(stats.totalArea ?? 0).toLocaleString(undefined, {
+                    maximumFractionDigits: 2,
+                })}
                 icon={BookOpen}
-                color="yellow"
+                iconClassName="text-amber-600"
+                valueClassName="text-amber-600"
             />
-
-            <StatCard
+            <KpiCard
                 title="Unique Planters"
-                value={String(uniquePlanters)}
+                value={stats.uniquePlanters ?? 0}
                 icon={User}
-                color="blue"
+                iconClassName="text-sky-600"
+                valueClassName="text-sky-600"
             />
-
-            <StatCard
+            <KpiCard
                 title="Active Haciendas"
-                value={String(activeHaciendas)}
+                value={stats.activeHaciendas ?? 0}
                 icon={ShieldCheck}
-                color="orange"
+                iconClassName="text-orange-600"
+                valueClassName="text-orange-600"
             />
         </>
     );

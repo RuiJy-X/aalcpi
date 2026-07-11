@@ -27,6 +27,18 @@ class ProductionController extends Controller
         $dateColumn = $request->string('date_column')->toString();
         $dateFrom = $request->string('date_from')->toString();
         $dateTo = $request->string('date_to')->toString();
+        $periodFrom = $request->string('period_from')->toString();
+        $periodTo = $request->string('period_to')->toString();
+        if ($periodFrom !== '') {
+            $dateColumn = Schema::hasColumn('productions', 'production_date')
+                ? 'production_date'
+                : 'created_at';
+            $dateFrom = $periodFrom;
+            $dateTo = $periodTo !== '' ? $periodTo : $periodFrom;
+            if ($dateColumn === 'created_at') {
+                $dateTo .= ' 23:59:59';
+            }
+        }
         $driver = Schema::getConnection()->getDriverName();
         $likeOperator = $driver === 'pgsql' ? 'ilike' : 'like';
         $useCaseInsensitiveLike = $driver === 'sqlite';
@@ -141,6 +153,61 @@ class ProductionController extends Controller
             ->sortDesc()
             ->values();
 
+        $statsQuery = Production::query();
+        if ($selectedCropYear !== '' && $selectedCropYear !== 'all') {
+            $statsQuery->where('crop_year', $selectedCropYear);
+        }
+        if ($periodFrom !== '') {
+            $periodColumn = Schema::hasColumn('productions', 'production_date')
+                ? 'production_date'
+                : 'created_at';
+            $periodEnd = $periodTo !== '' ? $periodTo : $periodFrom;
+            if ($periodColumn === 'created_at') {
+                $periodEnd .= ' 23:59:59';
+            }
+            $statsQuery->whereBetween($periodColumn, [$periodFrom, $periodEnd]);
+        }
+
+        // Money fields are computed from share quantities × composite prices when present.
+        $hasSugarPrice = Schema::hasColumn('productions', 'composite_sugar_price');
+        $hasMolPrice = Schema::hasColumn('productions', 'composite_molasses_price');
+        $hasPlanterLkgMoney = Schema::hasColumn('productions', 'planter_lkg_money');
+        $hasPlanterMolMoney = Schema::hasColumn('productions', 'planter_mol_money');
+
+        $totalPlanterLkgMoney = 0.0;
+        if ($hasPlanterLkgMoney) {
+            $totalPlanterLkgMoney = (float) (clone $statsQuery)->sum('planter_lkg_money');
+        } elseif ($hasSugarPrice) {
+            $totalPlanterLkgMoney = (float) (clone $statsQuery)->selectRaw(
+                'COALESCE(SUM(COALESCE(pshr_net_lkg, 0) * COALESCE(composite_sugar_price, 0)), 0) as total'
+            )->value('total');
+        }
+
+        $totalPlanterMolMoney = 0.0;
+        if ($hasPlanterMolMoney) {
+            $totalPlanterMolMoney = (float) (clone $statsQuery)->sum('planter_mol_money');
+        } elseif ($hasMolPrice) {
+            $totalPlanterMolMoney = (float) (clone $statsQuery)->selectRaw(
+                'COALESCE(SUM(COALESCE(pshr_net_mol, 0) * COALESCE(composite_molasses_price, 0)), 0) as total'
+            )->value('total');
+        }
+
+        $stats = [
+            'totalProductions' => (clone $statsQuery)->count(),
+            'totalNetCw' => round((float) (clone $statsQuery)->sum('net_cw'), 2),
+            'totalActualLkg' => round((float) (clone $statsQuery)->sum('actual_lkg'), 2),
+            'totalPshrNetLkg' => round((float) (clone $statsQuery)->sum('pshr_net_lkg'), 2),
+            'totalActualMol' => round((float) (clone $statsQuery)->sum('actual_mol'), 2),
+            'totalPshrNetMol' => round((float) (clone $statsQuery)->sum('pshr_net_mol'), 2),
+            'totalTrucks' => (int) (clone $statsQuery)->sum('trucks'),
+            'uniquePlanters' => (int) (clone $statsQuery)
+                ->whereNotNull('planter_id')
+                ->distinct()
+                ->count('planter_id'),
+            'totalPlanterLkgMoney' => round($totalPlanterLkgMoney, 2),
+            'totalPlanterMolMoney' => round($totalPlanterMolMoney, 2),
+        ];
+
         return Inertia::render('Productions/Index', [
             'productions' => $paginatedProductions->items(),
             'pagination' => [
@@ -154,14 +221,14 @@ class ProductionController extends Controller
                 'sort' => $sort,
                 'direction' => $direction,
                 'filters' => $filters,
-                'date_column' => $dateColumn,
-                'date_from' => $dateFrom,
-                'date_to' => $dateTo,
+                'period_from' => $periodFrom,
+                'period_to' => $periodTo,
             ],
             'crop_years' => $cropYears,
             'filters' => [
                 'crop_year' => $selectedCropYear,
             ],
+            'stats' => $stats,
         ]);
 
     }

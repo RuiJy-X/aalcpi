@@ -2,14 +2,12 @@
 
 namespace App\Providers;
 
-use App\Models\MillingPeriod;
-use App\Models\Production;
-use App\Observers\MillingPeriodObserver;
-use App\Observers\ProductionObserver;
+use App\Models\User;
 use App\Services\DatabaseConfigurationService;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -29,6 +27,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        $this->configureAuthorization();
         DatabaseConfigurationService::loadActiveConnection();
     }
 
@@ -49,5 +48,19 @@ class AppServiceProvider extends ServiceProvider
                 ->uncompromised()
             : null
         );
+    }
+
+    /**
+     * Super admins bypass all permission checks.
+     */
+    protected function configureAuthorization(): void
+    {
+        Gate::before(function ($user, string $ability) {
+            if ($user instanceof User && $user->isSuperAdmin()) {
+                return true;
+            }
+
+            return null;
+        });
     }
 }

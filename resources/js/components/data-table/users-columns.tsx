@@ -4,6 +4,7 @@ import { ColumnDef } from '@tanstack/react-table';
 import { UserRow } from '@/components/types/usertypes';
 import { Checkbox } from '../ui/checkbox';
 import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
 import { ArrowUpDown } from 'lucide-react';
 
 export const usersColumns: ColumnDef<UserRow>[] = [
@@ -78,29 +79,15 @@ export const usersColumns: ColumnDef<UserRow>[] = [
         },
     },
     {
-        accessorKey: 'password',
-        header: ({ column }) => (
-            <Button
-                variant="ghost"
-                onClick={() =>
-                    column.toggleSorting(column.getIsSorted() === 'asc')
-                }
-            >
-                Password
-                <ArrowUpDown className="ml-2 h-4 w-4" />
-            </Button>
+        accessorKey: 'username',
+        header: 'Username',
+        cell: ({ row }) => (
+            <div className="ml-2 truncate">{row.original.username ?? '-'}</div>
         ),
-        cell: ({ row }) => {
-            const user = row.original;
-            return (
-                <div className="flex items-center">
-                    <div className="ml-2 truncate">{'••••••••'}</div>
-                </div>
-            );
-        },
     },
     {
-        accessorKey: 'role',
+        id: 'roles',
+        accessorFn: (row) => (row.roles ?? []).join(', '),
         header: ({ column }) => (
             <Button
                 variant="ghost"
@@ -108,15 +95,23 @@ export const usersColumns: ColumnDef<UserRow>[] = [
                     column.toggleSorting(column.getIsSorted() === 'asc')
                 }
             >
-                Role
+                Roles
                 <ArrowUpDown className="ml-2 h-4 w-4" />
             </Button>
         ),
         cell: ({ row }) => {
-            const user = row.original;
+            const roles = row.original.roles ?? [];
+            if (roles.length === 0) {
+                return <span className="ml-2 text-muted-foreground">—</span>;
+            }
+
             return (
-                <div className="flex items-center">
-                    <div className="ml-2 truncate">{user.role ?? '-'}</div>
+                <div className="flex flex-wrap gap-1">
+                    {roles.map((role) => (
+                        <Badge key={role} variant="secondary">
+                            {role}
+                        </Badge>
+                    ))}
                 </div>
             );
         },

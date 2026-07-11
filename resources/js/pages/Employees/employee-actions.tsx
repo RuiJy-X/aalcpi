@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Eye, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { destroy as employeeDelete } from '@/actions/App/Http/Controllers/EmployeeController';
+import { destroy as employeeDelete } from '@/routes/employees';
 
 const EmployeeActions = ({ employee }: { employee: EmployeeType }) => {
     const [isDeleteOpen, setDeleteOpen] = React.useState(false);

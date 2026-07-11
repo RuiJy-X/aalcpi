@@ -16,6 +16,12 @@ import { WeeklyList } from './components/weekly-list';
 import { WeeklyPdfPreview } from './components/weekly-pdf-preview';
 import { useWeeklyFilters } from './hooks/use-weekly-filters';
 import type { WeeklyIndexProps } from './types';
+import WeeklyStats from '@/components/weekly/stat-cards/WeeklyStats';
+import { KpiOverview } from '@/components/kpi/kpi-card';
+import {
+    PeriodFilterBar,
+    formatPeriodLabel,
+} from '@/components/period-filter-bar';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -30,6 +36,12 @@ export default function Index({
     weeks_by_crop_year,
     pagination,
     table_state,
+    stats = {
+        totalDocuments: 0,
+        uniquePlanters: 0,
+        uniqueWeeks: 0,
+        uniqueCropYears: 0,
+    },
 }: WeeklyIndexProps) {
     const [isImporting, setIsImporting] = useState(false);
 
@@ -38,6 +50,8 @@ export default function Index({
         setSearch,
         selectedCropYear,
         selectedWeek,
+        periodRange,
+        applyPeriodFilter,
         selectedIds,
         currentPage,
         setCurrentPage,
@@ -72,6 +86,15 @@ export default function Index({
                 </div>
             )}
             <div className="flex flex-col">
+                <PeriodFilterBar
+                    value={periodRange}
+                    onChange={applyPeriodFilter}
+                />
+
+                <KpiOverview periodLabel={formatPeriodLabel(periodRange)}>
+                    <WeeklyStats stats={stats} />
+                </KpiOverview>
+
                 <Container className="w-full overflow-visible">
                     <ContainerHeader className="items-center gap-5 text-left">
                         <ContainerHeaderEnd className="min-w-0 flex-1 justify-end gap-2">

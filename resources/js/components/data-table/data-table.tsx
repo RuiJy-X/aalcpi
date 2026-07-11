@@ -30,8 +30,7 @@ import {
 } from 'lucide-react';
 import * as React from 'react';
 import { router, usePage } from '@inertiajs/react';
-import { endOfDay, format, startOfDay } from 'date-fns';
-import { type DateRange } from 'react-day-picker';
+import type { DateRange } from 'react-day-picker';
 import type { SharedData } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -58,7 +57,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
 
 import {
     Table,
@@ -70,39 +68,10 @@ import {
 } from '@/components/ui/table';
 import { Button } from '../ui/button';
 import { SearchInput } from '../ui/search-input';
-// import { DataTablePagination } from './pagination';
 
 import type { BulkDeleteConfig } from './bulk-delete';
 import type { BulkDownloadConfig } from './bulk-download';
 import Filter from './data-table-column-filter';
-import { DatePickerWithRange } from '../date-range';
-
-const DATE_COLUMN_PATTERN = /(?:^|_)(date|at)$/i;
-
-function deriveColumnId<TData, TValue>(column: ColumnDef<TData, TValue>) {
-    if ('id' in column && typeof column.id === 'string') {
-        return column.id;
-    }
-
-    if ('accessorKey' in column && typeof column.accessorKey === 'string') {
-        return column.accessorKey;
-    }
-
-    return undefined;
-}
-
-function parseDateValue(value: unknown) {
-    if (value instanceof Date) {
-        return isNaN(value.getTime()) ? undefined : value;
-    }
-
-    if (typeof value === 'string' || typeof value === 'number') {
-        const parsed = new Date(value);
-        return isNaN(parsed.getTime()) ? undefined : parsed;
-    }
-
-    return undefined;
-}
 
 interface DataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[];
@@ -110,7 +79,6 @@ interface DataTableProps<TData, TValue> {
     bulkDownload?: BulkDownloadConfig<TData>;
     bulkDelete?: BulkDeleteConfig<TData>;
     onRowDoubleClick?: (row: TData) => string | null | undefined;
-    excludedDateFilterColumns?: string[];
     serverSide?: boolean;
     pageCount?: number;
     totalRows?: number;
@@ -140,7 +108,6 @@ export function DataTable<TData, TValue>({
     bulkDownload,
     bulkDelete,
     onRowDoubleClick,
-    excludedDateFilterColumns = [],
     serverSide = false,
     pageCount,
     totalRows,
@@ -175,92 +142,6 @@ export function DataTable<TData, TValue>({
     const [activeFilters, setActiveFilters] = React.useState<string[]>(
         () => initialState?.columnFilters?.map((filter) => filter.id) ?? [],
     );
-    const [dateRange, setDateRange] = React.useState<DateRange | undefined>(
-        initialState?.dateRange,
-    );
-    const [dateFilterMode, setDateFilterMode] = React.useState<
-        'single' | 'range'
-    >(() => (initialState?.dateRange?.to ? 'range' : 'single'));
-
-    const dateFilterableColumns = React.useMemo(() => {
-        return columns
-            .map((column) => {
-                const columnId = deriveColumnId(column);
-                const meta = (
-                    column as ColumnDef<TData, TValue> & {
-                        meta?: { isDateFilter?: boolean };
-                    }
-                ).meta;
-
-                return {
-                    columnId,
-                    isDateFilter: meta?.isDateFilter === true,
-                };
-            })
-            .filter(({ columnId, isDateFilter }) => {
-                if (!columnId) {
-                    return false;
-                }
-
-                if (isDateFilter) {
-                    return !excludedDateFilterColumns.includes(columnId);
-                }
-
-                return (
-                    DATE_COLUMN_PATTERN.test(columnId) &&
-                    !excludedDateFilterColumns.includes(columnId)
-                );
-            })
-            .map(({ columnId }) => columnId as string);
-    }, [columns, excludedDateFilterColumns]);
-
-    const [dateFilterColumnId, setDateFilterColumnId] = React.useState<string>(
-        initialState?.dateFilterColumnId ?? '',
-    );
-
-    React.useEffect(() => {
-        if (!dateFilterableColumns.length) {
-            setDateFilterColumnId('');
-            return;
-        }
-
-        setDateFilterColumnId((currentColumnId) => {
-            if (
-                currentColumnId &&
-                dateFilterableColumns.includes(currentColumnId)
-            ) {
-                return currentColumnId;
-            }
-
-            return dateFilterableColumns[0];
-        });
-    }, [dateFilterableColumns]);
-
-    const filteredByDateData = React.useMemo(() => {
-        if (isServerSide) {
-            return data;
-        }
-
-        if (!dateRange?.from || !dateFilterColumnId) {
-            return data;
-        }
-
-        const rangeStart = startOfDay(dateRange.from);
-        const rangeEnd = endOfDay(dateRange.to ?? dateRange.from);
-
-        return data.filter((row) => {
-            const rowValue = (row as Record<string, unknown>)[
-                dateFilterColumnId
-            ];
-            const parsedDate = parseDateValue(rowValue);
-
-            if (!parsedDate) {
-                return false;
-            }
-
-            return parsedDate >= rangeStart && parsedDate <= rangeEnd;
-        });
-    }, [data, dateRange, dateFilterColumnId, isServerSide]);
 
     // Column visibility
 
@@ -315,17 +196,8 @@ export function DataTable<TData, TValue>({
             columnFilters,
             globalFilter,
             pagination,
-            dateRange,
-            dateFilterColumnId,
         }),
-        [
-            sorting,
-            columnFilters,
-            globalFilter,
-            pagination,
-            dateRange,
-            dateFilterColumnId,
-        ],
+        [sorting, columnFilters, globalFilter, pagination],
     );
 
     const lastQueryRef = React.useRef<{
@@ -385,17 +257,10 @@ export function DataTable<TData, TValue>({
         setPagination((current) =>
             current.pageIndex === 0 ? current : { ...current, pageIndex: 0 },
         );
-    }, [
-        isServerSide,
-        globalFilter,
-        columnFilters,
-        sorting,
-        dateRange,
-        dateFilterColumnId,
-    ]);
+    }, [isServerSide, globalFilter, columnFilters, sorting]);
 
     const table = useReactTable({
-        data: filteredByDateData,
+        data,
         columns,
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
@@ -643,102 +508,6 @@ export function DataTable<TData, TValue>({
                             })}
                     </DropdownMenuContent>
                 </DropdownMenu>
-                <div className="flex w-full justify-end">
-                    {dateFilterableColumns.length > 0 && (
-                        <div className="flex items-center gap-2">
-                            {dateFilterableColumns.length > 1 && (
-                                <Select
-                                    value={dateFilterColumnId}
-                                    onValueChange={setDateFilterColumnId}
-                                >
-                                    <SelectTrigger className="w-44">
-                                        <SelectValue placeholder="Date field" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {dateFilterableColumns.map(
-                                            (columnId) => (
-                                                <SelectItem
-                                                    key={columnId}
-                                                    value={columnId}
-                                                >
-                                                    {columnId
-                                                        .replaceAll('_', ' ')
-                                                        .replace(/\b\w/g, (c) =>
-                                                            c.toUpperCase(),
-                                                        )}
-                                                </SelectItem>
-                                            ),
-                                        )}
-                                    </SelectContent>
-                                </Select>
-                            )}
-                            <Select
-                                value={dateFilterMode}
-                                onValueChange={(value) => {
-                                    const nextMode = value as
-                                        | 'single'
-                                        | 'range';
-
-                                    setDateFilterMode(nextMode);
-
-                                    if (nextMode === 'single') {
-                                        setDateRange((current) =>
-                                            current?.from
-                                                ? { from: current.from }
-                                                : undefined,
-                                        );
-                                    }
-                                }}
-                            >
-                                <SelectTrigger className="w-36">
-                                    <SelectValue placeholder="Date mode" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="single">
-                                        Single date
-                                    </SelectItem>
-                                    <SelectItem value="range">
-                                        Date range
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
-                            {dateFilterMode === 'single' ? (
-                                <Input
-                                    type="date"
-                                    className="w-40"
-                                    value={
-                                        dateRange?.from
-                                            ? format(
-                                                  dateRange.from,
-                                                  'yyyy-MM-dd',
-                                              )
-                                            : ''
-                                    }
-                                    onChange={(event) => {
-                                        const value = event.target.value;
-
-                                        if (!value) {
-                                            setDateRange(undefined);
-                                            return;
-                                        }
-
-                                        const nextDate = new Date(value);
-                                        if (isNaN(nextDate.getTime())) {
-                                            return;
-                                        }
-
-                                        setDateRange({ from: nextDate });
-                                    }}
-                                />
-                            ) : (
-                                <DatePickerWithRange
-                                    value={dateRange}
-                                    onChange={setDateRange}
-                                />
-                            )}
-                        </div>
-                    )}
-                </div>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="outline" className="ml-auto">

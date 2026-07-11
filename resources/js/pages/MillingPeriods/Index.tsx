@@ -2,7 +2,9 @@ import { Head } from '@inertiajs/react';
 import { DataTable } from '@/components/data-table/data-table';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { format } from 'date-fns';
+import type { DateRange } from 'react-day-picker';
 import {
     Container,
     ContainerHeader,
@@ -19,13 +21,23 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Plus } from 'lucide-react';
-import { create as millingPeriodCreate } from '@/routes/MillingPeriods';
-import { index as millingPeriodIndex } from '@/routes/MillingPeriods';
+import {
+    create as millingPeriodCreate,
+    index as millingPeriodIndex,
+    show as millingPeriodShow,
+} from '@/routes/milling-periods';
 import { router } from '@inertiajs/react';
-import { show as millingPeriodShow } from '@/routes/MillingPeriods';
 import { millingPeriodBulkDelete } from '@/components/data-table/bulk-delete';
 import type { EventInput } from '@fullcalendar/core';
 import MillingPeriodsCalendar from '@/components/milling-periods/milling-periods-calendar';
+import MillingPeriodStats, {
+    type MillingPeriodStatsData,
+} from '@/components/milling-periods/stat-cards/MillingPeriodStats';
+import { KpiOverview } from '@/components/kpi/kpi-card';
+import {
+    PeriodFilterBar,
+    formatPeriodLabel,
+} from '@/components/period-filter-bar';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -39,6 +51,13 @@ export default function Index({
     crop_years,
     weeks_by_crop_year,
     filters,
+    stats = {
+        totalPeriods: 0,
+        activeNow: 0,
+        avgSugarPrice: 0,
+        avgMolPrice: 0,
+        cropYearsCount: 0,
+    },
 }: {
     milling_periods: MillingPeriodRow[];
     crop_years: string[];
@@ -46,7 +65,10 @@ export default function Index({
     filters: {
         crop_year?: string;
         week_no?: string;
+        period_from?: string;
+        period_to?: string;
     };
+    stats?: MillingPeriodStatsData;
 }) {
     const selectedCropYear =
         filters?.crop_year && filters.crop_year !== ''
@@ -55,12 +77,27 @@ export default function Index({
     const selectedWeekNo =
         filters?.week_no && filters.week_no !== '' ? filters.week_no : 'all';
 
+    const [periodRange, setPeriodRange] = useState<DateRange | undefined>(
+        filters?.period_from
+            ? {
+                  from: new Date(filters.period_from),
+                  to: filters.period_to
+                      ? new Date(filters.period_to)
+                      : undefined,
+              }
+            : undefined,
+    );
+
     const weekOptions =
         selectedCropYear === 'all'
             ? []
             : (weeks_by_crop_year[selectedCropYear] ?? []);
 
-    const applyFilters = (cropYear: string, weekNo: string) => {
+    const buildQuery = (
+        cropYear: string,
+        weekNo: string,
+        period: DateRange | undefined = periodRange,
+    ) => {
         const query: Record<string, string> = {};
 
         if (cropYear !== 'all') {
@@ -71,11 +108,35 @@ export default function Index({
             query.week_no = weekNo;
         }
 
-        router.get(millingPeriodIndex().url, query, {
+        if (period?.from) {
+            query.period_from = format(period.from, 'yyyy-MM-dd');
+            if (period.to) {
+                query.period_to = format(period.to, 'yyyy-MM-dd');
+            }
+        }
+
+        return query;
+    };
+
+    const applyFilters = (cropYear: string, weekNo: string) => {
+        router.get(millingPeriodIndex().url, buildQuery(cropYear, weekNo), {
             preserveState: true,
             preserveScroll: true,
             replace: true,
         });
+    };
+
+    const applyPeriodFilter = (nextPeriod: DateRange | undefined) => {
+        setPeriodRange(nextPeriod);
+        router.get(
+            millingPeriodIndex().url,
+            buildQuery(selectedCropYear, selectedWeekNo, nextPeriod),
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            },
+        );
     };
 
     const calendarEvents = useMemo<EventInput[]>(() => {
@@ -95,6 +156,12 @@ export default function Index({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Milling Periods"></Head>
+
+            <PeriodFilterBar value={periodRange} onChange={applyPeriodFilter} />
+
+            <KpiOverview periodLabel={formatPeriodLabel(periodRange)}>
+                <MillingPeriodStats stats={stats} />
+            </KpiOverview>
 
             <Container>
                 <ContainerHeader>

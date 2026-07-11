@@ -1,41 +1,43 @@
-import { BookOpen, LandPlot, User } from 'lucide-react';
-import React from 'react';
-import StatCard from '@/components/stat-card';
+import { BookOpen, LandPlot, User, Users } from 'lucide-react';
+import { KpiCard } from '@/components/kpi/kpi-card';
 
-export default function PlanterStats({
-    stats,
-}: {
-    stats: {
-        totalPlanters: number;
-        totalHaciendas: number;
-        totalProductions: number;
-    };
-}) {
-    const totalPlanters = stats.totalPlanters;
-    const totalHaciendas = stats.totalHaciendas;
-    const totalProductions = stats.totalProductions;
+export type PlanterStatsData = {
+    totalPlanters: number;
+    totalHaciendas: number;
+    totalProductions: number;
+    plantersWithHaciendas?: number;
+};
 
+export default function PlanterStats({ stats }: { stats: PlanterStatsData }) {
     return (
         <>
-            <StatCard
+            <KpiCard
                 title="Total Planters"
-                value={String(totalPlanters)}
+                value={stats.totalPlanters ?? 0}
                 icon={User}
-                color="green"
+                iconClassName="text-emerald-600"
+                valueClassName="text-emerald-600"
             />
-
-            <StatCard
+            <KpiCard
+                title="With Haciendas"
+                value={stats.plantersWithHaciendas ?? 0}
+                icon={Users}
+                iconClassName="text-sky-600"
+                valueClassName="text-sky-600"
+            />
+            <KpiCard
                 title="Total Haciendas"
-                value={String(totalHaciendas)}
+                value={stats.totalHaciendas ?? 0}
                 icon={LandPlot}
-                color="orange"
+                iconClassName="text-orange-600"
+                valueClassName="text-orange-600"
             />
-
-            <StatCard
+            <KpiCard
                 title="Total Productions"
-                value={String(totalProductions)}
+                value={stats.totalProductions ?? 0}
                 icon={BookOpen}
-                color="yellow"
+                iconClassName="text-amber-600"
+                valueClassName="text-amber-600"
             />
         </>
     );

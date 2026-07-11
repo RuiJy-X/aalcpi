@@ -1,5 +1,7 @@
 import { router } from '@inertiajs/react';
+import { format } from 'date-fns';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { DateRange } from 'react-day-picker';
 
 import { index as weeklyIndex } from '@/routes/weekly';
 import type { WeeklyPlanterGroup, WeeklyRecord } from '../types';
@@ -23,6 +25,8 @@ export function useWeeklyFilters({
         search?: string;
         crop_year?: string;
         week?: string;
+        period_from?: string;
+        period_to?: string;
     };
 }) {
     const [search, setSearch] = useState(tableState?.search ?? '');
@@ -33,6 +37,16 @@ export function useWeeklyFilters({
     );
     const [selectedWeek, setSelectedWeek] = useState(
         tableState?.week && tableState.week !== '' ? tableState.week : 'all',
+    );
+    const [periodRange, setPeriodRange] = useState<DateRange | undefined>(
+        tableState?.period_from
+            ? {
+                  from: new Date(tableState.period_from),
+                  to: tableState.period_to
+                      ? new Date(tableState.period_to)
+                      : undefined,
+              }
+            : undefined,
     );
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const [previewId, setPreviewId] = useState<number | null>(null);
@@ -173,7 +187,10 @@ export function useWeeklyFilters({
         setPreviewId(null);
     };
 
-    const buildQuery = (page: number) => {
+    const buildQuery = (
+        page: number,
+        period: DateRange | undefined = periodRange,
+    ) => {
         const query: Record<string, string | number> = {
             page,
             per_page: pagination.per_page,
@@ -191,7 +208,23 @@ export function useWeeklyFilters({
             query.week = selectedWeek;
         }
 
+        if (period?.from) {
+            query.period_from = format(period.from, 'yyyy-MM-dd');
+            if (period.to) {
+                query.period_to = format(period.to, 'yyyy-MM-dd');
+            }
+        }
+
         return query;
+    };
+
+    const applyPeriodFilter = (nextPeriod: DateRange | undefined) => {
+        setPeriodRange(nextPeriod);
+        router.get(weeklyIndex().url, buildQuery(1, nextPeriod), {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
     };
 
     useEffect(() => {
@@ -224,6 +257,8 @@ export function useWeeklyFilters({
         setSearch,
         selectedCropYear,
         selectedWeek,
+        periodRange,
+        applyPeriodFilter,
         selectedIds,
         currentPage,
         setCurrentPage,
