@@ -5,11 +5,11 @@ namespace App\Http\Controllers\Settings;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\DatabaseConnectionStoreRequest;
 use App\Models\DatabaseConnection;
+use App\Services\DatabaseConfigurationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
-use App\Services\DatabaseConfigurationService;
 
 class DatabaseConnectionController extends Controller
 {
@@ -74,14 +74,14 @@ class DatabaseConnectionController extends Controller
             new \PDO($dsn, $request->username, $request->password);
 
             return back()->with([
-            'test_success' => true,
-            'test_message' => 'Database connection successful!'
+                'test_success' => true,
+                'test_message' => 'Database connection successful!',
             ]);
         } catch (\Exception $e) {
             return back()->with([
-            'test_success' => false,
-            'test_message' => 'Connection failed: ' . $e->getMessage()
-            ] );
+                'test_success' => false,
+                'test_message' => 'Connection failed: '.$e->getMessage(),
+            ]);
         }
     }
 
@@ -126,6 +126,7 @@ class DatabaseConnectionController extends Controller
         return redirect()->route('database.edit')
             ->with('status', 'Database connection deleted successfully!');
     }
+
     /**
      * Deactivate a database connection, falling back to SQLite.
      */
@@ -137,7 +138,11 @@ class DatabaseConnectionController extends Controller
 
         $connection->makeInactive();
 
+        // Immediately switch default connection and ensure local schema
+        // (roles/permissions, etc.) is migrated and seeded so auth does not 500.
+        DatabaseConfigurationService::useLocalDatabase();
+
         return redirect()->route('database.edit')
-            ->with('status', 'Switched back to local SQLite database. Restart the app to fully apply this change.');
+            ->with('status', 'Switched back to the local SQLite database.');
     }
 }

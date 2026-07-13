@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Services\DatabaseConfigurationService;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
@@ -13,6 +14,7 @@ use Native\Desktop\Events\AutoUpdater\UpdateNotAvailable;
 use Native\Desktop\Facades\AutoUpdater;
 use Native\Desktop\Facades\Notification;
 use Native\Desktop\Facades\Window;
+use Spatie\Permission\Models\Role;
 
 class NativeAppServiceProvider implements ProvidesPhpIni
 {
@@ -22,7 +24,10 @@ class NativeAppServiceProvider implements ProvidesPhpIni
      */
     public function boot(): void
     {
-        Artisan::call('migrate', ['--force' => true]);
+        // Keep the local NativePHP SQLite schema + roles ready even when a
+        // remote Postgres connection was previously active (migrations only
+        // hit the default connection, which may have been pgsql).
+        DatabaseConfigurationService::ensureLocalDatabaseReady(forceMigrate: true);
 
         $this->seedUsersIfNeeded();
         $this->registerAutoUpdaterHandlers();
@@ -117,15 +122,26 @@ class NativeAppServiceProvider implements ProvidesPhpIni
 
     protected function seedUsersIfNeeded(): void
     {
-        if (\App\Models\User::count() === 0) {
-            try {
+        try {
+            // Roles must exist before AdminSeeder::syncRoles() runs.
+            // ensureLocalDatabaseReady already seeds roles when empty; this is a
+            // safety net if the table exists but seeding was skipped.
+            if (Role::query()->count() === 0) {
                 Artisan::call('db:seed', [
-                    '--class' => 'AdminSeeder',
+                    '--class' => 'RolePermissionSeeder',
                     '--force' => true,
                 ]);
-            } catch (\Exception $e) {
-                Log::error('Failed to seed desktop users: '.$e->getMessage());
             }
+
+            // Idempotent: creates default desktop users if missing and re-attaches roles.
+            // Critical after permission tables are first migrated onto an existing
+            // nativephp.sqlite that already had users but no Spatie tables.
+            Artisan::call('db:seed', [
+                '--class' => 'AdminSeeder',
+                '--force' => true,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to seed desktop users: '.$e->getMessage());
         }
     }
 }
