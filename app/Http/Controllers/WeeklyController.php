@@ -8,6 +8,7 @@ use App\Models\Weekly;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -37,18 +38,25 @@ class WeeklyController extends Controller
             $search,
         );
 
-        // Distinct planters matching the filters, ordered for stable paging.
-        $planterKeys = (clone $filteredQuery)
+        // Paginate distinct planters in SQL — do not load every planter into memory.
+        $distinctPlantersSubquery = (clone $filteredQuery)
             ->select(['planter_code', 'planter_name'])
-            ->distinct()
+            ->groupBy('planter_code', 'planter_name');
+
+        $totalPlanters = (int) DB::query()
+            ->fromSub($distinctPlantersSubquery, 'weekly_planters')
+            ->count();
+
+        $lastPage = max(1, (int) ceil(max($totalPlanters, 1) / $perPage));
+        $page = min(max(1, $page), $lastPage);
+
+        $pagePlanters = (clone $filteredQuery)
+            ->select(['planter_code', 'planter_name'])
+            ->groupBy('planter_code', 'planter_name')
             ->orderBy('planter_name')
             ->orderBy('planter_code')
+            ->forPage($page, $perPage)
             ->get();
-
-        $totalPlanters = $planterKeys->count();
-        $lastPage = max(1, (int) ceil($totalPlanters / $perPage));
-        $page = min($page, $lastPage);
-        $pagePlanters = $planterKeys->forPage($page, $perPage)->values();
 
         $planterGroups = $this->buildPlanterGroups(
             $filteredQuery,

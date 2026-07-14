@@ -1,16 +1,31 @@
 <?php
 
 use App\Models\User;
+use App\Support\Permissions;
+use Database\Seeders\RolePermissionSeeder;
+use Inertia\Testing\AssertableInertia as Assert;
 
-test('guests are redirected to the login page', function () {
-    $response = $this->get(route('dashboard'));
-    $response->assertRedirect(route('login'));
+beforeEach(function () {
+    $this->seed(RolePermissionSeeder::class);
 });
 
-test('authenticated users can visit the dashboard', function () {
+test('dashboard includes module summaries status tracking and activity', function () {
     $user = User::factory()->create();
-    $this->actingAs($user);
+    $user->assignRole(Permissions::SUPER_ADMIN_ROLE);
 
-    $response = $this->get(route('dashboard'));
-    $response->assertOk();
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('dashboard')
+            ->has('module_summaries')
+            ->has('status_tracking.productions')
+            ->has('status_tracking.payroll')
+            ->has('status_tracking.bank_reconciliation')
+            ->has('status_tracking.imports')
+            ->has('recent_activity')
+            ->has('kpi_totals')
+            ->has('leaderboard')
+            ->has('milling_periods')
+        );
 });

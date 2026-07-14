@@ -31,10 +31,15 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function Index({
-    planter_groups,
-    crop_years,
-    weeks_by_crop_year,
-    pagination,
+    planter_groups = [],
+    crop_years = [],
+    weeks_by_crop_year = {},
+    pagination = {
+        total: 0,
+        per_page: 10,
+        current_page: 1,
+        last_page: 1,
+    },
     table_state,
     stats = {
         totalDocuments: 0,
@@ -66,9 +71,14 @@ export default function Index({
         openPreview,
         clearSelection,
     } = useWeeklyFilters({
-        planterGroups: planter_groups,
-        weeksByCropYear: weeks_by_crop_year,
-        pagination,
+        planterGroups: planter_groups ?? [],
+        weeksByCropYear: weeks_by_crop_year ?? {},
+        pagination: pagination ?? {
+            total: 0,
+            per_page: 10,
+            current_page: 1,
+            last_page: 1,
+        },
         tableState: table_state,
     });
 

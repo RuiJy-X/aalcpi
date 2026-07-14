@@ -83,6 +83,37 @@ test('planter group lists all weeks even when week filter limits files', functio
         );
 });
 
+test('weekly index returns planter groups when data exists without crashing', function () {
+    $user = User::factory()->create();
+    $user->assignRole(Permissions::SUPER_ADMIN_ROLE);
+
+    createWeeklyPlanterFiles('1111', 'ABELLO ONE', [1, 2]);
+    createWeeklyPlanterFiles('2222', 'ABELLO TWO', [1]);
+    createWeeklyPlanterFiles('3333', 'OTHER PLANTER', [3]);
+
+    $this->actingAs($user)
+        ->get(route('weekly.index', ['per_page' => 10, 'page' => 1]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Weekly/Index')
+            ->has('planter_groups')
+            ->where('pagination.total', 3)
+            ->where('stats.totalDocuments', 4)
+            ->has('planter_groups.0.files')
+            ->has('planter_groups.0.weeks')
+        );
+
+    // Search must still return a defined planter_groups array (never omit the key).
+    $this->actingAs($user)
+        ->get(route('weekly.index', ['search' => 'ABELLO']))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Weekly/Index')
+            ->has('planter_groups', 2)
+            ->where('pagination.total', 2)
+        );
+});
+
 test('planter week coverage is scoped to selected crop year', function () {
     $user = User::factory()->create();
     $user->assignRole(Permissions::SUPER_ADMIN_ROLE);

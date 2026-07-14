@@ -30,11 +30,11 @@ export type WeeklyStatsData = {
 
 export type WeeklyIndexProps = {
     /** One card per planter on the current page; each includes ALL of that planter's filtered PDFs. */
-    planter_groups: WeeklyPlanterGroup[];
-    crop_years: string[];
-    weeks_by_crop_year: Record<string, string[]>;
+    planter_groups?: WeeklyPlanterGroup[];
+    crop_years?: string[];
+    weeks_by_crop_year?: Record<string, string[]>;
     /** Pagination is over planters, not individual PDF rows. */
-    pagination: {
+    pagination?: {
         total: number;
         per_page: number;
         current_page: number;

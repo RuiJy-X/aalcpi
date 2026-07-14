@@ -8,14 +8,19 @@ import type { WeeklyPlanterGroup, WeeklyRecord } from '../types';
 import { sortNumericStrings } from '../utils';
 
 export function useWeeklyFilters({
-    planterGroups,
-    weeksByCropYear,
-    pagination,
+    planterGroups = [],
+    weeksByCropYear = {},
+    pagination = {
+        total: 0,
+        per_page: 10,
+        current_page: 1,
+        last_page: 1,
+    },
     tableState,
 }: {
-    planterGroups: WeeklyPlanterGroup[];
-    weeksByCropYear: Record<string, string[]>;
-    pagination: {
+    planterGroups?: WeeklyPlanterGroup[];
+    weeksByCropYear?: Record<string, string[]>;
+    pagination?: {
         total: number;
         per_page: number;
         current_page: number;
@@ -29,6 +34,15 @@ export function useWeeklyFilters({
         period_to?: string;
     };
 }) {
+    // Guard against partial Inertia props / HMR so the page never white-screens.
+    const safePlanterGroups = planterGroups ?? [];
+    const safeWeeksByCropYear = weeksByCropYear ?? {};
+    const safePagination = {
+        total: pagination?.total ?? 0,
+        per_page: pagination?.per_page ?? 10,
+        current_page: pagination?.current_page ?? 1,
+        last_page: pagination?.last_page ?? 1,
+    };
     const [search, setSearch] = useState(tableState?.search ?? '');
     const [selectedCropYear, setSelectedCropYear] = useState(
         tableState?.crop_year && tableState.crop_year !== ''
@@ -53,21 +67,21 @@ export function useWeeklyFilters({
     const isFirstRender = useRef(true);
 
     const allWeeks = useMemo(() => {
-        const allValues = Object.values(weeksByCropYear).flat();
+        const allValues = Object.values(safeWeeksByCropYear).flat();
         return sortNumericStrings(Array.from(new Set(allValues)));
-    }, [weeksByCropYear]);
+    }, [safeWeeksByCropYear]);
 
     const weekOptions =
         selectedCropYear === 'all'
             ? allWeeks
-            : sortNumericStrings(weeksByCropYear[selectedCropYear] ?? []);
+            : sortNumericStrings(safeWeeksByCropYear[selectedCropYear] ?? []);
 
     // Server already paginated by planter and attached full file lists.
-    const groupedWeeklies = planterGroups;
+    const groupedWeeklies = safePlanterGroups;
 
     const allFiles = useMemo(
-        () => planterGroups.flatMap((group) => group.files),
-        [planterGroups],
+        () => safePlanterGroups.flatMap((group) => group.files ?? []),
+        [safePlanterGroups],
     );
 
     const selectedItems = useMemo(
@@ -84,8 +98,8 @@ export function useWeeklyFilters({
         ? `${previewItem.planter_name} - Week ${previewItem.week}`
         : 'Select a weekly PDF to preview it here';
 
-    const totalPages = pagination.last_page;
-    const currentPage = pagination.current_page;
+    const totalPages = safePagination.last_page;
+    const currentPage = safePagination.current_page;
 
     const handleCropYearChange = (value: string) => {
         setSelectedCropYear(value);
@@ -95,7 +109,7 @@ export function useWeeklyFilters({
             return;
         }
 
-        const allowedWeeks = weeksByCropYear[value] ?? [];
+        const allowedWeeks = safeWeeksByCropYear[value] ?? [];
 
         if (selectedWeek !== 'all' && !allowedWeeks.includes(selectedWeek)) {
             setSelectedWeek('all');
@@ -130,7 +144,7 @@ export function useWeeklyFilters({
     ) => {
         const query: Record<string, string | number> = {
             page: nextPage,
-            per_page: pagination.per_page,
+            per_page: safePagination.per_page,
         };
 
         if (search.trim() !== '') {
@@ -205,7 +219,7 @@ export function useWeeklyFilters({
         weekOptions,
         groupedWeeklies,
         totalPages,
-        pagination,
+        pagination: safePagination,
         previewItem,
         previewTitle,
         handleCropYearChange,
