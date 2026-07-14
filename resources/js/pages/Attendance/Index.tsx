@@ -1,16 +1,19 @@
 import AppLayout from '@/layouts/app-layout';
 import React, { useMemo } from 'react';
-import type { BreadcrumbItem, SharedData } from '@/types';
+import type { BreadcrumbItem } from '@/types';
 import type { EmployeeType } from '../Employees/employeeTypes';
 import {
     Container,
     ContainerHeader,
     ContainerHeaderEnd,
 } from '@/components/container';
-import { Head, usePage } from '@inertiajs/react';
+import { Head } from '@inertiajs/react';
 import { AttendanceType } from './attendance-types';
-import { attendanceColumns } from './attendance-column-def';
+import { createAttendanceColumns } from './attendance-column-def';
 import { attendanceBulkDelete } from '@/components/data-table/bulk-delete';
+import { TableEditToolbar } from '@/components/data-table/table-edit-toolbar';
+import { useTableEditMode } from '@/hooks/use-table-edit-mode';
+import { bulkUpdate as attendanceBulkUpdate } from '@/routes/attendance';
 
 import { DataTable } from '@/components/data-table/data-table';
 import ImportAttendance from './import-attendance';
@@ -59,6 +62,28 @@ const Index = ({
         }));
     }, [attendance]);
 
+    const {
+        isEditing,
+        isSaving,
+        startEditing,
+        cancelEditing,
+        saveEdits,
+        handleCellChange,
+    } = useTableEditMode({
+        rows: attendance,
+        fields: ['date', 'time_in', 'time_out', 'times', 'working_time'],
+        saveUrl: attendanceBulkUpdate().url,
+    });
+
+    const attendanceColumns = useMemo(
+        () =>
+            createAttendanceColumns({
+                isEditing,
+                onCellChange: handleCellChange,
+            }),
+        [isEditing, handleCellChange],
+    );
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Attendance"></Head>
@@ -74,11 +99,23 @@ const Index = ({
             </Container>
 
             <Container>
-                <ContainerHeader>Attendance Table</ContainerHeader>
+                <ContainerHeader>
+                    Attendance Table
+                    <ContainerHeaderEnd>
+                        <TableEditToolbar
+                            isEditing={isEditing}
+                            isSaving={isSaving}
+                            disabled={attendance.length === 0}
+                            onStart={startEditing}
+                            onCancel={cancelEditing}
+                            onSave={saveEdits}
+                        />
+                    </ContainerHeaderEnd>
+                </ContainerHeader>
                 <DataTable
                     data={attendance}
                     columns={attendanceColumns}
-                    bulkDelete={attendanceBulkDelete}
+                    bulkDelete={isEditing ? undefined : attendanceBulkDelete}
                 />
             </Container>
         </AppLayout>

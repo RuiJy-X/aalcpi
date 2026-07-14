@@ -1,297 +1,111 @@
-//What data is shown for each column
 'use client';
 
 import type { ColumnDef } from '@tanstack/react-table';
-
-import { ArrowUpDown, Contact } from 'lucide-react';
+import { ArrowUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { destroy as employeeDelete } from '@/routes/employees';
-
 import type { EmployeeType } from './employeeTypes';
 import EmployeeActions from '@/pages/Employees/employee-actions';
+import {
+    EditableTextCell,
+    type CellChangeHandler,
+} from '@/components/data-table/editable-cells';
 
-export const employeeColumns: ColumnDef<EmployeeType>[] = [
-    {
-        id: 'select',
-        size: 20,
-        header: ({ table }) => (
-            <Checkbox
-                checked={
-                    table.getIsAllPageRowsSelected() ||
-                    (table.getIsSomePageRowsSelected() && 'indeterminate')
-                }
-                onCheckedChange={(value) =>
-                    table.toggleAllPageRowsSelected(!!value)
-                }
-                aria-label="Select all"
-            />
-        ),
+export type EmployeeColumnsOptions = {
+    isEditing?: boolean;
+    onCellChange?: CellChangeHandler;
+};
+
+function SortHeader({
+    label,
+    column,
+}: {
+    label: string;
+    column: {
+        toggleSorting: (desc?: boolean) => void;
+        getIsSorted: () => false | 'asc' | 'desc';
+    };
+}) {
+    return (
+        <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
+            {label}
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+    );
+}
+
+export function createEmployeeColumns(
+    options: EmployeeColumnsOptions = {},
+): ColumnDef<EmployeeType>[] {
+    const { isEditing = false, onCellChange } = options;
+
+    const text = (
+        field: string,
+        label: string,
+        getValue: (e: EmployeeType) => unknown,
+        inputType: 'text' | 'number' = 'text',
+    ): ColumnDef<EmployeeType> => ({
+        accessorKey: field,
+        header: ({ column }) => <SortHeader label={label} column={column} />,
         cell: ({ row }) => (
-            <Checkbox
-                className="mr-2"
-                checked={row.getIsSelected()}
-                onCheckedChange={(value) => row.toggleSelected(!!value)}
-                aria-label="Select row"
+            <EditableTextCell
+                rowId={row.original.id}
+                field={field}
+                isEditing={isEditing}
+                value={getValue(row.original)}
+                display={String(getValue(row.original) ?? 'NA')}
+                onCellChange={onCellChange}
+                inputType={inputType}
             />
         ),
-        enableSorting: false,
-        enableHiding: false,
-    },
-    {
-        accessorKey: 'employee_code',
-        header: ({ column }) => {
-            return (
-                <Button
-                    variant="ghost"
-                    className="truncate"
-                    onClick={() =>
-                        column.toggleSorting(column.getIsSorted() === 'asc')
-                    }
-                >
-                    Employee Code
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                </Button>
-            );
-        },
-        cell: ({ row }) => {
-            const employee = row.original;
-            return (
-                <div className="flex items-center">
-                    <div className="ml-2 truncate">
-                        {employee.employee_code ?? 'NA'}
-                    </div>
-                </div>
-            );
-        },
-    },
-    {
-        accessorKey: 'name',
-        header: ({ column }) => {
-            return (
-                <Button
-                    variant="ghost"
-                    onClick={() =>
-                        column.toggleSorting(column.getIsSorted() === 'asc')
-                    }
-                >
-                    Name
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                </Button>
-            );
-        },
-        cell: ({ row }) => {
-            const employee = row.original;
-            return (
-                <div className="flex items-center">
-                    <div className="ml-2 truncate">{employee.name ?? 'NA'}</div>
-                </div>
-            );
-        },
-    },
-    {
-        accessorKey: 'position',
-        header: ({ column }) => {
-            return (
-                <Button
-                    variant="ghost"
-                    onClick={() =>
-                        column.toggleSorting(column.getIsSorted() === 'asc')
-                    }
-                >
-                    Position
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                </Button>
-            );
-        },
-        cell: ({ row }) => {
-            const employee = row.original;
-            return (
-                <div className="flex items-center">
-                    <div className="ml-2 truncate">
-                        {employee.position ?? 'NA'}
-                    </div>
-                </div>
-            );
-        },
-    },
-    {
-        accessorKey: 'department',
-        header: ({ column }) => {
-            return (
-                <Button
-                    variant="ghost"
-                    onClick={() =>
-                        column.toggleSorting(column.getIsSorted() === 'asc')
-                    }
-                >
-                    Department
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                </Button>
-            );
-        },
-        cell: ({ row }) => {
-            const employee = row.original;
-            return (
-                <div className="flex items-center">
-                    <div className="ml-2 truncate">
-                        {employee.department ?? 'NA'}
-                    </div>
-                </div>
-            );
-        },
-    },
-    {
-        accessorKey: 'employment_type',
-        header: ({ column }) => {
-            return (
-                <Button
-                    variant="ghost"
-                    onClick={() =>
-                        column.toggleSorting(column.getIsSorted() === 'asc')
-                    }
-                >
-                    Employment Type
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                </Button>
-            );
-        },
-        cell: ({ row }) => {
-            const employee = row.original;
-            return (
-                <div className="flex items-center">
-                    <div className="ml-2 truncate">
-                        {employee.employment_type ?? 'NA'}
-                    </div>
-                </div>
-            );
-        },
-    },
-    {
-        accessorKey: 'base_salary',
-        header: ({ column }) => {
-            return (
-                <Button
-                    variant="ghost"
-                    onClick={() =>
-                        column.toggleSorting(column.getIsSorted() === 'asc')
-                    }
-                >
-                    Base Salary
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                </Button>
-            );
-        },
-        cell: ({ row }) => {
-            const employee = row.original;
-            return (
-                <div className="flex items-center">
-                    <div className="ml-2 truncate">
-                        {employee.base_salary ?? 'NA'}
-                    </div>
-                </div>
-            );
-        },
-    },
-    {
-        accessorKey: 'hourly_rate',
-        header: ({ column }) => {
-            return (
-                <Button
-                    variant="ghost"
-                    onClick={() =>
-                        column.toggleSorting(column.getIsSorted() === 'asc')
-                    }
-                >
-                    Hourly Rate
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                </Button>
-            );
-        },
-        cell: ({ row }) => {
-            const employee = row.original;
-            return (
-                <div className="flex items-center">
-                    <div className="ml-2 truncate">
-                        {employee.hourly_rate ?? 'NA'}
-                    </div>
-                </div>
-            );
-        },
-    },
-    {
-        accessorKey: 'contact_number',
-        header: ({ column }) => {
-            return <div>Contact Number</div>;
-        },
-        cell: ({ row }) => {
-            const employee = row.original;
-            return (
-                <div className="flex items-center">
-                    <div className="ml-2 truncate">
-                        {employee.contact_number ?? 'NA'}
-                    </div>
-                </div>
-            );
-        },
-    },
-    {
-        accessorKey: 'address',
-        header: ({ column }) => {
-            return (
-                <Button
-                    variant="ghost"
-                    onClick={() =>
-                        column.toggleSorting(column.getIsSorted() === 'asc')
-                    }
-                >
-                    Address
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                </Button>
-            );
-        },
-        cell: ({ row }) => {
-            const employee = row.original;
-            return (
-                <div className="flex items-center">
-                    <div className="ml-2 truncate">
-                        {employee.address ?? 'NA'}
-                    </div>
-                </div>
-            );
-        },
-    },
-    {
-        accessorKey: 'tin',
-        header: ({ column }) => {
-            return (
-                <Button
-                    variant="ghost"
-                    onClick={() =>
-                        column.toggleSorting(column.getIsSorted() === 'asc')
-                    }
-                >
-                    TIN
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                </Button>
-            );
-        },
-        cell: ({ row }) => {
-            const employee = row.original;
-            return (
-                <div className="flex items-center">
-                    <div className="ml-2 truncate">{employee.tin ?? 'NA'}</div>
-                </div>
-            );
-        },
-    },
+    });
 
-    {
-        id: 'actions',
-        header: 'Actions',
-        cell: ({ row }) => {
-            const employee = row.original;
-            return <EmployeeActions employee={employee} />;
+    return [
+        {
+            id: 'select',
+            size: 20,
+            header: ({ table }) => (
+                <Checkbox
+                    checked={
+                        table.getIsAllPageRowsSelected() ||
+                        (table.getIsSomePageRowsSelected() && 'indeterminate')
+                    }
+                    onCheckedChange={(value) =>
+                        table.toggleAllPageRowsSelected(!!value)
+                    }
+                    aria-label="Select all"
+                />
+            ),
+            cell: ({ row }) => (
+                <Checkbox
+                    className="mr-2"
+                    checked={row.getIsSelected()}
+                    onCheckedChange={(value) => row.toggleSelected(!!value)}
+                    aria-label="Select row"
+                />
+            ),
+            enableSorting: false,
+            enableHiding: false,
         },
-    },
-];
+        text('employee_code', 'Employee Code', (e) => e.employee_code),
+        text('name', 'Name', (e) => e.name),
+        text('position', 'Position', (e) => e.position),
+        text('department', 'Department', (e) => e.department),
+        text('employment_type', 'Employment Type', (e) => e.employment_type),
+        text('base_salary', 'Base Salary', (e) => e.base_salary, 'number'),
+        text('hourly_rate', 'Hourly Rate', (e) => e.hourly_rate, 'number'),
+        text('contact_number', 'Contact Number', (e) => e.contact_number),
+        text('address', 'Address', (e) => e.address),
+        text('tin', 'TIN', (e) => e.tin),
+        {
+            id: 'actions',
+            header: 'Actions',
+            cell: ({ row }) => <EmployeeActions employee={row.original} />,
+        },
+    ];
+}
+
+export const employeeColumns = createEmployeeColumns();

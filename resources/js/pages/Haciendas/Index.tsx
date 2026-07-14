@@ -9,11 +9,16 @@ import { format } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 import { haciendaBulkDelete } from '@/components/data-table/bulk-delete';
 import { DataTable } from '@/components/data-table/data-table';
-import { haciendaColumns } from '@/components/data-table/hacienda-columns';
+import { createHaciendaColumns } from '@/components/data-table/hacienda-columns';
+import { TableEditToolbar } from '@/components/data-table/table-edit-toolbar';
+import { useTableEditMode } from '@/hooks/use-table-edit-mode';
 import type { HaciendaRow } from '@/components/planters/planters-table-types';
 import AppLayout from '@/layouts/app-layout';
-import { index as haciendasIndex } from '@/routes/haciendas';
-import { show as haciendaShow } from '@/routes/haciendas';
+import {
+    bulkUpdate as haciendasBulkUpdate,
+    index as haciendasIndex,
+    show as haciendaShow,
+} from '@/routes/haciendas';
 import type { BreadcrumbItem } from '@/types';
 import {
     Container,
@@ -108,6 +113,38 @@ export default function Index({
         },
     });
 
+    const {
+        isEditing,
+        isSaving,
+        startEditing,
+        cancelEditing,
+        saveEdits,
+        handleCellChange,
+        guardQueryChange,
+    } = useTableEditMode({
+        rows: haciendas,
+        fields: [
+            'hacienda_code',
+            'name',
+            'address',
+            'area_hectares',
+            'distance_from_urc',
+            'is_active',
+        ],
+        saveUrl: haciendasBulkUpdate().url,
+        numericFields: ['area_hectares', 'distance_from_urc'],
+        booleanFields: ['is_active'],
+    });
+
+    const haciendaColumns = React.useMemo(
+        () =>
+            createHaciendaColumns({
+                isEditing,
+                onCellChange: handleCellChange,
+            }),
+        [isEditing, handleCellChange],
+    );
+
     const buildQueryParams = React.useCallback(
         (
             state: DataTableQueryState,
@@ -164,15 +201,15 @@ export default function Index({
     );
 
     const handleQueryChange = React.useCallback(
-        (state: DataTableQueryState) => {
+        guardQueryChange((state: DataTableQueryState) => {
             latestQueryRef.current = state;
             router.get(haciendasIndex().url, buildQueryParams(state), {
                 preserveState: true,
                 preserveScroll: true,
                 replace: true,
             });
-        },
-        [buildQueryParams],
+        }),
+        [buildQueryParams, guardQueryChange],
     );
 
     const applyPeriodFilter = (nextPeriod: DateRange | undefined) => {
@@ -209,7 +246,16 @@ export default function Index({
             <Container>
                 <ContainerHeader>
                     Hacienda Table
-                    <ContainerHeaderEnd />
+                    <ContainerHeaderEnd>
+                        <TableEditToolbar
+                            isEditing={isEditing}
+                            isSaving={isSaving}
+                            disabled={haciendas.length === 0}
+                            onStart={startEditing}
+                            onCancel={cancelEditing}
+                            onSave={saveEdits}
+                        />
+                    </ContainerHeaderEnd>
                 </ContainerHeader>
                 <DataTable
                     columns={haciendaColumns}
@@ -219,9 +265,11 @@ export default function Index({
                     totalRows={pagination.total}
                     initialState={latestQueryRef.current}
                     onQueryChange={handleQueryChange}
-                    bulkDelete={haciendaBulkDelete}
-                    onRowDoubleClick={(hacienda) =>
-                        haciendaShow(hacienda.id).url
+                    bulkDelete={isEditing ? undefined : haciendaBulkDelete}
+                    onRowDoubleClick={
+                        isEditing
+                            ? undefined
+                            : (hacienda) => haciendaShow(hacienda.id).url
                     }
                 />
             </Container>

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 
 use Inertia\Inertia;
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Concerns\HandlesBulkUpdates;
 use App\Models\Attendance;
 use App\Models\Employee;
 use App\Models\PayrollCalculationSetting;
@@ -13,6 +14,8 @@ use Illuminate\Http\Request;
 
 class EmployeeController extends Controller
 {
+    use HandlesBulkUpdates;
+
 
     public function index()
     {
@@ -152,6 +155,37 @@ class EmployeeController extends Controller
 
         $employee->update($validated);
         return redirect()->back()->with('success', 'Employee updated successfully!');
+    }
+
+    public function bulkUpdate(Request $request)
+    {
+        return $this->performBulkUpdate(
+            $request,
+            Employee::class,
+            [
+                'employee_code' => ['sometimes', 'nullable', 'string', 'max:255'],
+                'name' => ['sometimes', 'nullable', 'string', 'max:255'],
+                'position' => ['sometimes', 'nullable', 'string', 'max:255'],
+                'department' => ['sometimes', 'nullable', 'string', 'max:255'],
+                'employment_type' => ['sometimes', 'nullable', 'string', 'max:255'],
+                'base_salary' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+                'hourly_rate' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+                'contact_number' => ['sometimes', 'nullable', 'string', 'max:255'],
+                'address' => ['sometimes', 'nullable', 'string', 'max:255'],
+                'tin' => ['sometimes', 'nullable', 'string', 'max:255'],
+            ],
+            function (Employee $employee, array $payload): array {
+                if (array_key_exists('base_salary', $payload) && $payload['base_salary'] !== null) {
+                    $payload['hourly_rate'] = $this->calculateHourlyRate(
+                        (float) $payload['base_salary'],
+                        $this->getHourlyRateSettings(),
+                    );
+                }
+
+                return $payload;
+            },
+            successLabel: 'employee',
+        );
     }
 
     public function updateHourlyRateSettings(Request $request)

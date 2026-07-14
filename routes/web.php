@@ -34,6 +34,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/Users', [UserController::class, 'store'])
         ->middleware('permission:users.create')
         ->name('users.store');
+    Route::patch('/Users/bulk-update', [UserController::class, 'bulkUpdate'])
+        ->middleware('permission:users.update')
+        ->name('users.bulk-update');
     Route::patch('/Users/{id}', [UserController::class, 'update'])
         ->middleware('permission:users.update')
         ->name('users.update');
@@ -80,6 +83,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->whereNumber('Employee')
         ->middleware('permission:employees.update')
         ->name('employees.update');
+    Route::patch('/Employees/bulk-update', [EmployeeController::class, 'bulkUpdate'])
+        ->middleware('permission:employees.update')
+        ->name('employees.bulk-update');
     Route::patch('/Employees/hourly-rate-settings', [EmployeeController::class, 'updateHourlyRateSettings'])
         ->middleware('permission:employees.update')
         ->name('employees.hourly-rate-settings');
@@ -112,6 +118,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->whereNumber('Attendance')
         ->middleware('permission:attendance.update')
         ->name('attendance.update');
+    Route::patch('/Attendance/bulk-update', [AttendanceController::class, 'bulkUpdate'])
+        ->middleware('permission:attendance.update')
+        ->name('attendance.bulk-update');
     Route::post('/Attendance/import', [AttendanceController::class, 'import'])
         ->middleware('permission:attendance.import')
         ->name('attendance.import');
@@ -144,6 +153,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->whereNumber('Payroll')
         ->middleware('permission:payroll.update')
         ->name('payroll.update');
+    Route::patch('/Payroll/bulk-update', [PayrollController::class, 'bulkUpdate'])
+        ->middleware('permission:payroll.update')
+        ->name('payroll.bulk-update');
     Route::post('/Payroll/preview', [PayrollController::class, 'preview'])
         ->middleware('permission:payroll.generate')
         ->name('payroll.preview');
@@ -184,6 +196,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->whereNumber('MillingPeriod')
         ->middleware('permission:milling_periods.update')
         ->name('milling-periods.update');
+    Route::patch('/MillingPeriods/bulk-update', [MillingPeriodsController::class, 'bulkUpdate'])
+        ->middleware('permission:milling_periods.update')
+        ->name('milling-periods.bulk-update');
     Route::delete('/MillingPeriods/bulk-delete', [MillingPeriodsController::class, 'bulkDestroy'])
         ->middleware('permission:milling_periods.delete')
         ->name('milling-periods.bulk-destroy');
@@ -223,6 +238,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('/view/info/{planterid}', [PlanterController::class, 'update'])
             ->middleware('permission:planters.update')
             ->name('update');
+        Route::patch('/bulk-update', [PlanterController::class, 'bulkUpdate'])
+            ->middleware('permission:planters.update')
+            ->name('bulk-update');
         Route::delete('/bulk-delete', [PlanterController::class, 'bulkDestroy'])
             ->middleware('permission:planters.delete')
             ->name('bulk-destroy');
@@ -254,6 +272,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('/view/update/{productionId}', [ProductionController::class, 'update'])
             ->middleware('permission:productions.update')
             ->name('update');
+        Route::patch('/bulk-update', [ProductionController::class, 'bulkUpdate'])
+            ->middleware('permission:productions.update')
+            ->name('bulk-update');
         Route::patch('/view/{productionId}/status', [ProductionController::class, 'updateStatus'])
             ->middleware('permission:productions.update')
             ->name('update-status');
@@ -288,6 +309,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('/view/update/{haciendaId}', [HaciendaController::class, 'update'])
             ->middleware('permission:haciendas.update')
             ->name('update');
+        Route::patch('/bulk-update', [HaciendaController::class, 'bulkUpdate'])
+            ->middleware('permission:haciendas.update')
+            ->name('bulk-update');
         Route::delete('/bulk-delete', [HaciendaController::class, 'bulkDestroy'])
             ->middleware('permission:haciendas.delete')
             ->name('bulk-destroy');

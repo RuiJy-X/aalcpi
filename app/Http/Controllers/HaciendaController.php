@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Concerns\HandlesBulkUpdates;
 use App\Models\Planter;
 use App\Models\Hacienda;
 use Inertia\Inertia;
@@ -12,6 +13,8 @@ use Illuminate\Support\Facades\Schema;
 
 class HaciendaController extends Controller
 {
+    use HandlesBulkUpdates;
+
     public function index(Request $request)
     {
         $perPage = min(max(1, $request->integer('per_page', 10)), 100);
@@ -239,6 +242,23 @@ class HaciendaController extends Controller
         $hacienda->update($validatedData);
 
         return redirect()->route('haciendas.show', $hacienda->id)->with('success', 'Hacienda information updated successfully.');
+    }
+
+    public function bulkUpdate(Request $request)
+    {
+        return $this->performBulkUpdate(
+            $request,
+            Hacienda::class,
+            [
+                'hacienda_code' => ['sometimes', 'nullable', 'string', 'max:255'],
+                'name' => ['sometimes', 'nullable', 'string', 'max:255'],
+                'address' => ['sometimes', 'nullable', 'string', 'max:255'],
+                'area_hectares' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+                'distance_from_urc' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+                'is_active' => ['sometimes', 'nullable', 'boolean'],
+            ],
+            successLabel: 'hacienda',
+        );
     }
 
     public function bulkDestroy(Request $request)

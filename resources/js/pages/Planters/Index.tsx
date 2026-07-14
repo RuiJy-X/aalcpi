@@ -10,15 +10,20 @@ import { format } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 import { DataTable } from '@/components/data-table/data-table';
 import { planterBulkDelete } from '@/components/data-table/bulk-delete';
-import { planterColumns } from '@/components/data-table/planter-columns';
+import { createPlanterColumns } from '@/components/data-table/planter-columns';
+import { TableEditToolbar } from '@/components/data-table/table-edit-toolbar';
+import { useTableEditMode } from '@/hooks/use-table-edit-mode';
 
 import type { PlanterRow } from '@/components/planters/planters-table-types';
 
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
-import { index as plantersIndex } from '@/routes/planters';
-import { create as createPage } from '@/routes/planters';
-import { show as planterShow } from '@/routes/planters';
+import {
+    bulkUpdate as plantersBulkUpdate,
+    index as plantersIndex,
+    create as createPage,
+    show as planterShow,
+} from '@/routes/planters';
 import type { BreadcrumbItem } from '@/types';
 import { ImportDialog } from '@/components/import/import-dialog';
 import { plantersImportConfig } from '@/components/import/import-config';
@@ -115,6 +120,36 @@ export default function Index({
         },
     });
 
+    const {
+        isEditing,
+        isSaving,
+        startEditing,
+        cancelEditing,
+        saveEdits,
+        handleCellChange,
+        guardQueryChange,
+    } = useTableEditMode({
+        rows: planters,
+        fields: [
+            'planter_code',
+            'name',
+            'address',
+            'tin_number',
+            'contact_number',
+            'registration_date',
+        ],
+        saveUrl: plantersBulkUpdate().url,
+    });
+
+    const planterColumns = React.useMemo(
+        () =>
+            createPlanterColumns({
+                isEditing,
+                onCellChange: handleCellChange,
+            }),
+        [isEditing, handleCellChange],
+    );
+
     const buildQueryParams = React.useCallback(
         (
             state: DataTableQueryState,
@@ -171,7 +206,7 @@ export default function Index({
     );
 
     const handleQueryChange = React.useCallback(
-        (state: DataTableQueryState) => {
+        guardQueryChange((state: DataTableQueryState) => {
             latestQueryRef.current = state;
             const query = buildQueryParams(state);
 
@@ -180,8 +215,8 @@ export default function Index({
                 preserveScroll: true,
                 replace: true,
             });
-        },
-        [buildQueryParams],
+        }),
+        [buildQueryParams, guardQueryChange],
     );
 
     const applyPeriodFilter = (nextPeriod: DateRange | undefined) => {
@@ -217,10 +252,19 @@ export default function Index({
                 <ContainerHeader>
                     Planters Table
                     <ContainerHeaderEnd>
+                        <TableEditToolbar
+                            isEditing={isEditing}
+                            isSaving={isSaving}
+                            disabled={planters.length === 0}
+                            onStart={startEditing}
+                            onCancel={cancelEditing}
+                            onSave={saveEdits}
+                        />
                         <ImportDialog config={plantersImportConfig} />
                         <Button
                             variant="outline"
                             onClick={() => router.get(createPage().url)}
+                            disabled={isEditing}
                         >
                             <User />
                             Register Planter
@@ -235,8 +279,12 @@ export default function Index({
                     totalRows={pagination.total}
                     initialState={latestQueryRef.current}
                     onQueryChange={handleQueryChange}
-                    bulkDelete={planterBulkDelete}
-                    onRowDoubleClick={(planter) => planterShow(planter.id).url}
+                    bulkDelete={isEditing ? undefined : planterBulkDelete}
+                    onRowDoubleClick={
+                        isEditing
+                            ? undefined
+                            : (planter) => planterShow(planter.id).url
+                    }
                 />
             </Container>
         </AppLayout>

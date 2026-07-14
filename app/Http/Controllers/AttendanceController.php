@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\HandlesBulkUpdates;
 use App\Imports\AttendanceImport;
 use App\Models\Attendance;
 use App\Models\Employee;
@@ -13,6 +14,8 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class AttendanceController extends Controller
 {
+    use HandlesBulkUpdates;
+
     public function index()
     {
         $attendance = Attendance::with('employee:id,name')
@@ -71,10 +74,12 @@ class AttendanceController extends Controller
         $attendance = Attendance::findOrFail($id);
 
         $validated = $request->validate([
-            'date'           => 'sometimes|date',
-            'status'         => 'sometimes|string',
-            'hours_worked'   => 'sometimes|numeric',
-            'overtime_hours' => 'sometimes|numeric',
+            'date' => 'sometimes|date',
+            'time_in' => 'sometimes|nullable|string|max:50',
+            'time_out' => 'sometimes|nullable|string|max:50',
+            'times' => 'sometimes|nullable|string|max:255',
+            'working_time' => 'sometimes|nullable|string|max:50',
+            'week' => 'sometimes|nullable|string|max:50',
         ]);
 
         $attendance->update($validated);
@@ -83,6 +88,23 @@ class AttendanceController extends Controller
             'message' => 'Attendance updated successfully!',
             'data' => $attendance
         ]);
+    }
+
+    public function bulkUpdate(Request $request)
+    {
+        return $this->performBulkUpdate(
+            $request,
+            Attendance::class,
+            [
+                'date' => ['sometimes', 'nullable', 'date'],
+                'time_in' => ['sometimes', 'nullable', 'string', 'max:50'],
+                'time_out' => ['sometimes', 'nullable', 'string', 'max:50'],
+                'times' => ['sometimes', 'nullable', 'string', 'max:255'],
+                'working_time' => ['sometimes', 'nullable', 'string', 'max:50'],
+                'week' => ['sometimes', 'nullable', 'string', 'max:50'],
+            ],
+            successLabel: 'attendance record',
+        );
     }
 
     public function destroy($id)

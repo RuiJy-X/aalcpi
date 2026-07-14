@@ -15,13 +15,16 @@ import {
     Container,
 } from '@/components/container';
 import { DataTable } from '@/components/data-table/data-table';
-import { employeeColumns } from './employee-column-def';
+import { createEmployeeColumns } from './employee-column-def';
 import AddEmployeeDialog from './Create';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { employeeBulkDelete } from '@/components/data-table/bulk-delete';
+import { TableEditToolbar } from '@/components/data-table/table-edit-toolbar';
+import { useTableEditMode } from '@/hooks/use-table-edit-mode';
+import { bulkUpdate as employeesBulkUpdate } from '@/routes/employees';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -52,6 +55,41 @@ export default function Dashboard({
             preserveScroll: true,
         });
     };
+
+    const {
+        isEditing,
+        isSaving,
+        startEditing,
+        cancelEditing,
+        saveEdits,
+        handleCellChange,
+    } = useTableEditMode({
+        rows: employees,
+        fields: [
+            'employee_code',
+            'name',
+            'position',
+            'department',
+            'employment_type',
+            'base_salary',
+            'hourly_rate',
+            'contact_number',
+            'address',
+            'tin',
+        ],
+        saveUrl: employeesBulkUpdate().url,
+        numericFields: ['base_salary', 'hourly_rate'],
+    });
+
+    const employeeColumns = useMemo(
+        () =>
+            createEmployeeColumns({
+                isEditing,
+                onCellChange: handleCellChange,
+            }),
+        [isEditing, handleCellChange],
+    );
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Employees">
@@ -62,7 +100,18 @@ export default function Dashboard({
                 <ContainerHeader>
                     Employees Table
                     <ContainerHeaderEnd>
-                        <Button onClick={() => onOpenChange(true)}>
+                        <TableEditToolbar
+                            isEditing={isEditing}
+                            isSaving={isSaving}
+                            disabled={employees.length === 0}
+                            onStart={startEditing}
+                            onCancel={cancelEditing}
+                            onSave={saveEdits}
+                        />
+                        <Button
+                            onClick={() => onOpenChange(true)}
+                            disabled={isEditing}
+                        >
                             <Plus className="mr-2 h-4 w-4" />
                             Add Employee
                         </Button>
@@ -76,10 +125,12 @@ export default function Dashboard({
                 <DataTable
                     columns={employeeColumns}
                     data={employees}
-                    onRowDoubleClick={(employee) =>
-                        employeeShow(employee.id).url
+                    onRowDoubleClick={
+                        isEditing
+                            ? undefined
+                            : (employee) => employeeShow(employee.id).url
                     }
-                    bulkDelete={employeeBulkDelete}
+                    bulkDelete={isEditing ? undefined : employeeBulkDelete}
                 />
             </Container>
             <Container>

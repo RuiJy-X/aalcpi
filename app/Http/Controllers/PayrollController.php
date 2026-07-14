@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Concerns\HandlesBulkUpdates;
 use App\Http\Requests\GeneratePayrollRequest;
 use App\Http\Requests\PreviewPayrollRequest;
 use App\Models\Payroll;
@@ -19,6 +20,8 @@ use Illuminate\Validation\ValidationException;
 
 class PayrollController extends Controller
 {
+    use HandlesBulkUpdates;
+
     protected PayrollCalculationService $payrollService;
 
     public function __construct(PayrollCalculationService $payrollService)
@@ -331,6 +334,18 @@ class PayrollController extends Controller
                 'updated_at' => $payroll->updated_at?->toDateTimeString(),
             ],
         ]);
+    }
+
+    public function bulkUpdate(Request $request)
+    {
+        return $this->performBulkUpdate(
+            $request,
+            Payroll::class,
+            [
+                'status' => ['required', 'string', 'in:draft,pending,paid'],
+            ],
+            successLabel: 'payroll record',
+        );
     }
 
     /**

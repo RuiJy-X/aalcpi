@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Concerns\HandlesBulkUpdates;
 use App\Jobs\ProcessExcelImportJob;
 use App\Models\ImportJob;
 use App\Models\ImportMapping;
@@ -19,6 +20,8 @@ use Illuminate\Support\Collection;
 
 class PlanterController extends Controller
 {
+    use HandlesBulkUpdates;
+
     public function index(Request $request)
     {
         $perPage = min(max(1, $request->integer('per_page', 10)), 100);
@@ -252,6 +255,23 @@ class PlanterController extends Controller
 
 
         return redirect()->route('planters.show', $planter->id)->with('success', 'Planter information updated successfully.');
+    }
+
+    public function bulkUpdate(Request $request)
+    {
+        return $this->performBulkUpdate(
+            $request,
+            Planter::class,
+            [
+                'planter_code' => ['sometimes', 'nullable', 'string', 'max:255'],
+                'name' => ['sometimes', 'nullable', 'string', 'max:255'],
+                'address' => ['sometimes', 'nullable', 'string'],
+                'tin_number' => ['sometimes', 'nullable', 'string', 'max:255'],
+                'contact_number' => ['sometimes', 'nullable', 'string', 'max:255'],
+                'registration_date' => ['sometimes', 'nullable', 'date'],
+            ],
+            successLabel: 'planter',
+        );
     }
 
     public function destroy($id)

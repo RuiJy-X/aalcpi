@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Concerns\HandlesBulkUpdates;
 use App\Models\Employee;
 use App\Models\User;
 use App\Support\Permissions;
@@ -15,6 +16,8 @@ use Spatie\Permission\PermissionRegistrar;
 
 class UserController extends Controller
 {
+    use HandlesBulkUpdates;
+
     public function index()
     {
         $users = User::query()
@@ -59,6 +62,20 @@ class UserController extends Controller
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
         return back()->with('success', 'User created successfully!');
+    }
+
+    public function bulkUpdate(Request $request)
+    {
+        return $this->performBulkUpdate(
+            $request,
+            User::class,
+            [
+                'name' => ['sometimes', 'nullable', 'string', 'max:255'],
+                'email' => ['sometimes', 'nullable', 'email', 'max:255'],
+                'username' => ['sometimes', 'nullable', 'string', 'max:255'],
+            ],
+            successLabel: 'user',
+        );
     }
 
     public function update(Request $request, $id)

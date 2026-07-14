@@ -249,6 +249,8 @@ export function DataTable<TData, TValue>({
         globalFilter,
     ]);
 
+    // Reset to page 1 only when filters/sort change — not when isServerSide
+    // toggles (e.g. edit mode), which previously kicked users back to page 1.
     React.useEffect(() => {
         if (!isServerSide) {
             return;
@@ -257,7 +259,9 @@ export function DataTable<TData, TValue>({
         setPagination((current) =>
             current.pageIndex === 0 ? current : { ...current, pageIndex: 0 },
         );
-    }, [isServerSide, globalFilter, columnFilters, sorting]);
+        // intentionally omit isServerSide from deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [globalFilter, columnFilters, sorting]);
 
     const table = useReactTable({
         data,

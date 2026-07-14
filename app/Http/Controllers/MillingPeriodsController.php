@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Http\Controllers\Concerns\HandlesBulkUpdates;
 use App\Models\MillingPeriod;
 use Inertia\Inertia;
 use Illuminate\Validation\Rule;
@@ -10,6 +11,8 @@ use Carbon\Carbon;
 
 class MillingPeriodsController extends Controller
 {
+    use HandlesBulkUpdates;
+
 
 
 
@@ -195,6 +198,25 @@ class MillingPeriodsController extends Controller
         return redirect()
             ->route('milling-periods.show', $millingPeriod->id)
             ->with('success', 'Milling period updated successfully.');
+    }
+
+    public function bulkUpdate(Request $request)
+    {
+        return $this->performBulkUpdate(
+            $request,
+            MillingPeriod::class,
+            [
+                'crop_year' => ['sometimes', 'nullable', 'string', 'max:255'],
+                'week_no' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:53'],
+                'start_date' => ['sometimes', 'nullable', 'date'],
+                'end_date' => ['sometimes', 'nullable', 'date'],
+                'sugar_factor' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+                'mol_factor' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+                'sugar_price' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+                'mol_price' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+            ],
+            successLabel: 'milling period',
+        );
     }
 
 

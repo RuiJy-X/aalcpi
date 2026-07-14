@@ -4,10 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\ProcessExcelImportJob;
+use App\Models\Hacienda;
 use App\Models\ImportJob;
 use App\Models\ImportMapping;
+use App\Models\Planter;
 use App\Models\Production;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
@@ -436,8 +439,6 @@ class ProductionController extends Controller
     {
         $production = Production::findOrFail($productionId);
 
-
-
         $validated = $request->validate([
             'planter_id' => 'required|exists:planters,id',
             'hacienda_id' => 'required|exists:haciendas,id',
@@ -457,14 +458,108 @@ class ProductionController extends Controller
             'composite_sugar_price' => 'nullable|numeric',
             'composite_molasses_price' => 'nullable|numeric',
             'trans_code' => 'required|string|max:255',
-            'transloading' => 'required|boolean'
-
+            'transloading' => 'required|boolean',
         ]);
 
         $production->update($validated);
 
         return redirect()->route('productions.show', $production->id)
             ->with('success', 'Production information updated successfully.');
+    }
+
+    /**
+     * Bulk-update production rows from the index datatable edit mode.
+     * Accepts only columns that exist on the productions table.
+     */
+    public function bulkUpdate(Request $request)
+    {
+        $validated = $request->validate([
+            'rows' => ['required', 'array', 'min:1'],
+            'rows.*.id' => ['required', 'integer', 'distinct', 'exists:productions,id'],
+            'rows.*.status' => ['sometimes', 'nullable', 'string', 'in:draft,completed'],
+            'rows.*.planter_code' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'rows.*.hacienda_code' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'rows.*.trans_code' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'rows.*.crop_year' => ['sometimes', 'nullable', 'regex:/^\d{4}-\d{4}$/'],
+            'rows.*.gross_cw' => ['sometimes', 'nullable', 'numeric'],
+            'rows.*.net_cw' => ['sometimes', 'nullable', 'numeric'],
+            'rows.*.trucks' => ['sometimes', 'nullable', 'integer'],
+            'rows.*.theoretical_lkg' => ['sometimes', 'nullable', 'numeric'],
+            'rows.*.actual_lkg' => ['sometimes', 'nullable', 'numeric'],
+            'rows.*.pshr_net_lkg' => ['sometimes', 'nullable', 'numeric'],
+            'rows.*.pdpa_lkg' => ['sometimes', 'nullable', 'numeric'],
+            'rows.*.association_dues_lkg' => ['sometimes', 'nullable', 'numeric'],
+            'rows.*.actual_mol' => ['sometimes', 'nullable', 'numeric'],
+            'rows.*.pshr_net_mol' => ['sometimes', 'nullable', 'numeric'],
+            'rows.*.pdpa_mol' => ['sometimes', 'nullable', 'numeric'],
+            'rows.*.association_dues_mol' => ['sometimes', 'nullable', 'numeric'],
+            'rows.*.composite_sugar_price' => ['sometimes', 'nullable', 'numeric'],
+            'rows.*.composite_molasses_price' => ['sometimes', 'nullable', 'numeric'],
+            'rows.*.transloading' => ['sometimes', 'nullable', 'boolean'],
+        ]);
+
+        $updatable = [
+            'status',
+            'planter_code',
+            'hacienda_code',
+            'trans_code',
+            'crop_year',
+            'gross_cw',
+            'net_cw',
+            'trucks',
+            'theoretical_lkg',
+            'actual_lkg',
+            'pshr_net_lkg',
+            'pdpa_lkg',
+            'association_dues_lkg',
+            'actual_mol',
+            'pshr_net_mol',
+            'pdpa_mol',
+            'association_dues_mol',
+            'composite_sugar_price',
+            'composite_molasses_price',
+            'transloading',
+        ];
+
+        $updatedCount = 0;
+
+        DB::transaction(function () use ($validated, $updatable, &$updatedCount) {
+            foreach ($validated['rows'] as $row) {
+                $production = Production::query()->findOrFail($row['id']);
+                $payload = collect($row)
+                    ->only($updatable)
+                    ->all();
+
+                if ($payload === []) {
+                    continue;
+                }
+
+                if (array_key_exists('planter_code', $payload) && filled($payload['planter_code'])) {
+                    $planter = Planter::query()
+                        ->where('planter_code', $payload['planter_code'])
+                        ->first();
+                    if ($planter) {
+                        $payload['planter_id'] = $planter->id;
+                    }
+                }
+
+                if (array_key_exists('hacienda_code', $payload) && filled($payload['hacienda_code'])) {
+                    $hacienda = Hacienda::query()
+                        ->where('hacienda_code', $payload['hacienda_code'])
+                        ->first();
+                    if ($hacienda) {
+                        $payload['hacienda_id'] = $hacienda->id;
+                    }
+                }
+
+                $production->update($payload);
+                $updatedCount++;
+            }
+        });
+
+        return redirect()
+            ->back()
+            ->with('success', "Updated {$updatedCount} production record(s).");
     }
 
     public function updateStatus(Request $request, $productionId)
@@ -478,7 +573,6 @@ class ProductionController extends Controller
         $production->update(['status' => $validated['status']]);
 
         return redirect()->back()->with('success', 'Production status updated successfully.');
-        
     }
 
     public function finalData($id)

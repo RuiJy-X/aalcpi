@@ -12,7 +12,11 @@ import { productionBulkDelete } from '@/components/data-table/bulk-delete';
 import { productionBulkDownload } from '@/components/data-table/bulk-download';
 import { DataTable } from '@/components/data-table/data-table';
 
-import { productionColumns } from '@/components/data-table/production-columns';
+import {
+    createProductionColumns,
+    type ProductionDraft,
+    type ProductionEditableField,
+} from '@/components/data-table/production-columns';
 import type { ProductionRow } from '@/components/planters/planters-table-types';
 // import PlantersTabsTable from '@/components/planters/planters-tabs-table';
 import {
@@ -23,6 +27,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { Pencil, Save, X } from 'lucide-react';
 import {
     Dialog,
     DialogClose,
@@ -35,8 +40,11 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
-import { index as productionsIndex } from '@/routes/productions';
-import { show as productionShow } from '@/routes/productions';
+import {
+    bulkUpdate as productionsBulkUpdate,
+    index as productionsIndex,
+    show as productionShow,
+} from '@/routes/productions';
 import type { BreadcrumbItem } from '@/types';
 import { ImportDialog } from '@/components/import/import-dialog';
 import { productionsImportConfig } from '@/components/import/import-config';
@@ -155,6 +163,178 @@ export default function Index({
     const [isDeletingByCropYear, setIsDeletingByCropYear] =
         React.useState(false);
 
+    const [isEditing, setIsEditing] = React.useState(false);
+    const [isSaving, setIsSaving] = React.useState(false);
+    const [drafts, setDrafts] = React.useState<
+        Record<string, ProductionDraft>
+    >({});
+    // Avoid flipping serverSide on/off (that was resetting page to 1).
+    const isEditingRef = React.useRef(false);
+    isEditingRef.current = isEditing;
+    const draftsRef = React.useRef(drafts);
+    draftsRef.current = drafts;
+
+    const numericFields = React.useMemo(
+        () =>
+            new Set<ProductionEditableField>([
+                'composite_sugar_price',
+                'composite_molasses_price',
+                'gross_cw',
+                'net_cw',
+                'trucks',
+                'theoretical_lkg',
+                'actual_lkg',
+                'pshr_net_lkg',
+                'pdpa_lkg',
+                'association_dues_lkg',
+                'actual_mol',
+                'pshr_net_mol',
+                'pdpa_mol',
+                'association_dues_mol',
+            ]),
+        [],
+    );
+
+    const startEditing = () => {
+        const initial: Record<string, ProductionDraft> = {};
+
+        productions.forEach((row) => {
+            initial[String(row.id)] = {
+                status: row.status,
+                planter_code: row.planter_code ?? '',
+                hacienda_code: row.hacienda_code ?? '',
+                trans_code: row.trans_code ?? '',
+                crop_year: row.crop_year ?? '',
+                composite_sugar_price:
+                    row.composite_sugar_price === null ||
+                    row.composite_sugar_price === undefined
+                        ? ''
+                        : String(row.composite_sugar_price),
+                composite_molasses_price:
+                    row.composite_molasses_price === null ||
+                    row.composite_molasses_price === undefined
+                        ? ''
+                        : String(row.composite_molasses_price),
+                gross_cw: String(row.gross_cw ?? ''),
+                net_cw: String(row.net_cw ?? ''),
+                trucks: String(row.trucks ?? ''),
+                theoretical_lkg: String(row.theoretical_lkg ?? ''),
+                actual_lkg: String(row.actual_lkg ?? ''),
+                pshr_net_lkg: String(row.pshr_net_lkg ?? ''),
+                pdpa_lkg: String(row.pdpa_lkg ?? ''),
+                association_dues_lkg: String(row.association_dues_lkg ?? ''),
+                actual_mol: String(row.actual_mol ?? ''),
+                pshr_net_mol: String(row.pshr_net_mol ?? ''),
+                pdpa_mol: String(row.pdpa_mol ?? ''),
+                association_dues_mol: String(row.association_dues_mol ?? ''),
+                transloading: Boolean(row.transloading),
+            };
+        });
+
+        draftsRef.current = initial;
+        setDrafts(initial);
+        setIsEditing(true);
+    };
+
+    const cancelEditing = () => {
+        setIsEditing(false);
+        draftsRef.current = {};
+        setDrafts({});
+    };
+
+    const handleCellChange = React.useCallback(
+        (
+            productionId: string,
+            field: ProductionEditableField,
+            value: string | number | boolean | null,
+        ) => {
+            // Update ref immediately so Save always has latest values even if
+            // a re-render is batched. Avoid recreating columns from drafts.
+            const next = {
+                ...draftsRef.current,
+                [productionId]: {
+                    ...(draftsRef.current[productionId] ?? {}),
+                    [field]: value,
+                },
+            };
+            draftsRef.current = next;
+            setDrafts(next);
+        },
+        [],
+    );
+
+    // Only recreate columns when edit mode toggles — never on each keystroke.
+    const productionColumns = React.useMemo(
+        () =>
+            createProductionColumns({
+                isEditing,
+                onCellChange: handleCellChange,
+            }),
+        [isEditing, handleCellChange],
+    );
+
+    const saveEdits = () => {
+        const currentDrafts = draftsRef.current;
+        const rows = Object.entries(currentDrafts).map(([id, draft]) => {
+            const payload: Record<string, unknown> = { id: Number(id) };
+
+            (
+                Object.entries(draft) as [
+                    ProductionEditableField,
+                    string | number | boolean | null | undefined,
+                ][]
+            ).forEach(([field, value]) => {
+                if (field === 'transloading') {
+                    payload[field] = Boolean(value);
+                    return;
+                }
+
+                if (field === 'status') {
+                    payload[field] = value === 'completed' ? 'completed' : 'draft';
+                    return;
+                }
+
+                if (numericFields.has(field)) {
+                    if (value === '' || value === null || value === undefined) {
+                        payload[field] = null;
+                        return;
+                    }
+
+                    const numeric = Number(value);
+                    payload[field] = Number.isFinite(numeric) ? numeric : null;
+                    return;
+                }
+
+                payload[field] =
+                    value === null || value === undefined ? null : String(value);
+            });
+
+            return payload;
+        });
+
+        if (rows.length === 0) {
+            cancelEditing();
+            return;
+        }
+
+        router.patch(
+            productionsBulkUpdate().url,
+            { rows },
+            {
+                preserveScroll: true,
+                // Keep table UI state (current page, filters) after save.
+                preserveState: true,
+                onStart: () => setIsSaving(true),
+                onFinish: () => setIsSaving(false),
+                onSuccess: () => {
+                    setIsEditing(false);
+                    draftsRef.current = {};
+                    setDrafts({});
+                },
+            },
+        );
+    };
+
     const buildQueryParams = React.useCallback(
         (
             state: DataTableQueryState,
@@ -256,6 +436,11 @@ export default function Index({
 
     const handleQueryChange = React.useCallback(
         (state: DataTableQueryState) => {
+            // Ignore table query changes while editing so page/sort don't jump.
+            if (isEditingRef.current) {
+                return;
+            }
+
             latestQueryRef.current = state;
             const query = buildQueryParams(state, selectedCropYear);
 
@@ -302,11 +487,43 @@ export default function Index({
                     Productions Table
                     <ContainerHeaderEnd>
                         <div className="flex items-center gap-2">
+                            {!isEditing ? (
+                                <Button
+                                    type="button"
+                                    variant="default"
+                                    onClick={startEditing}
+                                    disabled={productions.length === 0}
+                                >
+                                    <Pencil className="size-4" />
+                                    Edit
+                                </Button>
+                            ) : (
+                                <>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={cancelEditing}
+                                        disabled={isSaving}
+                                    >
+                                        <X className="size-4" />
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        onClick={saveEdits}
+                                        disabled={isSaving}
+                                    >
+                                        <Save className="size-4" />
+                                        {isSaving ? 'Saving...' : 'Save'}
+                                    </Button>
+                                </>
+                            )}
                             <Select
                                 value={selectedCropYear}
                                 onValueChange={(nextCropYear) =>
                                     applyFilters(nextCropYear)
                                 }
+                                disabled={isEditing}
                             >
                                 <SelectTrigger className="w-44">
                                     <SelectValue placeholder="Crop Year" />
@@ -419,10 +636,12 @@ export default function Index({
                     totalRows={pagination.total}
                     initialState={latestQueryRef.current}
                     onQueryChange={handleQueryChange}
-                    bulkDownload={productionBulkDownload}
-                    bulkDelete={productionBulkDelete}
-                    onRowDoubleClick={(production) =>
-                        productionShow(production.id).url
+                    bulkDownload={isEditing ? undefined : productionBulkDownload}
+                    bulkDelete={isEditing ? undefined : productionBulkDelete}
+                    onRowDoubleClick={
+                        isEditing
+                            ? undefined
+                            : (production) => productionShow(production.id).url
                     }
                 />
             </Container>

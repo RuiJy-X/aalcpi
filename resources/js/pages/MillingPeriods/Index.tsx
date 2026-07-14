@@ -10,7 +10,7 @@ import {
     ContainerHeader,
     ContainerHeaderEnd,
 } from '@/components/container';
-import { millingPeriodColumns } from '@/components/milling-periods/milling-periods-columns';
+import { createMillingPeriodColumns } from '@/components/milling-periods/milling-periods-columns';
 import type { MillingPeriodRow } from '@/components/milling-periods/milling-periods-types';
 import { Button } from '@/components/ui/button';
 import {
@@ -22,12 +22,15 @@ import {
 } from '@/components/ui/select';
 import { Plus } from 'lucide-react';
 import {
+    bulkUpdate as millingPeriodsBulkUpdate,
     create as millingPeriodCreate,
     index as millingPeriodIndex,
     show as millingPeriodShow,
 } from '@/routes/milling-periods';
 import { router } from '@inertiajs/react';
 import { millingPeriodBulkDelete } from '@/components/data-table/bulk-delete';
+import { TableEditToolbar } from '@/components/data-table/table-edit-toolbar';
+import { useTableEditMode } from '@/hooks/use-table-edit-mode';
 import type { EventInput } from '@fullcalendar/core';
 import MillingPeriodsCalendar from '@/components/milling-periods/milling-periods-calendar';
 import MillingPeriodStats, {
@@ -92,6 +95,44 @@ export default function Index({
         selectedCropYear === 'all'
             ? []
             : (weeks_by_crop_year[selectedCropYear] ?? []);
+
+    const {
+        isEditing,
+        isSaving,
+        startEditing,
+        cancelEditing,
+        saveEdits,
+        handleCellChange,
+    } = useTableEditMode({
+        rows: milling_periods,
+        fields: [
+            'crop_year',
+            'week_no',
+            'start_date',
+            'end_date',
+            'sugar_factor',
+            'mol_factor',
+            'sugar_price',
+            'mol_price',
+        ],
+        saveUrl: millingPeriodsBulkUpdate().url,
+        numericFields: [
+            'week_no',
+            'sugar_factor',
+            'mol_factor',
+            'sugar_price',
+            'mol_price',
+        ],
+    });
+
+    const millingPeriodColumns = useMemo(
+        () =>
+            createMillingPeriodColumns({
+                isEditing,
+                onCellChange: handleCellChange,
+            }),
+        [isEditing, handleCellChange],
+    );
 
     const buildQuery = (
         cropYear: string,
@@ -243,10 +284,19 @@ export default function Index({
                                 </SelectContent>
                             </Select>
                         </div>
+                        <TableEditToolbar
+                            isEditing={isEditing}
+                            isSaving={isSaving}
+                            disabled={milling_periods.length === 0}
+                            onStart={startEditing}
+                            onCancel={cancelEditing}
+                            onSave={saveEdits}
+                        />
                         <Button
                             onClick={() =>
                                 router.get(millingPeriodCreate().url)
                             }
+                            disabled={isEditing}
                         >
                             <Plus />
                             Add
@@ -254,13 +304,17 @@ export default function Index({
                     </ContainerHeaderEnd>
                 </ContainerHeader>
                 <DataTable
-                    onRowDoubleClick={(milling_period) =>
-                        millingPeriodShow(milling_period.id).url
+                    onRowDoubleClick={
+                        isEditing
+                            ? undefined
+                            : (milling_period) =>
+                                  millingPeriodShow(milling_period.id).url
                     }
-                    bulkDelete={millingPeriodBulkDelete}
+                    bulkDelete={
+                        isEditing ? undefined : millingPeriodBulkDelete
+                    }
                     data={milling_periods}
                     columns={millingPeriodColumns}
-                    excludedDateFilterColumns={['start_date', 'end_date']}
                 ></DataTable>
             </Container>
         </AppLayout>
