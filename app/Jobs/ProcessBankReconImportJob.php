@@ -20,6 +20,12 @@ class ProcessBankReconImportJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    public int $timeout = 1800;
+
+    public int $tries = 1;
+
+    public bool $failOnTimeout = true;
+
     protected $jobId;
     protected $type;
     protected $filePath;
@@ -88,6 +94,17 @@ class ProcessBankReconImportJob implements ShouldQueue
                 Storage::disk('local')->delete($this->filePath);
             }
         }
+    }
+
+    public function failed(?Throwable $exception = null): void
+    {
+        $importJob = ImportJob::find($this->jobId);
+
+        if ($importJob === null || $importJob->status === ImportJob::STATUS_DONE) {
+            return;
+        }
+
+        $importJob->markFailed($exception?->getMessage() ?: 'Bank reconciliation import failed or timed out.');
     }
 
     /**

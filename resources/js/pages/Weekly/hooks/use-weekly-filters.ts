@@ -8,12 +8,12 @@ import type { WeeklyPlanterGroup, WeeklyRecord } from '../types';
 import { sortNumericStrings } from '../utils';
 
 export function useWeeklyFilters({
-    weeklies,
+    planterGroups,
     weeksByCropYear,
     pagination,
     tableState,
 }: {
-    weeklies: WeeklyRecord[];
+    planterGroups: WeeklyPlanterGroup[];
     weeksByCropYear: Record<string, string[]>;
     pagination: {
         total: number;
@@ -62,75 +62,17 @@ export function useWeeklyFilters({
             ? allWeeks
             : sortNumericStrings(weeksByCropYear[selectedCropYear] ?? []);
 
-    const groupedWeeklies = useMemo<WeeklyPlanterGroup[]>(() => {
-        const groups = new Map<
-            string,
-            {
-                planter_code: string;
-                planter_name: string;
-                crop_years: Set<string>;
-                weeks: Set<string>;
-                files: WeeklyRecord[];
-            }
-        >();
+    // Server already paginated by planter and attached full file lists.
+    const groupedWeeklies = planterGroups;
 
-        weeklies.forEach((item) => {
-            const key = `${item.planter_code}::${item.planter_name}`;
-            const existingGroup = groups.get(key);
-
-            if (existingGroup) {
-                existingGroup.crop_years.add(item.crop_year);
-                existingGroup.weeks.add(item.week);
-                existingGroup.files.push(item);
-                return;
-            }
-
-            groups.set(key, {
-                planter_code: item.planter_code,
-                planter_name: item.planter_name,
-                crop_years: new Set([item.crop_year]),
-                weeks: new Set([item.week]),
-                files: [item],
-            });
-        });
-
-        return Array.from(groups.values())
-            .map((group) => ({
-                planter_code: group.planter_code,
-                planter_name: group.planter_name,
-                crop_years: sortNumericStrings(Array.from(group.crop_years)),
-                weeks: sortNumericStrings(Array.from(group.weeks)),
-                files: group.files.sort((left, right) => {
-                    const weekCompare = Number(left.week) - Number(right.week);
-
-                    if (weekCompare !== 0) {
-                        return weekCompare;
-                    }
-
-                    const pageCompare = Number(left.page) - Number(right.page);
-
-                    if (pageCompare !== 0) {
-                        return pageCompare;
-                    }
-
-                    return left.segment.localeCompare(
-                        right.segment,
-                        undefined,
-                        {
-                            numeric: true,
-                            sensitivity: 'base',
-                        },
-                    );
-                }),
-            }))
-            .sort((left, right) =>
-                left.planter_name.localeCompare(right.planter_name),
-            );
-    }, [weeklies]);
+    const allFiles = useMemo(
+        () => planterGroups.flatMap((group) => group.files),
+        [planterGroups],
+    );
 
     const selectedItems = useMemo(
-        () => weeklies.filter((item) => selectedIds.includes(item.id)),
-        [weeklies, selectedIds],
+        () => allFiles.filter((item) => selectedIds.includes(item.id)),
+        [allFiles, selectedIds],
     );
 
     const previewItem =
@@ -144,7 +86,6 @@ export function useWeeklyFilters({
 
     const totalPages = pagination.last_page;
     const currentPage = pagination.current_page;
-    const paginatedGroups = groupedWeeklies;
 
     const handleCropYearChange = (value: string) => {
         setSelectedCropYear(value);
@@ -161,24 +102,20 @@ export function useWeeklyFilters({
         }
     };
 
+    // Only one weekly file row can be active at a time.
     const toggleSelection = (item: WeeklyRecord, checked: boolean) => {
-        setSelectedIds((current) =>
-            checked
-                ? Array.from(new Set([...current, item.id]))
-                : current.filter((id) => id !== item.id),
-        );
-
         if (checked) {
+            setSelectedIds([item.id]);
             setPreviewId(item.id);
-        } else if (previewId === item.id) {
-            setPreviewId(null);
+            return;
         }
+
+        setSelectedIds([]);
+        setPreviewId(null);
     };
 
     const openPreview = (item: WeeklyRecord) => {
-        setSelectedIds((current) =>
-            current.includes(item.id) ? current : [...current, item.id],
-        );
+        setSelectedIds([item.id]);
         setPreviewId(item.id);
     };
 
@@ -188,11 +125,11 @@ export function useWeeklyFilters({
     };
 
     const buildQuery = (
-        page: number,
+        nextPage: number,
         period: DateRange | undefined = periodRange,
     ) => {
         const query: Record<string, string | number> = {
-            page,
+            page: nextPage,
             per_page: pagination.per_page,
         };
 
@@ -220,6 +157,7 @@ export function useWeeklyFilters({
 
     const applyPeriodFilter = (nextPeriod: DateRange | undefined) => {
         setPeriodRange(nextPeriod);
+        clearSelection();
         router.get(weeklyIndex().url, buildQuery(1, nextPeriod), {
             preserveState: true,
             preserveScroll: true,
@@ -234,6 +172,7 @@ export function useWeeklyFilters({
         }
 
         const timeoutId = window.setTimeout(() => {
+            clearSelection();
             router.get(weeklyIndex().url, buildQuery(1), {
                 preserveState: true,
                 preserveScroll: true,
@@ -244,8 +183,9 @@ export function useWeeklyFilters({
         return () => window.clearTimeout(timeoutId);
     }, [search, selectedCropYear, selectedWeek]);
 
-    const setCurrentPage = (page: number) => {
-        router.get(weeklyIndex().url, buildQuery(page), {
+    const setCurrentPage = (nextPage: number) => {
+        clearSelection();
+        router.get(weeklyIndex().url, buildQuery(nextPage), {
             preserveState: true,
             preserveScroll: true,
             replace: true,
@@ -264,7 +204,6 @@ export function useWeeklyFilters({
         setCurrentPage,
         weekOptions,
         groupedWeeklies,
-        paginatedGroups,
         totalPages,
         pagination,
         previewItem,

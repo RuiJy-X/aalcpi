@@ -31,7 +31,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function Index({
-    weeklies,
+    planter_groups,
     crop_years,
     weeks_by_crop_year,
     pagination,
@@ -57,7 +57,6 @@ export default function Index({
         setCurrentPage,
         weekOptions,
         groupedWeeklies,
-        paginatedGroups,
         totalPages,
         previewItem,
         previewTitle,
@@ -67,7 +66,7 @@ export default function Index({
         openPreview,
         clearSelection,
     } = useWeeklyFilters({
-        weeklies,
+        planterGroups: planter_groups,
         weeksByCropYear: weeks_by_crop_year,
         pagination,
         tableState: table_state,
@@ -125,7 +124,6 @@ export default function Index({
                         <div className="mt-4 grid w-full content-start items-start">
                             <WeeklyList
                                 groupedWeeklies={groupedWeeklies}
-                                paginatedGroups={paginatedGroups}
                                 selectedIds={selectedIds}
                                 currentPage={currentPage}
                                 totalPages={totalPages}

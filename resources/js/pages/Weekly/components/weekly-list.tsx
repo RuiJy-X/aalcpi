@@ -5,7 +5,6 @@ import { WeeklyPlanterGroupCard } from './weekly-planter-group-card';
 
 export function WeeklyList({
     groupedWeeklies,
-    paginatedGroups,
     selectedIds,
     currentPage,
     totalPages,
@@ -15,7 +14,6 @@ export function WeeklyList({
     onOpenPreview,
 }: {
     groupedWeeklies: WeeklyPlanterGroup[];
-    paginatedGroups: WeeklyPlanterGroup[];
     selectedIds: number[];
     currentPage: number;
     totalPages: number;
@@ -37,32 +35,35 @@ export function WeeklyList({
         );
     }
 
+    const rangeStart =
+        pagination.total === 0
+            ? 0
+            : (currentPage - 1) * pagination.per_page + 1;
+    const rangeEnd = Math.min(
+        currentPage * pagination.per_page,
+        pagination.total,
+    );
+
     return (
-        <>
-            {paginatedGroups.map((group, index) => (
-                <WeeklyPlanterGroupCard
-                    key={`${group.planter_code}::${group.planter_name}`}
-                    group={group}
-                    defaultOpen={index === 0}
-                    selectedIds={selectedIds}
-                    onToggleSelection={onToggleSelection}
-                    onOpenPreview={onOpenPreview}
-                />
-            ))}
+        <div className="flex min-h-0 flex-col gap-3">
+            <div className="flex min-h-0 flex-col gap-2">
+                {groupedWeeklies.map((group, index) => (
+                    <WeeklyPlanterGroupCard
+                        key={`${group.planter_code}::${group.planter_name}`}
+                        group={group}
+                        defaultOpen={index === 0}
+                        selectedIds={selectedIds}
+                        onToggleSelection={onToggleSelection}
+                        onOpenPreview={onOpenPreview}
+                    />
+                ))}
+            </div>
 
             {totalPages > 1 && (
                 <div className="flex items-center justify-between border-t pt-4">
                     <p className="text-sm text-muted-foreground">
-                        Showing{' '}
-                        {pagination.total === 0
-                            ? 0
-                            : (currentPage - 1) * pagination.per_page + 1}{' '}
-                        to{' '}
-                        {Math.min(
-                            currentPage * pagination.per_page,
-                            pagination.total,
-                        )}{' '}
-                        of {pagination.total} files
+                        Showing {rangeStart} to {rangeEnd} of{' '}
+                        {pagination.total} planters
                     </p>
                     <div className="flex gap-2">
                         <Button
@@ -93,6 +94,6 @@ export function WeeklyList({
                     </div>
                 </div>
             )}
-        </>
+        </div>
     );
 }

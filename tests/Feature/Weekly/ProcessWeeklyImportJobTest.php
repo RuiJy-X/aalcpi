@@ -1,6 +1,7 @@
 <?php
 
 use App\Jobs\ProcessWeeklyImportJob;
+use App\Models\ImportJob;
 use App\Models\Weekly;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
@@ -73,4 +74,84 @@ it('assigns shared source page records to multiple planters without collisions',
     ]);
 
     expect(Storage::disk('local')->exists($temporaryPath))->toBeFalse();
+});
+
+it('marks the import job done with an imported count', function () {
+    $temporaryPath = 'weekly-imports/input-done.pdf';
+    Storage::disk('local')->put($temporaryPath, 'fake pdf content');
+
+    $importJob = ImportJob::create([
+        'type' => 'weekly_pdf',
+        'status' => ImportJob::STATUS_QUEUED,
+        'context' => ['week' => '1', 'crop_year' => '2025-2026'],
+    ]);
+
+    $outputPath = storage_path('app/public/weekly-pdfs/2025-2026/week-1/done.pdf');
+
+    Process::fake([
+        '*' => Process::result(json_encode([
+            'ok' => true,
+            'files' => [
+                [
+                    'source_page' => 1,
+                    'segment' => 'full',
+                    'planter_code' => '1001',
+                    'planter_name' => 'Planter One',
+                    'hacienda_code' => '2001',
+                    'hacienda_address' => 'Address 1',
+                    'output_file' => $outputPath,
+                ],
+            ],
+        ], JSON_THROW_ON_ERROR)),
+    ]);
+
+    (new ProcessWeeklyImportJob($temporaryPath, '1', '2025-2026', $importJob->id))->handle();
+
+    $importJob->refresh();
+
+    expect($importJob->status)->toBe(ImportJob::STATUS_DONE)
+        ->and($importJob->message)->toContain('Imported 1');
+});
+
+it('marks the import job failed when the queue job fails', function () {
+    $temporaryPath = 'weekly-imports/input-failed.pdf';
+    Storage::disk('local')->put($temporaryPath, 'fake pdf content');
+
+    $importJob = ImportJob::create([
+        'type' => 'weekly_pdf',
+        'status' => ImportJob::STATUS_RUNNING,
+        'context' => ['week' => '1', 'crop_year' => '2025-2026'],
+    ]);
+
+    $job = new ProcessWeeklyImportJob($temporaryPath, '1', '2025-2026', $importJob->id);
+    $job->failed(new RuntimeException('The process has timed out.'));
+
+    $importJob->refresh();
+
+    expect($importJob->status)->toBe(ImportJob::STATUS_FAILED)
+        ->and($importJob->message)->toContain('timed out')
+        ->and(Storage::disk('local')->exists($temporaryPath))->toBeFalse();
+});
+
+it('marks the import job failed when the python splitter fails', function () {
+    $temporaryPath = 'weekly-imports/input-error.pdf';
+    Storage::disk('local')->put($temporaryPath, 'fake pdf content');
+
+    $importJob = ImportJob::create([
+        'type' => 'weekly_pdf',
+        'status' => ImportJob::STATUS_QUEUED,
+        'context' => ['week' => '1', 'crop_year' => '2025-2026'],
+    ]);
+
+    Process::fake([
+        '*' => Process::result(output: '', errorOutput: 'splitter crashed', exitCode: 1),
+    ]);
+
+    expect(fn () => (new ProcessWeeklyImportJob($temporaryPath, '1', '2025-2026', $importJob->id))->handle())
+        ->toThrow(RuntimeException::class);
+
+    $importJob->refresh();
+
+    expect($importJob->status)->toBe(ImportJob::STATUS_FAILED)
+        ->and($importJob->message)->toContain('splitter crashed');
 });

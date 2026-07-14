@@ -25,6 +25,10 @@ class ProcessExcelImportJob implements ShouldQueue
 
     public int $timeout = 1800;
 
+    public int $tries = 1;
+
+    public bool $failOnTimeout = true;
+
     /**
      * @param array<string, mixed> $options
      */
@@ -55,6 +59,17 @@ class ProcessExcelImportJob implements ShouldQueue
                 Storage::disk('local')->delete($this->path);
             }
         }
+    }
+
+    public function failed(?Throwable $exception = null): void
+    {
+        $importJob = ImportJob::find($this->importJobId);
+
+        if ($importJob === null || $importJob->status === ImportJob::STATUS_DONE) {
+            return;
+        }
+
+        $importJob->markFailed($exception?->getMessage() ?: 'Excel import failed or timed out.');
     }
 
     private function shouldDeferCompletion(): bool

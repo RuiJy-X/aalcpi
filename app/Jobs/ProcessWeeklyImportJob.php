@@ -23,7 +23,18 @@ class ProcessWeeklyImportJob implements ShouldQueue
     use Queueable;
     use SerializesModels;
 
+    /**
+     * Large weekly PDFs can take many minutes to split.
+     * queue:listen --timeout must be >= this value.
+     */
     public int $timeout = 1800;
+
+    /**
+     * Do not retry after a hard timeout — partial PDF output would be messy.
+     */
+    public int $tries = 1;
+
+    public bool $failOnTimeout = true;
 
     public function __construct(
         public string $temporaryPath,
@@ -56,9 +67,11 @@ class ProcessWeeklyImportJob implements ShouldQueue
             ? ['py', '-3', base_path('pdftoexcel.py'), $inputPath, $week, $cropYear, $outputPath]
             : ['python3', base_path('pdftoexcel.py'), $inputPath, $week, $cropYear, $outputPath];
 
+        $importedCount = 0;
+
         try {
             try {
-                $process = Process::timeout(1200)->run($processCommand);
+                $process = Process::timeout(1700)->run($processCommand);
 
                 if (! $process->successful()) {
                     throw new RuntimeException(trim($process->errorOutput() ?: $process->output()) ?: 'Weekly PDF splitting failed.');
@@ -125,14 +138,46 @@ class ProcessWeeklyImportJob implements ShouldQueue
                         ],
                     );
                 });
+
+                $importedCount = $files->count();
             } finally {
                 Storage::disk('local')->delete($this->temporaryPath);
             }
 
-            $importJob?->markDone();
+            $importJob?->markDone('Imported '.$importedCount.' weekly planter PDF(s).');
         } catch (Throwable $exception) {
             $importJob?->markFailed($exception->getMessage());
             throw $exception;
+        }
+    }
+
+    /**
+     * Called when the queue worker gives up (timeout, max attempts, uncaught throw).
+     * Ensures the UI does not stay stuck on "running" forever.
+     */
+    public function failed(?Throwable $exception = null): void
+    {
+        if ($this->importJobId === null) {
+            return;
+        }
+
+        $importJob = ImportJob::find($this->importJobId);
+
+        if ($importJob === null || $importJob->status === ImportJob::STATUS_DONE) {
+            return;
+        }
+
+        $message = $exception?->getMessage() ?: 'Weekly import failed or timed out.';
+
+        if (str_contains(strtolower($message), 'timed out') || str_contains(strtolower($message), 'timeout')) {
+            $message = 'Weekly import timed out while splitting the PDF. Re-run the import; large files can take several minutes.';
+        }
+
+        $importJob->markFailed($message);
+
+        // Best-effort cleanup of the staged upload.
+        if ($this->temporaryPath !== '' && Storage::disk('local')->exists($this->temporaryPath)) {
+            Storage::disk('local')->delete($this->temporaryPath);
         }
     }
 }
