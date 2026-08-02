@@ -115,7 +115,7 @@ return [
 
         'connection_registry' => [
             'driver' => 'sqlite',
-            'database' => database_path('database.sqlite'),
+            'database' => env('DB_CONNECTION_REGISTRY_DATABASE', storage_path('app/database-registry.sqlite')),
             'prefix' => '',
             'foreign_key_constraints' => true,
     ],

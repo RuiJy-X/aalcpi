@@ -18,6 +18,8 @@ class DatabaseConnectionController extends Controller
      */
     public function index(Request $request): Response
     {
+        $activeConnection = DatabaseConnection::getActiveConnection();
+
         $connections = DatabaseConnection::all()->map(fn ($conn) => [
             'id' => $conn->id,
             'connection_name' => $conn->connection_name,
@@ -32,7 +34,10 @@ class DatabaseConnectionController extends Controller
 
         return Inertia::render('settings/database', [
             'connections' => $connections,
-            'currentDefaultDriver' => config('database.default'), // what's actually live right now
+            // Banner should reflect selected external DB if one exists,
+            // otherwise local fallback driver.
+            'currentDefaultDriver' => $activeConnection?->driver
+                ?? DatabaseConfigurationService::localConnectionName(),
             'status' => $request->session()->get('status'),
         ]);
     }

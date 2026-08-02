@@ -64,7 +64,7 @@ class ProcessWeeklyImportJob implements ShouldQueue
         }
 
         $processCommand = PHP_OS_FAMILY === 'Windows'
-            ? ['py', '-3', base_path('pdftoexcel.py'), $inputPath, $week, $cropYear, $outputPath]
+            ? ['python', base_path('pdftoexcel.py'), $inputPath, $week, $cropYear, $outputPath]
             : ['python3', base_path('pdftoexcel.py'), $inputPath, $week, $cropYear, $outputPath];
 
         $importedCount = 0;

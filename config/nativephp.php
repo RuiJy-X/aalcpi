@@ -6,7 +6,7 @@ return [
      * It is used to determine if the app needs to be updated.
      * Increment this value every time you release a new version of your app.
      */
-    'version' => env('NATIVEPHP_APP_VERSION', '1.0.0'),
+    'version' => env('NATIVEPHP_APP_VERSION', '1.3.4'),
 
     /**
      * The ID of your application. This should be a unique identifier
@@ -159,20 +159,26 @@ return [
 
     /**
      * The queue workers that get auto-started on your application start.
+     * timeout/memory must cover long jobs (weekly PDF split, excel imports).
+     * Keep timeout in sync with ProcessWeeklyImportJob / ProcessExcelImportJob ($timeout = 1800)
+     * and database queue retry_after (default 1900).
      */
     'queue_workers' => [
         'default' => [
             'queues' => ['default'],
-            'memory_limit' => 128,
-            'timeout' => 60,
+            'memory_limit' => 512,
+            'timeout' => 1800,
             'sleep' => 3,
         ],
     ],
 
     /**
      * Define your own scripts to run before and after the build process.
+     * Remove public/hot so packaged builds use public/build assets (not Vite dev).
      */
     'prebuild' => [
+        // Windows + Unix safe: ignore missing hot file.
+        'php -r "if (is_file(\'public/hot\')) { unlink(\'public/hot\'); }"',
         'npm run build',
     ],
 

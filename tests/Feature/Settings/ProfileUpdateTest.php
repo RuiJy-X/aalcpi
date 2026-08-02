@@ -13,12 +13,15 @@ test('profile page is displayed', function () {
 });
 
 test('profile information can be updated', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->create([
+        'username' => 'profileuser',
+    ]);
 
     $response = $this
         ->actingAs($user)
         ->patch(route('profile.update'), [
             'name' => 'Test User',
+            'username' => 'profileuser',
             'email' => 'test@example.com',
         ]);
 
@@ -34,12 +37,15 @@ test('profile information can be updated', function () {
 });
 
 test('email verification status is unchanged when the email address is unchanged', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->create([
+        'username' => 'sameuser',
+    ]);
 
     $response = $this
         ->actingAs($user)
         ->patch(route('profile.update'), [
             'name' => 'Test User',
+            'username' => 'sameuser',
             'email' => $user->email,
         ]);
 

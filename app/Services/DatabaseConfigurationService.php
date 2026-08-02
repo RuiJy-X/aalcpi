@@ -21,6 +21,10 @@ class DatabaseConfigurationService
     public static function loadActiveConnection(): void
     {
         try {
+            // Fresh installs may not have the local SQLite file yet. Create it
+            // before any registry query so boot does not throw on first request.
+            self::ensureSqliteFileExists(self::localConnectionName());
+
             // Registry lives on the dedicated sqlite connection; keep it migratable
             // so DatabaseConnection queries never blow up on a stale file.
             self::ensureRegistryDatabaseReady();
@@ -28,7 +32,18 @@ class DatabaseConfigurationService
             $activeConnection = DatabaseConnection::getActiveConnection();
 
             if (! $activeConnection) {
-                // No remote DB selected — keep the local driver healthy.
+                // No remote DB selected — always run on local fallback.
+                Config::set('database.default', self::localConnectionName());
+
+                foreach (['pgsql', 'mysql'] as $connection) {
+                    try {
+                        DB::purge($connection);
+                    } catch (\Throwable) {
+                        // Connection may not have been resolved yet.
+                    }
+                }
+
+                self::forgetPermissionCache();
                 self::ensureLocalDatabaseReady();
 
                 return;
@@ -178,7 +193,7 @@ class DatabaseConfigurationService
      */
     public static function ensureRegistryDatabaseReady(): void
     {
-        $registry = 'sqlite';
+        $registry = 'connection_registry';
 
         if (! config("database.connections.{$registry}")) {
             return;
@@ -229,15 +244,50 @@ class DatabaseConfigurationService
             return;
         }
 
-        if (! file_exists($path)) {
-            $directory = dirname($path);
-
-            if (! is_dir($directory)) {
-                mkdir($directory, 0755, true);
-            }
-
-            touch($path);
+        if (file_exists($path)) {
+            return;
         }
+
+        if (self::createSqliteFileAtPath($path)) {
+            return;
+        }
+
+        $fallbackPath = self::fallbackSqlitePathForConnection($connection);
+
+        if ($fallbackPath !== $path && self::createSqliteFileAtPath($fallbackPath)) {
+            Config::set("database.connections.{$connection}.database", $fallbackPath);
+            Log::warning("SQLite path for connection '{$connection}' was not writable. Falling back to {$fallbackPath}.");
+
+            return;
+        }
+
+        throw new \RuntimeException("Unable to prepare SQLite database file for connection '{$connection}' at '{$path}'.");
+    }
+
+    protected static function createSqliteFileAtPath(string $path): bool
+    {
+        $directory = dirname($path);
+
+        if ($directory !== '' && $directory !== '.' && ! is_dir($directory)) {
+            if (! @mkdir($directory, 0755, true) && ! is_dir($directory)) {
+                return false;
+            }
+        }
+
+        if (! file_exists($path) && ! @touch($path)) {
+            return false;
+        }
+
+        return file_exists($path);
+    }
+
+    protected static function fallbackSqlitePathForConnection(string $connection): string
+    {
+        if ($connection === 'connection_registry') {
+            return storage_path('app/database-registry.sqlite');
+        }
+
+        return storage_path("app/{$connection}.sqlite");
     }
 
     protected static function ensureRolesAndPermissionsSeeded(string $connection): void
