@@ -351,6 +351,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/', [BankReconciliationController::class, 'index'])
             ->middleware('permission:bank_reconciliation.view')
             ->name('index');
+        Route::get('/outstanding-checks', [BankReconciliationController::class, 'getOutstandingChecks'])
+            ->middleware('permission:bank_reconciliation.view')
+            ->name('outstanding-checks');
+        Route::get('/outstanding-checks-pdf', [BankReconciliationController::class, 'printOutstandingChecksPdf'])
+            ->middleware('permission:bank_reconciliation.view')
+            ->name('outstanding-checks-pdf');
+        Route::get('/outstanding-checks-print', [BankReconciliationController::class, 'printOutstandingChecksHtml'])
+            ->middleware('permission:bank_reconciliation.view')
+            ->name('outstanding-checks-print');
         Route::get('/{bankReconciliation}', [BankReconciliationController::class, 'show'])
             ->middleware('permission:bank_reconciliation.view')
             ->name('show');

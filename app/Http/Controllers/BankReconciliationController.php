@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\BankStatement;
 use App\Models\InternalDisbursements;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Inertia\Inertia;
 use App\Models\ReconciliationWorkspace;
 use Illuminate\Http\Request;
@@ -461,4 +462,148 @@ class BankReconciliationController extends Controller
 
         return redirect()->back()->with('success', 'All matching reconciliation records have been cleared.');
     }
+
+    /**
+     * Build the structured dataset for outstanding checks grouped by month.
+     * Uses DB query builder and explicit column selection to minimize memory usage for large datasets (e.g. 2000+ records).
+     */
+    private function buildOutstandingChecksData(Request $request): array
+    {
+        @ini_set('memory_limit', '512M');
+        @set_time_limit(300);
+
+        $dateFrom = $request->string('date_from')->toString();
+        $dateTo = $request->string('date_to')->toString();
+
+        $query = DB::table('reconciliation_workspace')
+            ->select([
+                'ref_no',
+                'description',
+                'internal_amount',
+                'internal_date_issued',
+            ])
+            ->where('status', 'Outstanding');
+
+        if ($dateFrom !== '') {
+            $dateToResolved = $dateTo !== '' ? $dateTo : $dateFrom;
+            $query->whereBetween('internal_date_issued', [$dateFrom, $dateToResolved]);
+        }
+
+        $records = $query->orderBy('internal_date_issued', 'asc')
+            ->orderBy('ref_no', 'asc')
+            ->get();
+
+        $grouped = [];
+        foreach ($records as $record) {
+            $rawDate = $record->internal_date_issued;
+            $dateObj = $rawDate ? \Illuminate\Support\Carbon::parse($rawDate) : null;
+            $monthKey = $dateObj ? $dateObj->format('Y-m') : 'Unknown';
+            $monthLabel = $dateObj ? $dateObj->format('F Y') : 'Unknown Date';
+
+            if (!isset($grouped[$monthKey])) {
+                $grouped[$monthKey] = [
+                    'month_key'   => $monthKey,
+                    'month_label' => $monthLabel,
+                    'items'       => [],
+                    'subtotal'    => 0,
+                ];
+            }
+
+            $itemNo = count($grouped[$monthKey]['items']) + 1;
+            $amount = (float) ($record->internal_amount ?? 0);
+
+            $grouped[$monthKey]['items'][] = [
+                'no'           => $itemNo,
+                'date'         => $dateObj ? $dateObj->format('m/d/Y') : '',
+                'raw_date'     => $rawDate ? (string) $rawDate : '',
+                'payee_name'   => $record->description ?? '',
+                'check_no'     => $record->ref_no ?? '',
+                'amount'       => $amount,
+                'date_cleared' => '',
+            ];
+
+            $grouped[$monthKey]['subtotal'] += $amount;
+        }
+
+        $monthsList = array_values($grouped);
+        $grandTotal = array_sum(array_column($monthsList, 'subtotal'));
+        $totalCount = count($records);
+
+        return [
+            'date_from'   => $dateFrom,
+            'date_to'     => $dateTo,
+            'months'      => $monthsList,
+            'grand_total' => $grandTotal,
+            'total_count' => $totalCount,
+        ];
+    }
+
+    /**
+     * Get all outstanding checks within an optional date range, grouped by month (JSON API).
+     */
+    public function getOutstandingChecks(Request $request)
+    {
+        $request->validate([
+            'date_from' => 'nullable|date',
+            'date_to'   => 'nullable|date',
+        ]);
+
+        $data = $this->buildOutstandingChecksData($request);
+
+        return response()->json($data);
+    }
+
+    /**
+     * Generate PDF stream for outstanding checks report using Blade view template.
+     */
+    public function printOutstandingChecksPdf(Request $request)
+    {
+        @ini_set('memory_limit', '512M');
+        @set_time_limit(300);
+
+        $request->validate([
+            'date_from' => 'nullable|date',
+            'date_to'   => 'nullable|date',
+        ]);
+
+        $data = $this->buildOutstandingChecksData($request);
+
+        $pdf = Pdf::loadView('pdfs.outstanding_checks', [
+            'dateFrom'   => $data['date_from'],
+            'dateTo'     => $data['date_to'],
+            'months'     => $data['months'],
+            'grandTotal' => $data['grand_total'],
+            'totalCount' => $data['total_count'],
+        ])
+        ->setPaper('a4', 'portrait')
+        ->setOption('isFontSubsettingEnabled', true)
+        ->setOption('isRemoteEnabled', false);
+
+        return $pdf->stream('outstanding_checks_report.pdf');
+    }
+
+    /**
+     * Render HTML print view for outstanding checks report using Blade view template.
+     * Uses native browser print engine (handles 2000+ records in milliseconds with zero DomPDF overhead).
+     */
+    public function printOutstandingChecksHtml(Request $request)
+    {
+        $request->validate([
+            'date_from' => 'nullable|date',
+            'date_to'   => 'nullable|date',
+        ]);
+
+        $data = $this->buildOutstandingChecksData($request);
+
+        return view('pdfs.outstanding_checks', [
+            'dateFrom'   => $data['date_from'],
+            'dateTo'     => $data['date_to'],
+            'months'     => $data['months'],
+            'grandTotal' => $data['grand_total'],
+            'totalCount' => $data['total_count'],
+            'autoPrint'  => true,
+        ]);
+    }
 }
+
+

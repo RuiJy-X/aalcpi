@@ -27,6 +27,7 @@ import {
     bankReconBankTargets,
     type ImportTarget,
 } from '@/components/import/import-config';
+import { ImportSummaryModal, type ImportSummaryData } from '@/components/import/import-summary-modal';
 
 
 type MappingPreviewResponse = {
@@ -239,6 +240,37 @@ export function BankReconImportDialog() {
         }
     };
 
+    const [summaryData, setSummaryData] = useState<ImportSummaryData | null>(null);
+    const [isSummaryOpen, setIsSummaryOpen] = useState(false);
+
+    const pollSummary = (jobId: number) => {
+        let attempts = 0;
+        const maxAttempts = 60;
+
+        const interval = setInterval(async () => {
+            attempts++;
+            try {
+                const res = await fetch(`/Imports/status/${jobId}`, {
+                    headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                });
+                if (res.ok) {
+                    const data: ImportSummaryData = await res.json();
+                    if (data.status === 'done' || data.status === 'failed') {
+                        clearInterval(interval);
+                        setSummaryData(data);
+                        setIsSummaryOpen(true);
+                    }
+                }
+            } catch (err) {
+                console.error(err);
+            }
+
+            if (attempts >= maxAttempts) {
+                clearInterval(interval);
+            }
+        }, 1000);
+    };
+
     const submitImport = (mappingId?: number) => {
         if (!selectedFile) {
             setError('Please select a file to import.');
@@ -265,9 +297,14 @@ export function BankReconImportDialog() {
                 preserveScroll: true,
                 onStart: () => setIsImporting(true),
                 onFinish: () => setIsImporting(false),
-                onSuccess: () => {
+                onSuccess: (page) => {
+                    const jobId = (page.props as Record<string, unknown>).import_job_id ||
+                        ((page.props as Record<string, unknown>).flash as Record<string, unknown>)?.import_job_id;
                     resetDialog();
                     setIsOpen(false);
+                    if (jobId && typeof jobId === 'number') {
+                        pollSummary(jobId);
+                    }
                 },
                 onError: (errors) => {
                     setError(
@@ -318,6 +355,7 @@ export function BankReconImportDialog() {
     };
 
     return (
+        <>
         <Dialog
             open={isOpen}
             onOpenChange={(open) => {
@@ -622,5 +660,11 @@ export function BankReconImportDialog() {
                 )}
             </DialogContent>
         </Dialog>
+        <ImportSummaryModal
+            isOpen={isSummaryOpen}
+            onClose={() => setIsSummaryOpen(false)}
+            summary={summaryData}
+        />
+        </>
     );
 }

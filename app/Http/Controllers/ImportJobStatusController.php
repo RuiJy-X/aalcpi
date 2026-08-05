@@ -21,6 +21,7 @@ class ImportJobStatusController extends Controller
             'type' => $importJob->type,
             'status' => $importJob->status,
             'message' => $importJob->message,
+            'context' => $importJob->context,
             'started_at' => $importJob->started_at?->toIso8601String(),
             'finished_at' => $importJob->finished_at?->toIso8601String(),
         ]);

@@ -52,3 +52,130 @@ test('authorized user can view bank reconciliation index', function () {
         ->get(route('bank_reconciliation.index'))
         ->assertOk();
 });
+
+test('authorized user can fetch outstanding checks grouped by month', function () {
+    $user = User::factory()->create();
+    $user->assignRole(Permissions::SUPER_ADMIN_ROLE);
+
+    // Create 2 outstanding checks in Jan 2026 and 1 in Feb 2026
+    InternalDisbursements::query()->create([
+        'payee_name' => 'Payee Jan 1',
+        'check_no' => 'CHK-JAN-001',
+        'check_amount' => 1000.00,
+        'date_issued' => '2026-01-10',
+        'disbursement_week' => 1,
+        'is_duplicate' => false,
+    ]);
+
+    InternalDisbursements::query()->create([
+        'payee_name' => 'Payee Jan 2',
+        'check_no' => 'CHK-JAN-002',
+        'check_amount' => 2000.00,
+        'date_issued' => '2026-01-20',
+        'disbursement_week' => 2,
+        'is_duplicate' => false,
+    ]);
+
+    InternalDisbursements::query()->create([
+        'payee_name' => 'Payee Feb 1',
+        'check_no' => 'CHK-FEB-001',
+        'check_amount' => 3000.00,
+        'date_issued' => '2026-02-05',
+        'disbursement_week' => 6,
+        'is_duplicate' => false,
+    ]);
+
+    $response = $this->actingAs($user)
+        ->get(route('bank_reconciliation.outstanding-checks', [
+            'date_from' => '2026-01-01',
+            'date_to' => '2026-02-28',
+        ]));
+
+    $response->assertOk()
+        ->assertJsonStructure([
+            'date_from',
+            'date_to',
+            'months' => [
+                '*' => [
+                    'month_key',
+                    'month_label',
+                    'items' => [
+                        '*' => [
+                            'no',
+                            'date',
+                            'raw_date',
+                            'payee_name',
+                            'check_no',
+                            'amount',
+                            'date_cleared',
+                        ],
+                    ],
+                    'subtotal',
+                ],
+            ],
+            'grand_total',
+            'total_count',
+        ]);
+
+    $data = $response->json();
+    expect($data['total_count'])->toBe(3);
+    expect($data['grand_total'])->toBe(6000.0);
+    expect(count($data['months']))->toBe(2);
+
+    // Jan month check (item no resets per month)
+    $janMonth = $data['months'][0];
+    expect($janMonth['month_label'])->toBe('January 2026');
+    expect(count($janMonth['items']))->toBe(2);
+    expect($janMonth['items'][0]['no'])->toBe(1);
+    expect($janMonth['items'][1]['no'])->toBe(2);
+    expect($janMonth['items'][0]['date_cleared'])->toBe('');
+    expect($janMonth['subtotal'])->toBe(3000.0);
+
+    // Feb month check (item no resets to 1)
+    $febMonth = $data['months'][1];
+    expect($febMonth['month_label'])->toBe('February 2026');
+    expect(count($febMonth['items']))->toBe(1);
+    expect($febMonth['items'][0]['no'])->toBe(1);
+    expect($febMonth['items'][0]['date_cleared'])->toBe('');
+    expect($febMonth['subtotal'])->toBe(3000.0);
+});
+
+test('authorized user can stream outstanding checks pdf report', function () {
+    $user = User::factory()->create();
+    $user->assignRole(Permissions::SUPER_ADMIN_ROLE);
+
+    InternalDisbursements::query()->create([
+        'payee_name' => 'PDF Test Payee',
+        'check_no' => 'CHK-PDF-001',
+        'check_amount' => 1500.00,
+        'date_issued' => '2026-03-15',
+        'disbursement_week' => 10,
+        'is_duplicate' => false,
+    ]);
+
+    $response = $this->actingAs($user)
+        ->get(route('bank_reconciliation.outstanding-checks-pdf', [
+            'date_from' => '2026-03-01',
+            'date_to' => '2026-03-31',
+        ]));
+
+    $response->assertOk()
+        ->assertHeader('content-type', 'application/pdf');
+});
+
+test('authorized user can view outstanding checks html print report', function () {
+    $user = User::factory()->create();
+    $user->assignRole(Permissions::SUPER_ADMIN_ROLE);
+
+    $response = $this->actingAs($user)
+        ->get(route('bank_reconciliation.outstanding-checks-print', [
+            'date_from' => '2026-03-01',
+            'date_to' => '2026-03-31',
+        ]));
+
+    $response->assertOk()
+        ->assertViewIs('pdfs.outstanding_checks');
+});
+
+
+

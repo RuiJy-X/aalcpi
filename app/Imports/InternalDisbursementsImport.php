@@ -20,7 +20,11 @@ class InternalDisbursementsImport implements ToModel, WithHeadingRow, WithEvents
     protected $filePath;
     protected string $dateIssued;
     protected int $disbursementWeek;
-    protected array $mapping;
+    protected int $rowsRead = 0;
+    protected int $rowsSaved = 0;
+    protected int $rowsSkipped = 0;
+    protected array $warnings = [];
+    protected array $headersRead = [];
 
     public function __construct(
         int $importJobId,
@@ -48,21 +52,29 @@ class InternalDisbursementsImport implements ToModel, WithHeadingRow, WithEvents
 
     public function model(array $row)
     {
-        $row = $this->applyMapping($row);
+        $this->rowsRead++;
+        if (empty($this->headersRead)) {
+            $this->headersRead = array_keys($row);
+        }
 
-        if (empty($row['check_no']) && empty($row['audit_no'])) {
+        $rowNum = $this->rowsRead + $this->headingRow();
+        $rowMapped = $this->applyMapping($row);
+
+        if (empty($rowMapped['check_no']) && empty($rowMapped['audit_no'])) {
+            $this->rowsSkipped++;
+            $this->warnings[] = "Row {$rowNum}: Skipped row (Check Number and Audit Number are both empty).";
             return null;
         }
 
-        $checkNo = trim((string) ($row['check_no'] ?? $row['check_no.'] ?? ''));
-        $auditNo = !empty($row['audit_no']) ? trim((string) $row['audit_no']) : null;
-        $checkAmount = is_numeric($row['check_amount']) ? (float) $row['check_amount'] : 0.00;
+        $checkNo = trim((string) ($rowMapped['check_no'] ?? $rowMapped['check_no.'] ?? ''));
+        $auditNo = !empty($rowMapped['audit_no']) ? trim((string) $rowMapped['audit_no']) : null;
+        $checkAmount = is_numeric($rowMapped['check_amount']) ? (float) $rowMapped['check_amount'] : 0.00;
 
         $dateReturn = null;
-        if (!empty($row['date_return'])) {
-            $dateReturn = is_numeric($row['date_return'])
-                ? Date::excelToDateTimeObject($row['date_return'])->format('Y-m-d')
-                : date('Y-m-d', strtotime($row['date_return']));
+        if (!empty($rowMapped['date_return'])) {
+            $dateReturn = is_numeric($rowMapped['date_return'])
+                ? Date::excelToDateTimeObject($rowMapped['date_return'])->format('Y-m-d')
+                : date('Y-m-d', strtotime($rowMapped['date_return']));
         }
 
         $matchedBankRecord = InternalDisbursements::findBankMatchFor(
@@ -72,17 +84,12 @@ class InternalDisbursementsImport implements ToModel, WithHeadingRow, WithEvents
             true,
         );
 
-        // Always insert — duplicates (same check_no appearing more than
-        // once) are intentionally kept, not merged. refreshDuplicateFlags()
-        // in AfterImport below marks them so they're visible in the UI,
-        // and the caller (ProcessBankReconImportJob) already deleted any
-        // prior rows for this exact date_issued + disbursement_week batch
-        // before this import ran, so re-uploading the same file replaces
-        // the old batch instead of stacking on top of it.
+        $this->rowsSaved++;
+
         return InternalDisbursements::create([
             'audit_no' => $auditNo,
             'check_no' => $checkNo,
-            'payee_name' => $row['payee_name'] ?? 'Unknown Payee',
+            'payee_name' => $rowMapped['payee_name'] ?? 'Unknown Payee',
             'check_amount' => $checkAmount,
             'date_return' => $dateReturn,
             'disbursement_week' => $this->disbursementWeek,
@@ -102,12 +109,28 @@ class InternalDisbursementsImport implements ToModel, WithHeadingRow, WithEvents
                     InternalDisbursements::refreshDuplicateFlags();
 
                     $duplicateCount = InternalDisbursements::where('is_duplicate', true)->count();
+                    $importJob = ImportJob::find($this->importJobId);
 
-                    ImportJob::find($this->importJobId)?->markDone(
-                        $duplicateCount > 0
-                            ? "Import complete. {$duplicateCount} row(s) currently share a check number with another record."
-                            : 'Import complete.'
-                    );
+                    if ($importJob) {
+                        $context = array_merge($importJob->context ?? [], [
+                            'heading_row' => $this->headingRow(),
+                            'headers_read' => $this->headersRead,
+                            'rows_read' => $this->rowsRead,
+                            'rows_saved' => $this->rowsSaved,
+                            'rows_skipped' => $this->rowsSkipped,
+                            'warnings' => $this->warnings,
+                            'duplicate_count' => $duplicateCount,
+                        ]);
+
+                        $importJob->update([
+                            'status' => ImportJob::STATUS_DONE,
+                            'finished_at' => now(),
+                            'context' => $context,
+                            'message' => $duplicateCount > 0
+                                ? "Import complete. {$this->rowsSaved} rows imported, {$this->rowsSkipped} rows skipped. {$duplicateCount} row(s) share a check number."
+                                : "Import complete. {$this->rowsSaved} rows imported, {$this->rowsSkipped} rows skipped.",
+                        ]);
+                    }
                 }
                 if ($this->filePath) {
                     Storage::disk('local')->delete($this->filePath);
@@ -115,9 +138,24 @@ class InternalDisbursementsImport implements ToModel, WithHeadingRow, WithEvents
             },
             ImportFailed::class => function (ImportFailed $event): void {
                 if ($this->importJobId !== null) {
-                    ImportJob::find($this->importJobId)?->markFailed(
-                        $event->getException()->getMessage()
-                    );
+                    $importJob = ImportJob::find($this->importJobId);
+                    if ($importJob) {
+                        $context = array_merge($importJob->context ?? [], [
+                            'heading_row' => $this->headingRow(),
+                            'rows_read' => $this->rowsRead,
+                            'rows_saved' => $this->rowsSaved,
+                            'rows_skipped' => $this->rowsSkipped,
+                            'warnings' => $this->warnings,
+                            'error' => $event->getException()->getMessage(),
+                        ]);
+
+                        $importJob->update([
+                            'status' => ImportJob::STATUS_FAILED,
+                            'finished_at' => now(),
+                            'context' => $context,
+                            'message' => $event->getException()->getMessage(),
+                        ]);
+                    }
                 }
                 if ($this->filePath) {
                     Storage::disk('local')->delete($this->filePath);

@@ -29,6 +29,7 @@ import type { BreadcrumbItem } from '@/types';
 import { ReconciliationWorkspaceType } from './bank-recon-types';
 import { bankReconWorkspaceColumns } from './bank-recon-workspace-columnDef';
 import { BankReconImportDialog } from './BankReconImportDialog';
+import { PrintOutstandingChecksDialog } from './PrintOutstandingChecksDialog';
 import { ImportHistoryDialog } from '@/components/import/import-history-dialog';
 import { clear as bankReconciliationClear } from '@/routes/bank_reconciliation';
 import { index as bankReconciliationIndex } from '@/routes/bank_reconciliation';
@@ -610,6 +611,10 @@ export default function Index({
                                 Import History
                             </Link>
                         </Button>
+                        <PrintOutstandingChecksDialog
+                            defaultPeriodFrom={table_state?.period_from}
+                            defaultPeriodTo={table_state?.period_to}
+                        />
                         <BankReconImportDialog />
                         <Button
                             variant="destructive"
