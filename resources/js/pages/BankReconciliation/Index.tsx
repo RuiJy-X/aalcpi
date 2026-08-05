@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import type {
     ColumnFiltersState,
     PaginationState,
@@ -7,6 +7,7 @@ import type {
 import * as React from 'react';
 import { format } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
+import { History } from 'lucide-react';
 
 import AppLayout from '@/layouts/app-layout';
 import {
@@ -28,6 +29,7 @@ import type { BreadcrumbItem } from '@/types';
 import { ReconciliationWorkspaceType } from './bank-recon-types';
 import { bankReconWorkspaceColumns } from './bank-recon-workspace-columnDef';
 import { BankReconImportDialog } from './BankReconImportDialog';
+import { ImportHistoryDialog } from '@/components/import/import-history-dialog';
 import { clear as bankReconciliationClear } from '@/routes/bank_reconciliation';
 import { index as bankReconciliationIndex } from '@/routes/bank_reconciliation';
 import { bankReconciliationBulkDelete } from '@/components/data-table/bulk-delete';
@@ -64,9 +66,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 const formatStatusLabel = (status: string) =>
-    status
-        .replace(/_/g, ' ')
-        .replace(/^./, (char) => char.toUpperCase());
+    status.replace(/_/g, ' ').replace(/^./, (char) => char.toUpperCase());
 
 export default function Index({
     reconciliationWorkspaces,
@@ -509,7 +509,7 @@ export default function Index({
                         : ' — all dates'}
                 </p>
             </div>
-            <div className="mx-2 mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
+            <div className="mx-2 mb-2 grid grid-cols-2 gap-4 md:grid-cols-4">
                 <div className="rounded-xl border bg-card p-4 shadow-sm">
                     <div className="flex items-center gap-2">
                         <CircleCheck className="size-4 text-emerald-600" />
@@ -559,7 +559,7 @@ export default function Index({
                 </div>
             </div>
 
-            <div className="mx-2 mb-6 grid grid-cols-1 gap-4 md:grid-cols-4">
+            <div className="mx-2 mb-2 grid grid-cols-1 gap-4 md:grid-cols-4">
                 <div className="rounded-xl border bg-card p-4 shadow-sm">
                     <p className="text-sm font-medium text-muted-foreground">
                         Filtered Records
@@ -604,14 +604,19 @@ export default function Index({
                 <ContainerHeader>
                     Bank Reconciliation
                     <ContainerHeaderEnd>
+                        <Button variant="outline" asChild className="gap-2">
+                            <Link href="/Imports/history?type=bank_recon">
+                                <History className="h-4 w-4" />
+                                Import History
+                            </Link>
+                        </Button>
+                        <BankReconImportDialog />
                         <Button
                             variant="destructive"
                             onClick={() => setClearOpen(true)}
                         >
                             Delete All
                         </Button>
-
-                        <BankReconImportDialog />
                     </ContainerHeaderEnd>
                     <Dialog open={isClearOpen} onOpenChange={setClearOpen}>
                         <DialogContent>

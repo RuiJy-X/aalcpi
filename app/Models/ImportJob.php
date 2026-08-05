@@ -28,6 +28,11 @@ class ImportJob extends Model
         'finished_at' => 'datetime',
     ];
 
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
     public function markRunning(): void
     {
         $this->forceFill([

@@ -137,14 +137,9 @@ class ProcessBankReconImportJob implements ShouldQueue
                 ->update(['bank_statement_id' => null]);
 
             BankStatement::whereIn('id', $existingIds)->delete();
-        } else {
-            if (!$this->dateIssued || !$this->disbursementWeek) {
-                return;
-            }
-
-            InternalDisbursements::where('date_issued', $this->dateIssued)
-                ->where('disbursement_week', $this->disbursementWeek)
-                ->delete();
         }
+        // Internal ledgers intentionally do NOT delete prior batches so that
+        // duplicate records (same check_no across files/batches) are retained
+        // and tracked via is_duplicate = true.
     }
 }

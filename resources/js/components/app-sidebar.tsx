@@ -5,6 +5,7 @@ import {
     Clipboard,
     CalendarDays,
     DollarSign,
+    History,
     LandPlot,
     LayoutGrid,
     Shield,
@@ -89,6 +90,11 @@ export function AppSidebar() {
             href: bankReconciliationIndex(),
             icon: Truck,
         }),
+        {
+            title: 'Import History',
+            href: '/Imports/history',
+            icon: History,
+        },
     ];
 
     const adminItems: NavItem[] = [

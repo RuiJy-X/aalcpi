@@ -8,6 +8,7 @@ use App\Http\Controllers\BankReconciliationImportController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\HaciendaController;
+use App\Http\Controllers\ImportHistoryController;
 use App\Http\Controllers\ImportJobStatusController;
 use App\Http\Controllers\ImportMappingController;
 use App\Http\Controllers\MillingPeriodsController;
@@ -217,6 +218,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/Imports/status/{importJob}', [ImportJobStatusController::class, 'show'])
         ->middleware('auth')
         ->name('imports.status');
+    Route::get('/Imports/history', [ImportHistoryController::class, 'index'])
+        ->middleware('auth')
+        ->name('imports.history.index');
+    Route::delete('/Imports/history/{importJob}', [ImportHistoryController::class, 'destroy'])
+        ->middleware('permission:planters.delete|productions.delete|attendance.delete|weekly.delete|bank_reconciliation.delete')
+        ->name('imports.history.destroy');
 
     // --- Planters ---
     Route::prefix('Planters')->name('planters.')->group(function () {
