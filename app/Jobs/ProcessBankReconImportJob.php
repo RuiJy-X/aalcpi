@@ -32,6 +32,7 @@ class ProcessBankReconImportJob implements ShouldQueue
     protected $dateIssued;
     protected $disbursementWeek;
     protected $bankDate;
+    protected array $mapping;
 
     public function __construct(
         int $jobId,
@@ -39,7 +40,8 @@ class ProcessBankReconImportJob implements ShouldQueue
         string $filePath,
         ?string $dateIssued = null,
         ?int $disbursementWeek = null,
-        ?string $bankDate = null
+        ?string $bankDate = null,
+        array $mapping = []
     ) {
         $this->jobId = $jobId;
         $this->type = $type;
@@ -47,6 +49,7 @@ class ProcessBankReconImportJob implements ShouldQueue
         $this->dateIssued = $dateIssued;
         $this->disbursementWeek = $disbursementWeek;
         $this->bankDate = $bankDate;
+        $this->mapping = $mapping;
     }
 
     public function handle()
@@ -59,7 +62,7 @@ class ProcessBankReconImportJob implements ShouldQueue
 
             if ($this->type === 'bank') {
                 Excel::import(
-                    new BankStatementsImport($this->jobId, $this->filePath, $this->bankDate),
+                    new BankStatementsImport($this->jobId, $this->filePath, $this->bankDate, $this->mapping),
                     $this->filePath,
                     'local'
                 );
@@ -70,6 +73,7 @@ class ProcessBankReconImportJob implements ShouldQueue
                         $this->filePath,
                         $this->dateIssued,
                         $this->disbursementWeek,
+                        $this->mapping,
                     ),
                     $this->filePath,
                     'local'

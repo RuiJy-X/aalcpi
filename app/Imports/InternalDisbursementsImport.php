@@ -2,6 +2,7 @@
 
 namespace App\Imports;
 
+use App\Models\BankStatement;
 use App\Models\InternalDisbursements;
 use App\Models\ImportJob;
 use Illuminate\Support\Facades\Storage;
@@ -19,17 +20,20 @@ class InternalDisbursementsImport implements ToModel, WithHeadingRow, WithEvents
     protected $filePath;
     protected string $dateIssued;
     protected int $disbursementWeek;
+    protected array $mapping;
 
     public function __construct(
         int $importJobId,
         string $filePath,
         string $dateIssued,
         int $disbursementWeek,
+        array $mapping = [],
     ) {
         $this->importJobId = $importJobId;
         $this->filePath = $filePath;
         $this->dateIssued = $dateIssued;
         $this->disbursementWeek = $disbursementWeek;
+        $this->mapping = $mapping;
     }
 
     public function headingRow(): int
@@ -44,6 +48,8 @@ class InternalDisbursementsImport implements ToModel, WithHeadingRow, WithEvents
 
     public function model(array $row)
     {
+        $row = $this->applyMapping($row);
+
         if (empty($row['check_no']) && empty($row['audit_no'])) {
             return null;
         }
@@ -63,6 +69,7 @@ class InternalDisbursementsImport implements ToModel, WithHeadingRow, WithEvents
             $checkNo,
             $checkAmount,
             $this->dateIssued,
+            true,
         );
 
         // Always insert — duplicates (same check_no appearing more than
@@ -91,6 +98,7 @@ class InternalDisbursementsImport implements ToModel, WithHeadingRow, WithEvents
             AfterImport::class => function (): void {
                 if ($this->importJobId !== null) {
                     InternalDisbursements::reconcileUnmatched();
+                    BankStatement::refreshDuplicateFlags();
                     InternalDisbursements::refreshDuplicateFlags();
 
                     $duplicateCount = InternalDisbursements::where('is_duplicate', true)->count();
@@ -116,5 +124,23 @@ class InternalDisbursementsImport implements ToModel, WithHeadingRow, WithEvents
                 }
             },
         ];
+    }
+
+    private function applyMapping(array $row): array
+    {
+        if (empty($this->mapping)) {
+            return $row;
+        }
+
+        $mapped = [];
+        foreach ($this->mapping as $target => $source) {
+            if (!is_string($source) || $source === '') {
+                continue;
+            }
+
+            $mapped[$target] = $row[$source] ?? null;
+        }
+
+        return array_merge($row, $mapped);
     }
 }

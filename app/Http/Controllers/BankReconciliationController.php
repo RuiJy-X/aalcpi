@@ -140,24 +140,15 @@ class BankReconciliationController extends Controller
         } else {
             $baseQuery->orderBy('reconciliation_workspace.transaction_date', 'desc');
         }
-        $statusOptions = ReconciliationWorkspace::query()
-            ->whereNotNull('status')
-            ->where('status', '!=', '')
-            ->distinct()
-            ->orderBy('status')
-            ->pluck('status');
 
-        $weekOptions = ReconciliationWorkspace::query()
+        $statusOptions = ['Amount Mismatch', 'Matched', 'Outstanding', 'Unrecorded Bank Entry'];
+
+        $weekOptions = InternalDisbursements::query()
             ->whereNotNull('disbursement_week')
             ->distinct()
             ->orderBy('disbursement_week')
             ->pluck('disbursement_week');
 
-        // Static KPIs: driven ONLY by the period date range, never by
-        // status/week/is_duplicate/search. These give the user a fixed
-        // read of "how many matched/outstanding/duplicate/unrecorded
-        // records exist in this date range" regardless of what they're
-        // currently drilling into with the other filters.
         $kpiStats = $this->buildKpiStats($periodFrom, $periodTo);
 
         if ($showAll) {
@@ -189,26 +180,31 @@ class BankReconciliationController extends Controller
             ]);
         }
 
-        $summaryQuery = clone $baseQuery;
-        $totalCount = $summaryQuery->count();
-        $internalTotal = $summaryQuery->sum('internal_amount');
-        $bankTotal = $summaryQuery->sum('bank_amount');
+        // Single aggregate query for total count and sum totals
+        $summary = (clone $baseQuery)->selectRaw("
+            COUNT(*) as total_count,
+            COALESCE(SUM(internal_amount), 0) as internal_total,
+            COALESCE(SUM(bank_amount), 0) as bank_total
+        ")->first();
+
+        $totalCount = (int) ($summary->total_count ?? 0);
 
         $summaryStats = [
             'total_count'    => $totalCount,
-            'internal_total' => $internalTotal,
-            'bank_total'     => $bankTotal,
+            'internal_total' => (float) ($summary->internal_total ?? 0),
+            'bank_total'     => (float) ($summary->bank_total ?? 0),
         ];
 
-        $paginatedWorkspaces = $baseQuery->paginate($perPage)->withQueryString();
+        $page = (int) $request->input('page', 1);
+        $workspaces = (clone $baseQuery)->forPage($page, $perPage)->get();
 
         return Inertia::render('BankReconciliation/Index', [
-            'reconciliationWorkspaces' => $paginatedWorkspaces->items(),
+            'reconciliationWorkspaces' => $workspaces,
             'pagination' => [
-                'total' => $paginatedWorkspaces->total(),
-                'per_page' => $paginatedWorkspaces->perPage(),
-                'current_page' => $paginatedWorkspaces->currentPage(),
-                'last_page' => $paginatedWorkspaces->lastPage(),
+                'total' => $totalCount,
+                'per_page' => $perPage,
+                'current_page' => $page,
+                'last_page' => (int) ceil($totalCount / max(1, $perPage)),
             ],
             'table_state' => [
                 'search' => $search,
@@ -229,11 +225,7 @@ class BankReconciliationController extends Controller
     }
 
     /**
-     * Counts by status plus a duplicate count, scoped ONLY by the period
-     * date range (internal_date_issued OR transaction_date within range).
-     * Deliberately starts a fresh query rather than reusing $baseQuery,
-     * since $baseQuery already carries status/week/is_duplicate/search
-     * filters that these KPIs must stay independent of.
+     * Single-pass KPI aggregate calculation.
      */
     private function buildKpiStats(string $periodFrom, string $periodTo): array
     {
@@ -247,21 +239,20 @@ class BankReconciliationController extends Controller
             });
         }
 
-        $statusCounts = (clone $query)
-            ->select('status', DB::raw('COUNT(*) as aggregate_count'))
-            ->groupBy('status')
-            ->pluck('aggregate_count', 'status');
-
-        $duplicateCount = (clone $query)
-            ->where('reconciliation_workspace.is_duplicate', true)
-            ->count();
+        $stats = $query->selectRaw("
+            COUNT(CASE WHEN status = 'Matched' THEN 1 END) as matched,
+            COUNT(CASE WHEN status = 'Outstanding' THEN 1 END) as outstanding,
+            COUNT(CASE WHEN status = 'Amount Mismatch' THEN 1 END) as mismatched,
+            COUNT(CASE WHEN status = 'Unrecorded Bank Entry' THEN 1 END) as unrecorded,
+            COUNT(CASE WHEN is_duplicate = 1 THEN 1 END) as duplicates
+        ")->first();
 
         return [
-            'matched' => (int) ($statusCounts['Matched'] ?? 0),
-            'outstanding' => (int) ($statusCounts['Outstanding'] ?? 0),
-            'mismatched' => (int) ($statusCounts['Amount Mismatch'] ?? 0),
-            'unrecorded' => (int) ($statusCounts['Unrecorded Bank Entry'] ?? 0),
-            'duplicates' => $duplicateCount,
+            'matched' => (int) ($stats->matched ?? 0),
+            'outstanding' => (int) ($stats->outstanding ?? 0),
+            'mismatched' => (int) ($stats->mismatched ?? 0),
+            'unrecorded' => (int) ($stats->unrecorded ?? 0),
+            'duplicates' => (int) ($stats->duplicates ?? 0),
         ];
     }
 
@@ -324,6 +315,15 @@ class BankReconciliationController extends Controller
         }
 
         if (!empty($internalIds)) {
+            $linkedBankIds = InternalDisbursements::whereIn('id', $internalIds)
+                ->whereNotNull('bank_statement_id')
+                ->pluck('bank_statement_id')
+                ->filter()
+                ->values()
+                ->toArray();
+
+            $bankIds = array_values(array_unique(array_merge($bankIds, $linkedBankIds)));
+
             InternalDisbursements::whereIn('id', $internalIds)->delete();
         }
 
@@ -433,16 +433,29 @@ class BankReconciliationController extends Controller
 
     public function clear(Request $request)
     {
-        $matches = $this->buildFilteredQuery($request)->get(['source', 'source_id']);
+        $filteredQuery = $this->buildFilteredQuery($request);
+        $matches = $filteredQuery->get(['source', 'source_id']);
 
-        $internalIds = $matches->where('source', 'internal')->pluck('source_id');
-        $bankIds = $matches->where('source', 'bank')->pluck('source_id');
+        $internalIds = $matches->where('source', 'internal')->pluck('source_id')->toArray();
+        $unrecordedBankIds = $matches->where('source', 'bank')->pluck('source_id')->toArray();
 
-        if ($internalIds->isNotEmpty()) {
+        $linkedBankIds = [];
+        if (!empty($internalIds)) {
+            $linkedBankIds = InternalDisbursements::whereIn('id', $internalIds)
+                ->whereNotNull('bank_statement_id')
+                ->pluck('bank_statement_id')
+                ->filter()
+                ->values()
+                ->toArray();
+        }
+
+        $bankIds = array_values(array_unique(array_merge($unrecordedBankIds, $linkedBankIds)));
+
+        if (!empty($internalIds)) {
             InternalDisbursements::whereIn('id', $internalIds)->delete();
         }
 
-        if ($bankIds->isNotEmpty()) {
+        if (!empty($bankIds)) {
             BankStatement::whereIn('id', $bankIds)->delete();
         }
 

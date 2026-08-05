@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\ImportMapping;
 use App\Models\ImportJob;
 use App\Jobs\ProcessBankReconImportJob;
 use Illuminate\Http\Request;
@@ -17,8 +18,9 @@ class BankReconciliationImportController extends Controller
             'file' => ['required', 'file', 'mimes:xlsx,xls,csv'],
             'type' => ['required', 'in:internal,bank'],
             'date_issued' => ['required_if:type,internal', 'date'],
-            'disbursement_week' => ['required_if:type,internal', 'integer', 'between:1,5'],
+            'disbursement_week' => ['required_if:type,internal', 'integer', 'min:1'],
             'bank_date' => ['required_if:type,bank', 'date'],
+            'mapping_id' => ['nullable', 'integer', 'exists:import_mappings,id'],
         ]);
 
         $file = $validated['file'];
@@ -26,6 +28,14 @@ class BankReconciliationImportController extends Controller
         $dateIssued = $validated['date_issued'] ?? null;
         $disbursementWeek = $validated['disbursement_week'] ?? null;
         $bankDate = $validated['bank_date'] ?? null;
+        $mappingId = $validated['mapping_id'] ?? null;
+
+        $mapping = null;
+        if ($mappingId) {
+            $mapping = ImportMapping::query()
+                ->where('id', $mappingId)
+                ->first();
+        }
 
         // 2. Isolate the spreadsheet resource to local disk storage
         $storedPath = $file->store('imports/bank-recon', 'local');
@@ -42,6 +52,7 @@ class BankReconciliationImportController extends Controller
                 'date_issued' => $dateIssued,
                 'disbursement_week' => $disbursementWeek,
                 'bank_date' => $bankDate,
+                'mapping_id' => $mappingId,
             ],
         ]);
 
@@ -52,7 +63,8 @@ class BankReconciliationImportController extends Controller
             $storedPath,
             $dateIssued,
             $disbursementWeek,
-            $bankDate
+            $bankDate,
+            $mapping?->mapping ?? []
         );
 
         // 5. Instantly return control back to your frontend React interface

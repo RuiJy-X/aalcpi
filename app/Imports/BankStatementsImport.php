@@ -20,7 +20,8 @@ class BankStatementsImport implements ToModel, WithHeadingRow, WithEvents, WithC
     public function __construct(
         private readonly ?int $importJobId = null,
         private readonly ?string $storedPath = null,
-        private readonly ?string $bankDate = null
+        private readonly ?string $bankDate = null,
+        private readonly array $mapping = []
     ) {}
 
     public function chunkSize(): int
@@ -30,6 +31,8 @@ class BankStatementsImport implements ToModel, WithHeadingRow, WithEvents, WithC
 
     public function model(array $row)
     {
+        $row = $this->applyMapping($row);
+
         $rawDate = trim((string) ($row['tdate'] ?? ''));
         $rawBalance = $row['running_balance'] ?? null;
         $hasBalance = $rawBalance !== null && $rawBalance !== '';
@@ -124,5 +127,23 @@ class BankStatementsImport implements ToModel, WithHeadingRow, WithEvents, WithC
                 }
             },
         ];
+    }
+
+    private function applyMapping(array $row): array
+    {
+        if (empty($this->mapping)) {
+            return $row;
+        }
+
+        $mapped = [];
+        foreach ($this->mapping as $target => $source) {
+            if (!is_string($source) || $source === '') {
+                continue;
+            }
+
+            $mapped[$target] = $row[$source] ?? null;
+        }
+
+        return array_merge($row, $mapped);
     }
 }

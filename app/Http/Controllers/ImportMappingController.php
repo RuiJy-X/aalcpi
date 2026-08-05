@@ -10,7 +10,7 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class ImportMappingController extends Controller
 {
-    private const IMPORT_TYPES = ['planters', 'productions'];
+    private const IMPORT_TYPES = ['planters', 'productions', 'bank_recon_internal', 'bank_recon_bank'];
 
     private const TARGETS = [
         'planters' => [
@@ -46,6 +46,23 @@ class ImportMappingController extends Controller
             ['key' => 'association_dues_mol'],
             ['key' => 'transloading'],
         ],
+        'bank_recon_internal' => [
+            ['key' => 'check_no', 'required' => true],
+            ['key' => 'check_amount', 'required' => true],
+            ['key' => 'payee_name'],
+            ['key' => 'audit_no'],
+            ['key' => 'date_return'],
+        ],
+        'bank_recon_bank' => [
+            ['key' => 'tdate', 'required' => true],
+            ['key' => 'checkno'],
+            ['key' => 'debit'],
+            ['key' => 'credit'],
+            ['key' => 'running_balance'],
+            ['key' => 'branch_description'],
+            ['key' => 'partic'],
+            ['key' => 'currency'],
+        ],
     ];
 
     public function preview(Request $request)
@@ -55,7 +72,7 @@ class ImportMappingController extends Controller
             'import_type' => ['required', Rule::in(self::IMPORT_TYPES)],
         ]);
 
-        $headers = $this->extractHeaders($validated['file']);
+        $headers = $this->extractHeaders($validated['file'], $validated['import_type']);
         $signature = $this->signatureFromHeaders($headers);
 
         $mapping = ImportMapping::query()
@@ -117,25 +134,44 @@ class ImportMappingController extends Controller
         ]);
     }
 
-    private function extractHeaders($file): array
+    private function extractHeaders($file, string $importType = ''): array
     {
+        $targetRow = $importType === 'bank_recon_internal' ? 6 : 1;
+
         $spreadsheet = IOFactory::load($file->getRealPath());
         $sheet = $spreadsheet->getSheet(0);
-        $rows = $sheet->rangeToArray('1:1', null, true, false);
-        $firstRow = $rows[0] ?? [];
 
-        $headers = array_map(function ($value) {
-            $stringValue = is_string($value) ? trim($value) : (string) $value;
-            if ($stringValue === '') {
-                return '';
+        $readRow = function (int $rowNumber) use ($sheet): array {
+            $rows = $sheet->rangeToArray("{$rowNumber}:{$rowNumber}", null, true, false);
+            $rowValues = $rows[0] ?? [];
+
+            $headers = array_map(function ($value) {
+                $stringValue = is_string($value) ? trim($value) : (string) $value;
+                if ($stringValue === '') {
+                    return '';
+                }
+
+                return Str::of($stringValue)->slug('_')->lower()->toString();
+            }, $rowValues);
+
+            return array_values(array_unique(array_filter($headers, static fn ($v) => $v !== '')));
+        };
+
+        $headers = $readRow($targetRow);
+
+        if (empty($headers)) {
+            for ($r = 1; $r <= 10; $r++) {
+                if ($r === $targetRow) {
+                    continue;
+                }
+                $headers = $readRow($r);
+                if (!empty($headers)) {
+                    break;
+                }
             }
+        }
 
-            return Str::of($stringValue)->slug('_')->lower()->toString();
-        }, $firstRow);
-
-        $headers = array_values(array_filter($headers, static fn ($value) => $value !== ''));
-
-        return array_values(array_unique($headers));
+        return $headers;
     }
 
     private function signatureFromHeaders(array $headers): string

@@ -6,7 +6,7 @@ export interface ImportConfig {
     label: string;
     requireCropYear?: boolean;
     headerGuide?: string[];
-    mappingType?: 'planters' | 'productions';
+    mappingType?: 'planters' | 'productions' | 'bank_recon_internal' | 'bank_recon_bank';
     mappingTargets?: ImportTarget[];
     extraFields?: ImportExtraField[];
 }
@@ -25,6 +25,25 @@ export interface ImportTarget {
     required?: boolean;
     group?: string;
 }
+
+export const bankReconInternalTargets: ImportTarget[] = [
+    { key: 'check_no', label: 'Check Number', required: true, group: 'Internal Ledger' },
+    { key: 'check_amount', label: 'Check Amount', required: true, group: 'Internal Ledger' },
+    { key: 'payee_name', label: 'Payee Name', group: 'Internal Ledger' },
+    { key: 'audit_no', label: 'Audit Number', group: 'Internal Ledger' },
+    { key: 'date_return', label: 'Date Return', group: 'Internal Ledger' },
+];
+
+export const bankReconBankTargets: ImportTarget[] = [
+    { key: 'tdate', label: 'Transaction Date', required: true, group: 'Bank Statement' },
+    { key: 'checkno', label: 'Check Number', group: 'Bank Statement' },
+    { key: 'debit', label: 'Debit Amount', group: 'Bank Statement' },
+    { key: 'credit', label: 'Credit Amount', group: 'Bank Statement' },
+    { key: 'running_balance', label: 'Running Balance', group: 'Bank Statement' },
+    { key: 'branch_description', label: 'Branch Description', group: 'Bank Statement' },
+    { key: 'partic', label: 'Particulars', group: 'Bank Statement' },
+    { key: 'currency', label: 'Currency', group: 'Bank Statement' },
+];
 
 export const plantersImportConfig = {
     route: planters.import.url(),
