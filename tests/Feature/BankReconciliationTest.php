@@ -53,6 +53,93 @@ test('authorized user can view bank reconciliation index', function () {
         ->assertOk();
 });
 
+test('bank reconciliation kpiStats metrics accurately match all categories', function () {
+    $user = User::factory()->create();
+    $user->assignRole(Permissions::SUPER_ADMIN_ROLE);
+
+    // 1. Matched entry
+    $bankMatched = BankStatement::query()->create([
+        'tdate' => '2026-08-01',
+        'checkno' => 'CHK-MATCH-1',
+        'debit' => 500.00,
+        'running_balance' => 5000.00,
+        'bank_date' => '2026-08-01',
+        'is_duplicate' => false,
+    ]);
+    InternalDisbursements::query()->create([
+        'payee_name' => 'Payee Matched',
+        'check_no' => 'CHK-MATCH-1',
+        'check_amount' => 500.00,
+        'bank_statement_id' => $bankMatched->id,
+        'date_issued' => '2026-08-01',
+        'disbursement_week' => 1,
+        'is_duplicate' => false,
+    ]);
+
+    // 2. Amount Mismatch entry
+    $bankMismatch = BankStatement::query()->create([
+        'tdate' => '2026-08-02',
+        'checkno' => 'CHK-MISMATCH-1',
+        'debit' => 600.00,
+        'running_balance' => 4400.00,
+        'bank_date' => '2026-08-01',
+        'is_duplicate' => false,
+    ]);
+    InternalDisbursements::query()->create([
+        'payee_name' => 'Payee Mismatch',
+        'check_no' => 'CHK-MISMATCH-1',
+        'check_amount' => 550.00,
+        'bank_statement_id' => $bankMismatch->id,
+        'date_issued' => '2026-08-02',
+        'disbursement_week' => 1,
+        'is_duplicate' => false,
+    ]);
+
+    // 3. Outstanding entry
+    InternalDisbursements::query()->create([
+        'payee_name' => 'Payee Outstanding',
+        'check_no' => 'CHK-OUT-1',
+        'check_amount' => 250.00,
+        'bank_statement_id' => null,
+        'date_issued' => '2026-08-03',
+        'disbursement_week' => 1,
+        'is_duplicate' => false,
+    ]);
+
+    // 4. Unrecorded Bank entry
+    BankStatement::query()->create([
+        'tdate' => '2026-08-04',
+        'checkno' => 'CHK-UNREC-1',
+        'debit' => 300.00,
+        'running_balance' => 4100.00,
+        'bank_date' => '2026-08-01',
+        'is_duplicate' => false,
+    ]);
+
+    // 5. Duplicate entry
+    InternalDisbursements::query()->create([
+        'payee_name' => 'Payee Duplicate',
+        'check_no' => 'CHK-DUP-1',
+        'check_amount' => 100.00,
+        'bank_statement_id' => null,
+        'date_issued' => '2026-08-05',
+        'disbursement_week' => 1,
+        'is_duplicate' => true,
+    ]);
+
+    $response = $this->actingAs($user)->get(route('bank_reconciliation.index'));
+    $response->assertOk();
+
+    /** @var array<string, int> $kpiStats */
+    $kpiStats = $response->viewData('page')['props']['kpiStats'];
+
+    expect($kpiStats['matched'])->toBe(1);
+    expect($kpiStats['mismatched'])->toBe(1);
+    expect($kpiStats['outstanding'])->toBe(2); // OUT-1 + DUP-1
+    expect($kpiStats['unrecorded'])->toBe(1);
+    expect($kpiStats['duplicates'])->toBe(1);
+});
+
 test('authorized user can fetch outstanding checks grouped by month', function () {
     $user = User::factory()->create();
     $user->assignRole(Permissions::SUPER_ADMIN_ROLE);
@@ -176,6 +263,3 @@ test('authorized user can view outstanding checks html print report', function (
     $response->assertOk()
         ->assertViewIs('pdfs.outstanding_checks');
 });
-
-
-

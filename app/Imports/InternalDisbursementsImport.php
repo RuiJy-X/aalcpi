@@ -5,6 +5,7 @@ namespace App\Imports;
 use App\Models\BankStatement;
 use App\Models\InternalDisbursements;
 use App\Models\ImportJob;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
@@ -103,6 +104,8 @@ class InternalDisbursementsImport implements ToModel, WithHeadingRow, WithEvents
     {
         return [
             AfterImport::class => function (): void {
+                Cache::forget('bank_recon_week_options');
+
                 if ($this->importJobId !== null) {
                     InternalDisbursements::reconcileUnmatched();
                     BankStatement::refreshDuplicateFlags();

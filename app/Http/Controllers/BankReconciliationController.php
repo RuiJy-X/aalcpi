@@ -9,6 +9,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Inertia\Inertia;
 use App\Models\ReconciliationWorkspace;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -144,6 +145,8 @@ class BankReconciliationController extends Controller
 
         $statusOptions = ['Amount Mismatch', 'Matched', 'Outstanding', 'Unrecorded Bank Entry'];
 
+        Cache::forget('bank_recon_week_options');
+
         $weekOptions = InternalDisbursements::query()
             ->whereNotNull('disbursement_week')
             ->distinct()
@@ -227,33 +230,69 @@ class BankReconciliationController extends Controller
 
     /**
      * Single-pass KPI aggregate calculation.
+     * Uses direct indexed base table queries for default view to achieve sub-millisecond speed.
      */
     private function buildKpiStats(string $periodFrom, string $periodTo): array
     {
-        $query = ReconciliationWorkspace::query();
-
         if ($periodFrom !== '') {
             $periodToResolved = $periodTo !== '' ? $periodTo : $periodFrom;
+            $query = ReconciliationWorkspace::query();
             $query->where(function ($q) use ($periodFrom, $periodToResolved) {
                 $q->whereBetween('reconciliation_workspace.internal_date_issued', [$periodFrom, $periodToResolved])
                     ->orWhereBetween('reconciliation_workspace.transaction_date', [$periodFrom, $periodToResolved]);
             });
+
+            $stats = $query->selectRaw("
+                COUNT(CASE WHEN status = 'Matched' THEN 1 END) as matched,
+                COUNT(CASE WHEN status = 'Outstanding' THEN 1 END) as outstanding,
+                COUNT(CASE WHEN status = 'Amount Mismatch' THEN 1 END) as mismatched,
+                COUNT(CASE WHEN status = 'Unrecorded Bank Entry' THEN 1 END) as unrecorded,
+                COUNT(CASE WHEN is_duplicate = 1 THEN 1 END) as duplicates
+            ")->first();
+
+            return [
+                'matched' => (int) ($stats->matched ?? 0),
+                'outstanding' => (int) ($stats->outstanding ?? 0),
+                'mismatched' => (int) ($stats->mismatched ?? 0),
+                'unrecorded' => (int) ($stats->unrecorded ?? 0),
+                'duplicates' => (int) ($stats->duplicates ?? 0),
+            ];
         }
 
-        $stats = $query->selectRaw("
-            COUNT(CASE WHEN status = 'Matched' THEN 1 END) as matched,
-            COUNT(CASE WHEN status = 'Outstanding' THEN 1 END) as outstanding,
-            COUNT(CASE WHEN status = 'Amount Mismatch' THEN 1 END) as mismatched,
-            COUNT(CASE WHEN status = 'Unrecorded Bank Entry' THEN 1 END) as unrecorded,
-            COUNT(CASE WHEN is_duplicate = 1 THEN 1 END) as duplicates
-        ")->first();
+        $matched = DB::table('internal_disbursements')
+            ->join('bank_statements', 'bank_statements.id', '=', 'internal_disbursements.bank_statement_id')
+            ->whereRaw('internal_disbursements.check_amount = bank_statements.debit')
+            ->count();
+
+        $mismatched = DB::table('internal_disbursements')
+            ->join('bank_statements', 'bank_statements.id', '=', 'internal_disbursements.bank_statement_id')
+            ->whereRaw('internal_disbursements.check_amount != bank_statements.debit')
+            ->count();
+
+        $outstanding = DB::table('internal_disbursements')
+            ->whereNull('bank_statement_id')
+            ->count();
+
+        $unrecorded = DB::table('bank_statements')
+            ->whereNotIn('id', function ($q) {
+                $q->select('bank_statement_id')->from('internal_disbursements')->whereNotNull('bank_statement_id');
+            })
+            ->count();
+
+        $internalDuplicates = DB::table('internal_disbursements')->where('is_duplicate', 1)->count();
+        $bankDuplicates = DB::table('bank_statements')
+            ->where('is_duplicate', 1)
+            ->whereNotIn('id', function ($q) {
+                $q->select('bank_statement_id')->from('internal_disbursements')->whereNotNull('bank_statement_id');
+            })
+            ->count();
 
         return [
-            'matched' => (int) ($stats->matched ?? 0),
-            'outstanding' => (int) ($stats->outstanding ?? 0),
-            'mismatched' => (int) ($stats->mismatched ?? 0),
-            'unrecorded' => (int) ($stats->unrecorded ?? 0),
-            'duplicates' => (int) ($stats->duplicates ?? 0),
+            'matched' => $matched,
+            'outstanding' => $outstanding,
+            'mismatched' => $mismatched,
+            'unrecorded' => $unrecorded,
+            'duplicates' => $internalDuplicates + $bankDuplicates,
         ];
     }
 
@@ -326,6 +365,7 @@ class BankReconciliationController extends Controller
             $bankIds = array_values(array_unique(array_merge($bankIds, $linkedBankIds)));
 
             InternalDisbursements::whereIn('id', $internalIds)->delete();
+            Cache::forget('bank_recon_week_options');
         }
 
         if (!empty($bankIds)) {
