@@ -338,8 +338,13 @@ class ProductionController extends Controller
             'user_id' => $request->user()?->id,
             'type' => 'productions_excel',
             'status' => ImportJob::STATUS_QUEUED,
+            'file_name' => $file->getClientOriginalName(),
             'context' => [
                 'crop_year' => $cropYear,
+                'file_name' => $file->getClientOriginalName(),
+                'composite_sugar_price' => $compositeSugarPrice,
+                'composite_molasses_price' => $compositeMolassesPrice,
+                'mapping_name' => $mapping->name ?? null,
             ],
         ]);
 

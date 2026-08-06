@@ -7,9 +7,11 @@ use App\Models\ImportJob;
 use App\Models\InternalDisbursements;
 use App\Models\Planter;
 use App\Models\Production;
+use App\Models\Weekly;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
 class ImportHistoryController extends Controller
@@ -25,6 +27,12 @@ class ImportHistoryController extends Controller
         if ($type !== '') {
             if ($type === 'bank_recon') {
                 $query->whereIn('type', ['bank_recon_internal', 'bank_recon_bank', 'internal', 'bank']);
+            } elseif ($type === 'productions' || $type === 'productions_excel') {
+                $query->whereIn('type', ['productions', 'productions_excel']);
+            } elseif ($type === 'weekly' || $type === 'weekly_pdf') {
+                $query->whereIn('type', ['weekly', 'weekly_pdf']);
+            } elseif ($type === 'planters' || $type === 'planters_excel') {
+                $query->whereIn('type', ['planters', 'planters_excel']);
             } else {
                 $query->where('type', $type);
             }
@@ -47,10 +55,34 @@ class ImportHistoryController extends Controller
                 $recordCount = InternalDisbursements::where('import_job_id', $job->id)->count();
             } elseif (in_array($job->type, ['bank_recon_bank', 'bank'], true)) {
                 $recordCount = BankStatement::where('import_job_id', $job->id)->count();
-            } elseif ($job->type === 'planters') {
+            } elseif (in_array($job->type, ['planters', 'planters_excel'], true)) {
                 $recordCount = Planter::where('import_job_id', $job->id)->count();
-            } elseif ($job->type === 'productions') {
+            } elseif (in_array($job->type, ['productions', 'productions_excel'], true)) {
                 $recordCount = Production::where('import_job_id', $job->id)->count();
+                if ($recordCount === 0 && isset($job->context['rows_saved'])) {
+                    $recordCount = (int) $job->context['rows_saved'];
+                }
+                if ($recordCount === 0 && ! empty($job->context['crop_year'])) {
+                    $recordCount = Production::where('crop_year', $job->context['crop_year'])->count();
+                }
+            } elseif (in_array($job->type, ['weekly', 'weekly_pdf'], true)) {
+                $recordCount = Weekly::where('import_job_id', $job->id)->count();
+                if ($recordCount === 0 && isset($job->context['rows_saved'])) {
+                    $recordCount = (int) $job->context['rows_saved'];
+                }
+                if ($recordCount === 0 && ! empty($job->context['crop_year']) && ! empty($job->context['week'])) {
+                    $recordCount = Weekly::where('crop_year', $job->context['crop_year'])
+                        ->where('week', $job->context['week'])
+                        ->count();
+                }
+            }
+
+            $context = $job->context ?? [];
+            if (! isset($context['rows_saved']) || (int) ($context['rows_saved'] ?? 0) === 0) {
+                $context['rows_saved'] = $recordCount;
+            }
+            if (! isset($context['rows_read']) || (int) ($context['rows_read'] ?? 0) === 0) {
+                $context['rows_read'] = $recordCount + (int) ($context['rows_skipped'] ?? 0);
             }
 
             return [
@@ -58,11 +90,11 @@ class ImportHistoryController extends Controller
                 'type' => $job->type,
                 'status' => $job->status,
                 'message' => $job->message,
-                'file_name' => $job->file_name ?? ($job->context['file_name'] ?? 'Spreadsheet File'),
+                'file_name' => $job->file_name ?? ($context['file_name'] ?? 'Import File'),
                 'created_at' => $job->created_at?->toIso8601String(),
                 'user_name' => $job->user?->name ?? 'System',
                 'record_count' => $recordCount,
-                'context' => $job->context,
+                'context' => $context,
             ];
         });
 
@@ -118,10 +150,27 @@ class ImportHistoryController extends Controller
                 InternalDisbursements::reconcileUnmatched();
                 BankStatement::refreshDuplicateFlags();
                 InternalDisbursements::refreshDuplicateFlags();
-            } elseif ($importJob->type === 'planters') {
+            } elseif (in_array($importJob->type, ['planters', 'planters_excel'], true)) {
                 Planter::where('import_job_id', $importJob->id)->delete();
-            } elseif ($importJob->type === 'productions') {
-                Production::where('import_job_id', $importJob->id)->delete();
+            } elseif (in_array($importJob->type, ['productions', 'productions_excel'], true)) {
+                $deletedCount = Production::where('import_job_id', $importJob->id)->delete();
+                if ($deletedCount === 0 && ! empty($importJob->context['crop_year'])) {
+                    Production::where('crop_year', $importJob->context['crop_year'])->delete();
+                }
+            } elseif (in_array($importJob->type, ['weekly', 'weekly_pdf'], true)) {
+                $weeklies = Weekly::where('import_job_id', $importJob->id)->get();
+                if ($weeklies->isEmpty() && ! empty($importJob->context['crop_year']) && ! empty($importJob->context['week'])) {
+                    $weeklies = Weekly::where('crop_year', $importJob->context['crop_year'])
+                        ->where('week', $importJob->context['week'])
+                        ->get();
+                }
+
+                foreach ($weeklies as $weekly) {
+                    if ($weekly->file_location && Storage::disk('public')->exists($weekly->file_location)) {
+                        Storage::disk('public')->delete($weekly->file_location);
+                    }
+                    $weekly->delete();
+                }
             }
 
             $importJob->delete();

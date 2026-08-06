@@ -117,16 +117,20 @@ const postJson = async <T,>(
 
 export function BankReconImportDialog() {
     const [isOpen, setIsOpen] = useState(false);
-    const [step, setStep] = useState<'select' | 'mapping'>('select');
+    const [step, setStep] = useState<1 | 2 | 3 | 'mapping'>(1);
     const [isImporting, setIsImporting] = useState(false);
     const [isPreviewing, setIsPreviewing] = useState(false);
     const [isSavingMapping, setIsSavingMapping] = useState(false);
 
+    const currentDate = new Date();
+    const currentYearStr = currentDate.getFullYear().toString();
+    const currentMonthStr = String(currentDate.getMonth() + 1).padStart(2, '0');
+
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [importType, setImportType] = useState<'internal' | 'bank'>('internal');
     const [dateIssued, setDateIssued] = useState<string>('');
-    const [bankDate, setBankDate] = useState<string>('');
     const [disbursementWeek, setDisbursementWeek] = useState<string>('');
+    const [bankMonth, setBankMonth] = useState<string>(`${currentYearStr}-${currentMonthStr}`);
     const [error, setError] = useState<string | null>(null);
 
     const [headers, setHeaders] = useState<string[]>([]);
@@ -155,10 +159,10 @@ export function BankReconImportDialog() {
         setSelectedFile(null);
         setImportType('internal');
         setDateIssued('');
-        setBankDate('');
         setDisbursementWeek('');
+        setBankMonth(`${currentYearStr}-${currentMonthStr}`);
         setError(null);
-        setStep('select');
+        setStep(1);
         setHeaders([]);
         setSignature('');
         setMapping({});
@@ -167,7 +171,6 @@ export function BankReconImportDialog() {
     const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
         setSelectedFile(e.target.files?.[0] ?? null);
         setError(null);
-        setStep('select');
     };
 
     const handleNextOrPreview = async (e: React.FormEvent) => {
@@ -180,15 +183,18 @@ export function BankReconImportDialog() {
         if (importType === 'internal') {
             if (!dateIssued) {
                 setError('Please select the date issued for this batch.');
+                setStep(2);
                 return;
             }
             if (!disbursementWeek) {
-                setError('Please select the disbursement week for this batch.');
+                setError('Please select the week number for this batch.');
+                setStep(2);
                 return;
             }
         } else {
-            if (!bankDate) {
-                setError('Please select the bank date for this batch.');
+            if (!bankMonth) {
+                setError('Please select the year and month for this batch.');
+                setStep(2);
                 return;
             }
         }
@@ -277,6 +283,8 @@ export function BankReconImportDialog() {
             return;
         }
 
+        const computedBankDate = `${bankMonth}-01`;
+
         router.post(
             importRoute.url(),
             {
@@ -288,7 +296,7 @@ export function BankReconImportDialog() {
                           disbursement_week: disbursementWeek,
                       }
                     : {
-                          bank_date: bankDate,
+                          bank_date: computedBankDate,
                       }),
                 ...(mappingId ? { mapping_id: mappingId } : {}),
             },
@@ -354,6 +362,35 @@ export function BankReconImportDialog() {
         }
     };
 
+    const getDialogHeader = () => {
+        switch (step) {
+            case 1:
+                return {
+                    title: 'Import Reconciliation Ledger - Step 1 of 3',
+                    description: 'Select whether you want to import internal ledgers or a bank statement.',
+                };
+            case 2:
+                return {
+                    title: 'Import Reconciliation Ledger - Step 2 of 3',
+                    description: importType === 'internal'
+                        ? 'Specify the date issued and week number for the internal ledgers.'
+                        : 'Specify the year and month for the bank statement.',
+                };
+            case 3:
+                return {
+                    title: 'Import Reconciliation Ledger - Step 3 of 3',
+                    description: 'Choose the spreadsheet file (.xlsx, .xls, .csv) to import.',
+                };
+            case 'mapping':
+                return {
+                    title: 'Map Column Headers',
+                    description: 'Match the columns in your spreadsheet file to system target fields.',
+                };
+        }
+    };
+
+    const headerInfo = getDialogHeader();
+
     return (
         <>
         <Dialog
@@ -372,27 +409,99 @@ export function BankReconImportDialog() {
 
             <DialogContent className="bg-card sm:max-w-md max-h-[85vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>
-                        {step === 'mapping'
-                            ? 'Map Column Headers'
-                            : 'Import Reconciliation Ledger'}
-                    </DialogTitle>
-                    <DialogDescription>
-                        {step === 'mapping'
-                            ? 'Match the columns in your spreadsheet file to system target fields.'
-                            : 'Upload your business logs or bank statement spreadsheets to begin automated matching.'}
-                    </DialogDescription>
+                    <DialogTitle>{headerInfo.title}</DialogTitle>
+                    <DialogDescription>{headerInfo.description}</DialogDescription>
                 </DialogHeader>
 
-                {step === 'select' ? (
-                    <form onSubmit={handleNextOrPreview} className="space-y-6 pt-2">
-                        {/* Source Selector Cards */}
+                {/* Progress Tracker */}
+                <div className="mb-2 flex items-center justify-between border-b pb-3 text-xs pt-1">
+                    <div
+                        className={`flex items-center gap-1.5 font-medium ${
+                            step === 1 ? 'text-primary' : 'text-muted-foreground'
+                        }`}
+                    >
+                        <span
+                            className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${
+                                step === 1
+                                    ? 'bg-primary text-primary-foreground'
+                                    : typeof step === 'number' && step > 1
+                                    ? 'bg-primary/20 text-primary'
+                                    : 'bg-muted text-muted-foreground'
+                            }`}
+                        >
+                            1
+                        </span>
+                        <span>Source</span>
+                    </div>
+                    <div className="h-[1px] flex-1 bg-border mx-2" />
+                    <div
+                        className={`flex items-center gap-1.5 font-medium ${
+                            step === 2 ? 'text-primary' : 'text-muted-foreground'
+                        }`}
+                    >
+                        <span
+                            className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${
+                                step === 2
+                                    ? 'bg-primary text-primary-foreground'
+                                    : typeof step === 'number' && step > 2
+                                    ? 'bg-primary/20 text-primary'
+                                    : 'bg-muted text-muted-foreground'
+                            }`}
+                        >
+                            2
+                        </span>
+                        <span>Details</span>
+                    </div>
+                    <div className="h-[1px] flex-1 bg-border mx-2" />
+                    <div
+                        className={`flex items-center gap-1.5 font-medium ${
+                            step === 3 ? 'text-primary' : 'text-muted-foreground'
+                        }`}
+                    >
+                        <span
+                            className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${
+                                step === 3
+                                    ? 'bg-primary text-primary-foreground'
+                                    : step === 'mapping'
+                                    ? 'bg-primary/20 text-primary'
+                                    : 'bg-muted text-muted-foreground'
+                            }`}
+                        >
+                            3
+                        </span>
+                        <span>File</span>
+                    </div>
+                    <div className="h-[1px] flex-1 bg-border mx-2" />
+                    <div
+                        className={`flex items-center gap-1.5 font-medium ${
+                            step === 'mapping' ? 'text-primary' : 'text-muted-foreground'
+                        }`}
+                    >
+                        <span
+                            className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${
+                                step === 'mapping'
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'bg-muted text-muted-foreground'
+                            }`}
+                        >
+                            4
+                        </span>
+                        <span>Mapping</span>
+                    </div>
+                </div>
+
+                {/* Step 1: Import Type Selection */}
+                {step === 1 && (
+                    <div className="space-y-6 pt-2">
                         <div className="space-y-2">
-                            <Label>Data Source Location</Label>
+                            <Label>Select Import Source</Label>
                             <div className="grid grid-cols-2 gap-3">
                                 <button
                                     type="button"
-                                    onClick={() => setImportType('internal')}
+                                    onClick={() => {
+                                        setImportType('internal');
+                                        setError(null);
+                                    }}
                                     className={`flex flex-col items-center justify-center rounded-xl border-2 p-4 text-center transition-all ${
                                         importType === 'internal'
                                             ? 'border-primary bg-primary/5 text-primary'
@@ -401,7 +510,7 @@ export function BankReconImportDialog() {
                                 >
                                     <Building2 className="mb-2 h-6 w-6" />
                                     <span className="text-sm font-semibold">
-                                        Internal Ledger
+                                        Internal Ledgers
                                     </span>
                                     <span className="mt-0.5 text-xs text-muted-foreground">
                                         Company Books
@@ -410,7 +519,10 @@ export function BankReconImportDialog() {
 
                                 <button
                                     type="button"
-                                    onClick={() => setImportType('bank')}
+                                    onClick={() => {
+                                        setImportType('bank');
+                                        setError(null);
+                                    }}
                                     className={`flex flex-col items-center justify-center rounded-xl border-2 p-4 text-center transition-all ${
                                         importType === 'bank'
                                             ? 'border-primary bg-primary/5 text-primary'
@@ -428,8 +540,38 @@ export function BankReconImportDialog() {
                             </div>
                         </div>
 
-                        {/* Batch metadata — only relevant for internal ledger imports */}
-                        {importType === 'internal' && (
+                        {error && (
+                            <p
+                                className="rounded-lg bg-destructive/10 p-2.5 text-xs font-medium text-destructive"
+                                role="alert"
+                            >
+                                {error}
+                            </p>
+                        )}
+
+                        <DialogFooter className="gap-2 sm:gap-0">
+                            <DialogClose asChild>
+                                <Button type="button" variant="outline">
+                                    Cancel
+                                </Button>
+                            </DialogClose>
+                            <Button
+                                type="button"
+                                onClick={() => {
+                                    setError(null);
+                                    setStep(2);
+                                }}
+                            >
+                                Next: Enter Details
+                            </Button>
+                        </DialogFooter>
+                    </div>
+                )}
+
+                {/* Step 2: Batch Metadata Details */}
+                {step === 2 && (
+                    <div className="space-y-6 pt-2">
+                        {importType === 'internal' ? (
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="space-y-2">
                                     <Label htmlFor="date-issued">Date Issued</Label>
@@ -449,6 +591,7 @@ export function BankReconImportDialog() {
                                     <Input
                                         type="number"
                                         min="1"
+                                        max="53"
                                         id="disbursement-week"
                                         placeholder="e.g. 1, 2, 12, 52..."
                                         value={disbursementWeek}
@@ -460,28 +603,73 @@ export function BankReconImportDialog() {
                                     />
                                 </div>
                             </div>
-                        )}
-
-                        {importType === 'bank' && (
-                            <div className="grid grid-cols-1">
-                                <div className="space-y-2">
-                                    <Label htmlFor="bank-date">Date</Label>
-                                    <Input
-                                        type="date"
-                                        id="bank-date"
-                                        value={bankDate}
-                                        placeholder="Select Month and Year"
-                                        onChange={(e) => {
-                                            setBankDate(e.target.value);
-                                            setError(null);
-                                        }}
-                                        disabled={isImporting || isPreviewing}
-                                    />
-                                </div>
+                        ) : (
+                            <div className="space-y-2">
+                                <Label htmlFor="bank-month">Month and Year</Label>
+                                <Input
+                                    type="month"
+                                    id="bank-month"
+                                    value={bankMonth}
+                                    onChange={(e) => {
+                                        setBankMonth(e.target.value);
+                                        setError(null);
+                                    }}
+                                    disabled={isImporting || isPreviewing}
+                                />
                             </div>
                         )}
 
-                        {/* File Attachment Input Wrapper */}
+                        {error && (
+                            <p
+                                className="rounded-lg bg-destructive/10 p-2.5 text-xs font-medium text-destructive"
+                                role="alert"
+                            >
+                                {error}
+                            </p>
+                        )}
+
+                        <DialogFooter className="gap-2 sm:gap-0">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                    setError(null);
+                                    setStep(1);
+                                }}
+                            >
+                                Back
+                            </Button>
+                            <Button
+                                type="button"
+                                onClick={() => {
+                                    if (importType === 'internal') {
+                                        if (!dateIssued) {
+                                            setError('Please select the date issued for this batch.');
+                                            return;
+                                        }
+                                        if (!disbursementWeek) {
+                                            setError('Please select the week number for this batch.');
+                                            return;
+                                        }
+                                    } else {
+                                        if (!bankMonth) {
+                                            setError('Please select the year and month for this batch.');
+                                            return;
+                                        }
+                                    }
+                                    setError(null);
+                                    setStep(3);
+                                }}
+                            >
+                                Next: Select File
+                            </Button>
+                        </DialogFooter>
+                    </div>
+                )}
+
+                {/* Step 3: File Attachment */}
+                {step === 3 && (
+                    <form onSubmit={handleNextOrPreview} className="space-y-6 pt-2">
                         <div className="space-y-2">
                             <Label htmlFor="recon-file">
                                 Spreadsheet Attachment
@@ -494,6 +682,11 @@ export function BankReconImportDialog() {
                                 disabled={isImporting || isPreviewing}
                                 className="cursor-pointer file:text-primary"
                             />
+                            {selectedFile && (
+                                <p className="text-xs text-muted-foreground font-medium pt-1">
+                                    Selected file: <span className="text-foreground">{selectedFile.name}</span> ({Math.round(selectedFile.size / 1024)} KB)
+                                </p>
+                            )}
                             <p className="text-[11px] text-muted-foreground">
                                 Supported extensions:{' '}
                                 <code className="rounded bg-muted px-1 py-0.5">
@@ -520,15 +713,17 @@ export function BankReconImportDialog() {
                         )}
 
                         <DialogFooter className="gap-2 sm:gap-0">
-                            <DialogClose asChild>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    disabled={isImporting || isPreviewing}
-                                >
-                                    Cancel
-                                </Button>
-                            </DialogClose>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                    setError(null);
+                                    setStep(2);
+                                }}
+                                disabled={isImporting || isPreviewing}
+                            >
+                                Back
+                            </Button>
                             <Button
                                 type="submit"
                                 disabled={isImporting || isPreviewing || !selectedFile}
@@ -539,7 +734,10 @@ export function BankReconImportDialog() {
                             </Button>
                         </DialogFooter>
                     </form>
-                ) : (
+                )}
+
+                {/* Step 4: Column Mapping */}
+                {step === 'mapping' && (
                     <div className="space-y-4 pt-2">
                         <div className="rounded-md bg-muted p-3 text-xs leading-5">
                             <p className="font-medium text-foreground">
@@ -632,7 +830,10 @@ export function BankReconImportDialog() {
                             <Button
                                 type="button"
                                 variant="outline"
-                                onClick={() => setStep('select')}
+                                onClick={() => {
+                                    setError(null);
+                                    setStep(3);
+                                }}
                                 disabled={isSavingMapping || isImporting}
                             >
                                 Back

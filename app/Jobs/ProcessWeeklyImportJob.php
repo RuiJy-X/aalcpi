@@ -68,6 +68,10 @@ class ProcessWeeklyImportJob implements ShouldQueue
             : ['python3', base_path('pdftoexcel.py'), $inputPath, $week, $cropYear, $outputPath];
 
         $importedCount = 0;
+        $skippedCount = 0;
+        $warnings = [];
+        $uniquePlanterCodes = [];
+        $extractedPlanters = [];
 
         try {
             try {
@@ -89,21 +93,36 @@ class ProcessWeeklyImportJob implements ShouldQueue
                     throw new RuntimeException('The weekly splitter did not return any output files.');
                 }
 
-                Weekly::query()
+                $deletedPriorCount = Weekly::query()
                     ->where('crop_year', $cropYear)
                     ->where('week', $week)
                     ->delete();
+
+                if ($deletedPriorCount > 0) {
+                    $warnings[] = "Replaced {$deletedPriorCount} existing weekly record(s) for Crop Year {$cropYear}, Week {$week}.";
+                }
 
                 $publicRoot = Str::of(realpath(storage_path('app/public')) ?: storage_path('app/public'))
                     ->replace('\\', '/')
                     ->trim('/');
 
-                $files->each(function (array $file) use ($cropYear, $week, $publicRoot): void {
+                $files->each(function (array $file, int $index) use (
+                    $cropYear,
+                    $week,
+                    $publicRoot,
+                    &$importedCount,
+                    &$skippedCount,
+                    &$warnings,
+                    &$uniquePlanterCodes,
+                    &$extractedPlanters
+                ): void {
                     $outputFile = Str::of((string) ($file['output_file'] ?? ''))
                         ->replace('\\', '/')
                         ->trim();
 
                     if ($outputFile->isEmpty()) {
+                        $skippedCount++;
+                        $warnings[] = "File entry #" . ($index + 1) . ": Output PDF file path was empty.";
                         return;
                     }
 
@@ -114,6 +133,8 @@ class ProcessWeeklyImportJob implements ShouldQueue
                     $relativePath = $relativePath->toString();
 
                     if ($relativePath === '') {
+                        $skippedCount++;
+                        $warnings[] = "File entry #" . ($index + 1) . ": Could not determine relative output path.";
                         return;
                     }
 
@@ -122,8 +143,11 @@ class ProcessWeeklyImportJob implements ShouldQueue
                     $segment = trim((string) ($file['segment'] ?? 'full'));
                     $page = trim((string) ($file['source_page'] ?? $file['page'] ?? ''));
 
-                    // Use a stable, natural reference key so one source page can map to
-                    // multiple planter rows without collisions and without duplicate inserts.
+                    $uniquePlanterCodes[$planterCode] = true;
+                    if (! in_array("{$planterCode} - {$planterName}", $extractedPlanters, true)) {
+                        $extractedPlanters[] = "{$planterCode} - {$planterName}";
+                    }
+
                     Weekly::updateOrCreate(
                         [
                             'crop_year' => $cropYear,
@@ -135,18 +159,57 @@ class ProcessWeeklyImportJob implements ShouldQueue
                         ],
                         [
                             'file_location' => $relativePath,
+                            'import_job_id' => $this->importJobId,
                         ],
                     );
-                });
 
-                $importedCount = $files->count();
+                    $importedCount++;
+                });
             } finally {
                 Storage::disk('local')->delete($this->temporaryPath);
             }
 
-            $importJob?->markDone('Imported '.$importedCount.' weekly planter PDF(s).');
+            if ($importJob) {
+                $context = array_merge($importJob->context ?? [], [
+                    'heading_row' => 1,
+                    'headers_read' => ['crop_year', 'week', 'planter_code', 'planter_name', 'segment', 'page', 'file_location'],
+                    'rows_read' => $files->count(),
+                    'rows_saved' => $importedCount,
+                    'rows_skipped' => $skippedCount,
+                    'unique_planters' => count($uniquePlanterCodes),
+                    'extracted_planters' => array_slice($extractedPlanters, 0, 30),
+                    'warnings' => $warnings,
+                    'crop_year' => $cropYear,
+                    'week' => $week,
+                ]);
+
+                $importJob->update([
+                    'status' => ImportJob::STATUS_DONE,
+                    'finished_at' => now(),
+                    'context' => $context,
+                    'message' => "Imported {$importedCount} weekly planter PDF(s) across " . count($uniquePlanterCodes) . " planter(s).",
+                ]);
+            }
         } catch (Throwable $exception) {
-            $importJob?->markFailed($exception->getMessage());
+            if ($importJob) {
+                $context = array_merge($importJob->context ?? [], [
+                    'heading_row' => 1,
+                    'rows_read' => isset($files) ? $files->count() : 0,
+                    'rows_saved' => $importedCount,
+                    'rows_skipped' => $skippedCount,
+                    'warnings' => $warnings,
+                    'error' => $exception->getMessage(),
+                    'crop_year' => $cropYear,
+                    'week' => $week,
+                ]);
+
+                $importJob->update([
+                    'status' => ImportJob::STATUS_FAILED,
+                    'finished_at' => now(),
+                    'context' => $context,
+                    'message' => $exception->getMessage(),
+                ]);
+            }
             throw $exception;
         }
     }
@@ -173,7 +236,18 @@ class ProcessWeeklyImportJob implements ShouldQueue
             $message = 'Weekly import timed out while splitting the PDF. Re-run the import; large files can take several minutes.';
         }
 
-        $importJob->markFailed($message);
+        $context = array_merge($importJob->context ?? [], [
+            'error' => $message,
+            'crop_year' => $this->cropYear,
+            'week' => $this->week,
+        ]);
+
+        $importJob->update([
+            'status' => ImportJob::STATUS_FAILED,
+            'finished_at' => now(),
+            'context' => $context,
+            'message' => $message,
+        ]);
 
         // Best-effort cleanup of the staged upload.
         if ($this->temporaryPath !== '' && Storage::disk('local')->exists($this->temporaryPath)) {

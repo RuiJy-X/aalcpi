@@ -160,11 +160,14 @@ export default function ImportHistoryPage({
             case 'bank':
                 return 'Bank Statement';
             case 'planters':
-                return 'Planter Data';
+            case 'planters_excel':
+                return 'Planter Masterlist';
             case 'productions':
+            case 'productions_excel':
                 return 'Production Data';
             case 'weekly':
-                return 'Weekly Report';
+            case 'weekly_pdf':
+                return 'Weekly PDF Report';
             default:
                 return type;
         }
@@ -175,8 +178,10 @@ export default function ImportHistoryPage({
             return <Building2 className="h-4 w-4 text-primary" />;
         if (type.includes('bank'))
             return <FileSpreadsheet className="h-4 w-4 text-emerald-500" />;
-        if (type === 'planters')
+        if (type.includes('planter'))
             return <Users className="h-4 w-4 text-amber-500" />;
+        if (type.includes('weekly'))
+            return <FileText className="h-4 w-4 text-purple-500" />;
         return <Database className="h-4 w-4 text-blue-500" />;
     };
 
@@ -354,6 +359,9 @@ export default function ImportHistoryPage({
                                         </SelectItem>
                                         <SelectItem value="productions">
                                             Production Data
+                                        </SelectItem>
+                                        <SelectItem value="weekly">
+                                            Weekly PDF Reports
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>

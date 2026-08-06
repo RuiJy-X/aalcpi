@@ -17,6 +17,7 @@ class Weekly extends Model
         'planter_code',
         'segment',
         'page',
-        'file_location'
+        'file_location',
+        'import_job_id',
     ];
 }

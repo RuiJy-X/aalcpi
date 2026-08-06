@@ -10,14 +10,13 @@ class Production extends Model
     use HasFactory;
 
 
-        protected $fillable = [
-            'planter_id', 'hacienda_id', 'milling_period_id', 'planter_code', 'hacienda_code',
+    protected $fillable = [
+        'planter_id', 'hacienda_id', 'milling_period_id', 'import_job_id', 'planter_code', 'hacienda_code',
         'crop_year',
         'gross_cw', 'net_cw', 'trucks', 'theoretical_lkg', 'actual_lkg',
         'pshr_net_lkg', 'pdpa_lkg', 'association_dues_lkg', 'actual_mol',
         'pshr_net_mol', 'pdpa_mol', 'association_dues_mol', 'trans_code', 'transloading',
-        'composite_sugar_price', 'composite_molasses_price','status'
-
+        'composite_sugar_price', 'composite_molasses_price', 'status'
     ];
 
     protected $casts = [
