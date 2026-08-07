@@ -3,7 +3,10 @@ import type { AttendanceType } from '../Attendance/attendance-types';
 export type PayrollType = {
     id: number;
     employee_id: number;
+    employee_code?: string | null;
     employee_name: string | null;
+    position?: string | null;
+    daily_rate?: string | number | null;
     period_start: string;
     period_end: string;
     payroll_date?: string | null;
@@ -15,6 +18,9 @@ export type PayrollType = {
     basic_pay: string | number;
     holidays: number;
     gross_pay: string | number;
+    sss_loan?: string | number | null;
+    pagibig_loan?: string | number | null;
+    emergency_loan?: string | number | null;
     deductions: string | number;
     net_pay: string | number;
     status: string;
@@ -25,10 +31,10 @@ export type PayrollType = {
 export type PayrollEmployeeSummary = {
     id: number;
     name: string;
-    department?: string | null;
+    employee_code?: string | null;
     position?: string | null;
-    employment_type?: string | null;
     hourly_rate?: string | number | null;
+    daily_rate?: string | number | null;
     base_salary?: string | number | null;
     attendances?: AttendanceType[];
 };

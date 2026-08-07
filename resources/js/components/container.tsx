@@ -11,7 +11,7 @@ export const ContainerHeader = ({
     return (
         <div
             className={cn(
-                'my-2 flex items-center justify-between gap-3 text-2xl font-semibold tracking-tight',
+                'mb-4 flex flex-wrap items-center justify-between gap-4 text-xl font-bold tracking-tight text-foreground sm:text-2xl',
                 className,
             )}
         >
@@ -19,6 +19,7 @@ export const ContainerHeader = ({
         </div>
     );
 };
+
 export const ContainerHeaderTitle = ({
     children,
     className,
@@ -29,7 +30,7 @@ export const ContainerHeaderTitle = ({
     return (
         <div
             className={cn(
-                'flex items-center justify-between text-lg font-semibold tracking-tight',
+                'flex items-center gap-2 text-lg font-bold tracking-tight text-foreground',
                 className,
             )}
         >
@@ -48,12 +49,11 @@ export const Container = ({
     return (
         <div
             className={cn(
-                'container-full relative mx-3 my-3 overflow-hidden rounded-xl border border-border/80 bg-card px-4 py-3 shadow-sm ring-1 ring-black/5 transition-shadow duration-200 hover:shadow-md sm:px-5 sm:py-4',
+                'my-4 rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 sm:p-6 md:p-8',
                 className,
             )}
         >
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-16 from-primary/10 via-primary/5 to-transparent dark:from-primary/20 dark:via-primary/10" />
-            <div className="relative z-10">{children}</div>
+            {children}
         </div>
     );
 };
@@ -68,7 +68,7 @@ export const ContainerHeaderEnd = ({
     return (
         <div
             className={cn(
-                'flex items-center justify-end gap-2 text-lg font-semibold tracking-tight',
+                'flex items-center justify-end gap-2 text-sm font-medium',
                 className,
             )}
         >

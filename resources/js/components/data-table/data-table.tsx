@@ -580,16 +580,16 @@ export function DataTable<TData, TValue>({
                     </div>
                 )}
             </div>
-            <div className="overflow-x-auto rounded-md border">
+            <div className="overflow-x-auto custom-scrollbar rounded-xl border border-border bg-card shadow-sm">
                 <Table style={{ width: table.getTotalSize() }}>
-                    <TableHeader className="bg-slate-100">
+                    <TableHeader className="bg-muted/50 text-muted-foreground uppercase text-xs tracking-wider font-semibold border-b border-border">
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
                                 {headerGroup.headers.map((header) => {
                                     return (
                                         <TableHead
                                             key={header.id}
-                                            className="relative border border-black/40"
+                                            className="relative py-3 px-4 text-xs font-semibold uppercase tracking-wider"
                                             style={{ width: header.getSize() }}
                                         >
                                             {header.isPlaceholder
@@ -624,7 +624,7 @@ export function DataTable<TData, TValue>({
                                     data-state={
                                         row.getIsSelected() && 'selected'
                                     }
-                                    className={`duration-150 ease-in ${onRowDoubleClick ? 'cursor-pointer' : ''}`}
+                                    className={`hover:bg-muted/40 transition-colors duration-150 ease-in ${onRowDoubleClick ? 'cursor-pointer' : ''}`}
                                     onDoubleClick={(event) =>
                                         handleRowDoubleClick(
                                             event,
@@ -642,7 +642,7 @@ export function DataTable<TData, TValue>({
                                                     cell,
                                                 ),
                                             }}
-                                            className="border border-black/40"
+                                            className="py-3 px-4 border-b border-border/60 text-xs"
                                         >
                                             {flexRender(
                                                 cell.column.columnDef.cell,

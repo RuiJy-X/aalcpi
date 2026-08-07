@@ -13,6 +13,7 @@ import {
     Truck,
     User,
     Users,
+    Banknote,
 } from 'lucide-react';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain, type NavGroup } from '@/components/nav-main';
@@ -41,10 +42,7 @@ import type { NavItem } from '@/types';
 import AppLogo from './app-logo';
 import { useCan } from '@/hooks/use-can';
 
-function optionalItem(
-    allowed: boolean,
-    item: NavItem,
-): NavItem[] {
+function optionalItem(allowed: boolean, item: NavItem): NavItem[] {
     return allowed ? [item] : [];
 }
 
@@ -88,7 +86,7 @@ export function AppSidebar() {
         ...optionalItem(can('bank_reconciliation.view'), {
             title: 'Bank Reconciliation',
             href: bankReconciliationIndex(),
-            icon: Truck,
+            icon: Banknote,
         }),
         {
             title: 'Import History',

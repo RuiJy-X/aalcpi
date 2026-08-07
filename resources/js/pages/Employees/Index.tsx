@@ -1,11 +1,12 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { Briefcase, Plus } from 'lucide-react';
+import { Plus, Users, Settings2 } from 'lucide-react';
 import type { EmployeeType } from './employeeTypes';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import {
     index as employeeIndex,
     show as employeeShow,
+    create as employeeCreate,
     hourlyRateSettings as updateHourlyRateSettings,
 } from '@/routes/employees';
 import type { BreadcrumbItem } from '@/types';
@@ -16,8 +17,7 @@ import {
 } from '@/components/container';
 import { DataTable } from '@/components/data-table/data-table';
 import { createEmployeeColumns } from './employee-column-def';
-import AddEmployeeDialog from './Create';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -43,7 +43,6 @@ export default function Dashboard({
         hours_per_day: number;
     };
 }) {
-    const [open, onOpenChange] = useState(false);
     const { data, setData, patch, processing, errors } = useForm({
         days_per_month: String(hourlyRateSettings.days_per_month ?? 24),
         hours_per_day: String(hourlyRateSettings.hours_per_day ?? 8),
@@ -69,16 +68,18 @@ export default function Dashboard({
             'employee_code',
             'name',
             'position',
-            'department',
-            'employment_type',
+            'daily_rate',
             'base_salary',
             'hourly_rate',
+            'sss_loan',
+            'pagibig_loan',
+            'emergency_loan',
             'contact_number',
             'address',
             'tin',
         ],
         saveUrl: employeesBulkUpdate().url,
-        numericFields: ['base_salary', 'hourly_rate'],
+        numericFields: ['daily_rate', 'base_salary', 'hourly_rate', 'sss_loan', 'pagibig_loan', 'emergency_loan'],
     });
 
     const employeeColumns = useMemo(
@@ -92,53 +93,66 @@ export default function Dashboard({
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Employees">
-                <title>Employees</title>
-            </Head>
+            <Head title="Employee Profiles" />
 
             <Container>
                 <ContainerHeader>
-                    Employees Table
+                    <div>
+                        <div className="flex items-center gap-2">
+                            <Users className="h-6 w-6 text-primary" />
+                            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                                Employee Profiles & Rates
+                            </h1>
+                        </div>
+                        <p className="text-sm font-normal text-muted-foreground mt-0.5">
+                            Manage company employee accounts, daily pay rates, and constant payroll loan deductions.
+                        </p>
+                    </div>
                     <ContainerHeaderEnd>
-                        <TableEditToolbar
-                            isEditing={isEditing}
-                            isSaving={isSaving}
-                            disabled={employees.length === 0}
-                            onStart={startEditing}
-                            onCancel={cancelEditing}
-                            onSave={saveEdits}
-                        />
-                        <Button
-                            onClick={() => onOpenChange(true)}
-                            disabled={isEditing}
-                        >
-                            <Plus className="mr-2 h-4 w-4" />
-                            Add Employee
-                        </Button>
-                        <AddEmployeeDialog
-                            open={open}
-                            onOpenChange={onOpenChange}
-                        />
+                        <div className="flex items-center gap-3">
+                            <TableEditToolbar
+                                isEditing={isEditing}
+                                isSaving={isSaving}
+                                disabled={employees.length === 0}
+                                onStart={startEditing}
+                                onCancel={cancelEditing}
+                                onSave={saveEdits}
+                            />
+                            <Button asChild disabled={isEditing} className="px-5">
+                                <Link href={employeeCreate().url}>
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    New Employee Setup
+                                </Link>
+                            </Button>
+                        </div>
                     </ContainerHeaderEnd>
                 </ContainerHeader>
 
-                <DataTable
-                    columns={employeeColumns}
-                    data={employees}
-                    onRowDoubleClick={
-                        isEditing
-                            ? undefined
-                            : (employee) => employeeShow(employee.id).url
-                    }
-                    bulkDelete={isEditing ? undefined : employeeBulkDelete}
-                />
+                <div className="pt-2">
+                    <DataTable
+                        columns={employeeColumns}
+                        data={employees}
+                        onRowDoubleClick={
+                            isEditing
+                                ? undefined
+                                : (employee) => employeeShow(employee.id).url
+                        }
+                        bulkDelete={isEditing ? undefined : employeeBulkDelete}
+                    />
+                </div>
             </Container>
+
             <Container>
-                <ContainerHeader>Hourly Rate Settings</ContainerHeader>
+                <div className="flex items-center gap-2 border-b border-border/60 pb-3 mb-4">
+                    <Settings2 className="h-5 w-5 text-primary" />
+                    <h2 className="text-base font-bold text-foreground">
+                        Global Pay Rate Computation Rules
+                    </h2>
+                </div>
                 <form onSubmit={handleSettingsSubmit}>
-                    <div className="flex flex-wrap items-end gap-3">
-                        <Field>
-                            <Label>Days per month</Label>
+                    <div className="flex flex-wrap items-end gap-4">
+                        <Field className="w-44">
+                            <Label className="text-xs font-semibold">Days per Month</Label>
                             <Input
                                 type="number"
                                 min="1"
@@ -154,8 +168,8 @@ export default function Dashboard({
                                 </p>
                             )}
                         </Field>
-                        <Field>
-                            <Label>Hours per day</Label>
+                        <Field className="w-44">
+                            <Label className="text-xs font-semibold">Hours per Day</Label>
                             <Input
                                 type="number"
                                 min="0.25"
@@ -171,13 +185,12 @@ export default function Dashboard({
                                 </p>
                             )}
                         </Field>
-                        <Button type="submit" disabled={processing}>
-                            {processing ? 'Updating...' : 'Update Hourly Rates'}
+                        <Button type="submit" disabled={processing} variant="secondary">
+                            {processing ? 'Updating...' : 'Update Computation Settings'}
                         </Button>
                     </div>
                     <p className="mt-2 text-xs text-muted-foreground">
-                        Updating these values will recalculate all employees'
-                        hourly rates based on their base salary.
+                        These parameters control automatic conversion between Daily Rates, Monthly Salaries, and Hourly Rates across all employee profiles.
                     </p>
                 </form>
             </Container>

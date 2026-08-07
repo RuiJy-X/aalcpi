@@ -157,6 +157,24 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/Payroll/bulk-update', [PayrollController::class, 'bulkUpdate'])
         ->middleware('permission:payroll.update')
         ->name('payroll.bulk-update');
+    Route::get('/Payroll/{payroll}/pdf', [PayrollController::class, 'downloadPayslipPdf'])
+        ->middleware('permission:payroll.view')
+        ->name('payroll.payslip-pdf');
+    Route::get('/Payroll/summary-pdf', [PayrollController::class, 'downloadSummaryPdf'])
+        ->middleware('permission:payroll.view')
+        ->name('payroll.summary-pdf');
+    Route::post('/Payroll/preview-batch', [PayrollController::class, 'previewBatch'])
+        ->middleware('permission:payroll.generate')
+        ->name('payroll.preview-batch');
+    Route::post('/Payroll/upload-attendance-batch', [PayrollController::class, 'uploadAttendanceBatch'])
+        ->middleware('permission:payroll.generate')
+        ->name('payroll.upload-attendance-batch');
+    Route::post('/Payroll/quick-update-employee/{employee}', [PayrollController::class, 'quickUpdateEmployee'])
+        ->middleware('permission:payroll.update')
+        ->name('payroll.quick-update-employee');
+    Route::post('/Payroll/process-batch', [PayrollController::class, 'processBatch'])
+        ->middleware('permission:payroll.generate')
+        ->name('payroll.process-batch');
     Route::post('/Payroll/preview', [PayrollController::class, 'preview'])
         ->middleware('permission:payroll.generate')
         ->name('payroll.preview');

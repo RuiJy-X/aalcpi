@@ -105,9 +105,9 @@
     --sidebar-accent-foreground: white;
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.87 0 0);
-    --scrollbar-thumb: #c0c0c0;
-    --scrollbar-thumb-hover: #3ea24f;
-    --scrollbar-track: #e9f5ec;
+    --scrollbar-thumb: #cbd5e1;
+    --scrollbar-thumb-hover: #148c1a;
+    --scrollbar-track: #f1f5f9;
 }
 
 .dark {
@@ -143,9 +143,9 @@
     --sidebar-accent-foreground: #e6f2e7;
     --sidebar-border: #22342a;
     --sidebar-ring: #42b655;
-    --scrollbar-thumb: #2e5b3a;
-    --scrollbar-thumb-hover: #4a7a55;
-    --scrollbar-track: #101c15;
+    --scrollbar-thumb: #334155;
+    --scrollbar-thumb-hover: #42b655;
+    --scrollbar-track: #0f172a;
 }
 
 @layer base {
@@ -158,14 +158,15 @@
         pointer-events: auto !important;
     }
 
+    /* Custom Modern Thin Scrollbars */
     * {
         scrollbar-width: thin;
         scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
     }
 
     *::-webkit-scrollbar {
-        width: 11px;
-        height: 11px;
+        width: 8px;
+        height: 8px;
     }
 
     *::-webkit-scrollbar-track {
@@ -174,13 +175,8 @@
     }
 
     *::-webkit-scrollbar-thumb {
-        background: linear-gradient(
-            180deg,
-            var(--scrollbar-thumb),
-            var(--scrollbar-thumb-hover)
-        );
+        background: var(--scrollbar-thumb);
         border-radius: 999px;
-        border: 2px solid var(--scrollbar-track);
     }
 
     *::-webkit-scrollbar-thumb:hover {
@@ -195,6 +191,27 @@
     h6 {
         font-family: var(--font-sans);
     }
+}
+
+/* Custom Table Horizontal Scrollbar Helper */
+.custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+.custom-scrollbar::-webkit-scrollbar {
+    height: 7px;
+    width: 7px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+    border-radius: 999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
 }
 
 .resize {

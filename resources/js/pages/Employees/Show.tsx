@@ -1,11 +1,10 @@
-import { Head, Link, useForm } from '@inertiajs/react';
-import { useState } from 'react';
+import { Head, Link } from '@inertiajs/react';
 import type { EmployeeType } from './employeeTypes';
 import AppLayout from '@/layouts/app-layout';
 import {
     index as employeeIndex,
     show as employeeShow,
-    update as employeeUpdate,
+    edit as employeeEdit,
 } from '@/routes/employees';
 import { show as payrollShow } from '@/routes/payroll';
 import type { BreadcrumbItem } from '@/types';
@@ -17,9 +16,6 @@ import {
 import { DataTable } from '@/components/data-table/data-table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Field } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { AttendanceType } from '../Attendance/attendance-types';
 import { attendanceColumns } from '../Attendance/attendance-column-def';
@@ -29,36 +25,18 @@ import {
     attendanceBulkDelete,
     payrollBulkDelete,
 } from '@/components/data-table/bulk-delete';
+import { ShieldCheck, MinusCircle, Edit3, ArrowLeft } from 'lucide-react';
 
-function formatDateTime(value?: string | null) {
-    if (!value) return 'NA';
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return 'NA';
-    return date.toLocaleString();
-}
-
-function formatCurrency(value?: string | number | null) {
-    if (value === null || value === undefined || value === '') return 'NA';
+function formatCurrency(value?: string | number | null, isDeduction: boolean = false) {
+    if (value === null || value === undefined || value === '') return isDeduction ? '-₱0.00' : '₱0.00';
     const num = typeof value === 'string' ? parseFloat(value) : value;
-    if (isNaN(num)) return 'NA';
-    return new Intl.NumberFormat('en-PH', {
+    if (isNaN(num)) return isDeduction ? '-₱0.00' : '₱0.00';
+    const formatted = new Intl.NumberFormat('en-PH', {
         style: 'currency',
         currency: 'PHP',
         minimumFractionDigits: 2,
     }).format(num);
-}
-
-function calculateHourlyRate(
-    monthlySalary: string,
-    settings: { days_per_month: number; hours_per_day: number },
-) {
-    const salary = parseFloat(monthlySalary);
-    if (!Number.isFinite(salary) || salary <= 0) return '';
-    if (settings.days_per_month <= 0 || settings.hours_per_day <= 0) return '';
-    return (
-        salary /
-        (settings.days_per_month * settings.hours_per_day)
-    ).toFixed(2);
+    return isDeduction && num > 0 ? `-${formatted}` : formatted;
 }
 
 function getInitials(name: string) {
@@ -73,55 +51,31 @@ function getInitials(name: string) {
 function DetailRow({
     label,
     value,
-    icon,
+    isDeduction = false,
+    isEarnings = false,
 }: {
     label: string;
     value?: string | null;
-    icon?: React.ReactNode;
+    isDeduction?: boolean;
+    isEarnings?: boolean;
 }) {
     return (
-        <div className="flex items-start gap-3 border-b border-border/50 py-3 last:border-0">
-            {icon && (
-                <span className="mt-0.5 shrink-0 text-muted-foreground">
-                    {icon}
-                </span>
-            )}
-            <div className="min-w-0 flex-1">
-                <p className="mb-0.5 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                    {label}
-                </p>
-                <p className="text-sm break-words text-foreground">
-                    {value || 'Not provided'}
-                </p>
-            </div>
+        <div className="flex items-center justify-between gap-2 border-b border-border/40 py-2.5 last:border-0 min-w-0">
+            <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground truncate">
+                {label}
+            </span>
+            <span
+                className={`text-sm font-semibold shrink-0 ${
+                    isDeduction
+                        ? 'text-rose-600 dark:text-rose-400'
+                        : isEarnings
+                        ? 'text-emerald-600 dark:text-emerald-400'
+                        : 'text-foreground'
+                }`}
+            >
+                {value || 'N/A'}
+            </span>
         </div>
-    );
-}
-
-function EditField({
-    label,
-    value,
-    onChange,
-    error,
-    readOnly = false,
-}: {
-    label: string;
-    value: string;
-    onChange?: (v: string) => void;
-    error?: string;
-    readOnly?: boolean;
-}) {
-    return (
-        <Field>
-            <Label>{label}</Label>
-            <Input
-                readOnly={readOnly}
-                value={value}
-                onChange={(e) => onChange?.(e.target.value)}
-                className={readOnly ? 'cursor-default bg-muted/40' : ''}
-            />
-            {error && <p className="mt-1 text-xs text-destructive">{error}</p>}
-        </Field>
     );
 }
 
@@ -129,7 +83,6 @@ export default function Show({
     employee,
     attendance,
     payrolls,
-    hourlyRateSettings,
 }: {
     employee: EmployeeType;
     attendance: AttendanceType[];
@@ -139,396 +92,154 @@ export default function Show({
     const employeeHref = employeeShow(employee.id).url;
     const attendanceRecords = attendance ?? [];
     const payrollRecords = payrolls ?? [];
-    const [isEditing, setIsEditing] = useState(false);
-
-    const { data, setData, put, processing, errors, reset } = useForm({
-        name: employee.name ?? '',
-        employee_code: employee.employee_code ?? '',
-        position: employee.position ?? '',
-        employment_type: employee.employment_type ?? '',
-        department: employee.department ?? '',
-        base_salary: String(employee.base_salary ?? ''),
-        hourly_rate: String(employee.hourly_rate ?? ''),
-        contact_number: employee.contact_number ?? '',
-        tin: employee.tin ?? '',
-        address: employee.address ?? '',
-    });
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Employee Management', href: employeeIndex().url },
-        { title: 'Employee Details', href: employeeHref },
+        { title: 'Employee Profile', href: employeeHref },
         { title: employee.name, href: employeeHref },
     ];
 
-    function handleEdit() {
-        setIsEditing(true);
-    }
-
-    function handleCancel() {
-        reset();
-        setIsEditing(false);
-    }
-
-    function handleSubmit(e: React.FormEvent) {
-        e.preventDefault();
-        put(employeeUpdate(employee.id).url, {
-            onSuccess: () => setIsEditing(false),
-        });
-    }
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={`${employee.name} | Employee Details`} />
-
-            <form onSubmit={handleSubmit}>
-                <Container>
-                    <ContainerHeader>
-                        Employee Details
-                        <ContainerHeaderEnd>
-                            <div className="flex items-center gap-2">
-                                {!isEditing ? (
-                                    <>
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            onClick={handleEdit}
-                                        >
-                                            Edit
-                                        </Button>
-                                        <Button variant="outline" asChild>
-                                            <Link href={employeeIndex().url}>
-                                                Back to list
-                                            </Link>
-                                        </Button>
-                                    </>
-                                ) : (
-                                    <>
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            onClick={handleCancel}
-                                            disabled={processing}
-                                        >
-                                            Cancel
-                                        </Button>
-                                        <Button
-                                            type="submit"
-                                            disabled={processing}
-                                        >
-                                            {processing
-                                                ? 'Saving...'
-                                                : 'Save Changes'}
-                                        </Button>
-                                    </>
-                                )}
-                            </div>
-                        </ContainerHeaderEnd>
-                    </ContainerHeader>
-                    {/* ── VIEW MODE ── */}
-                    {!isEditing && (
-                        <div className="space-y-6">
-                            <div className="flex flex-col items-start gap-4 rounded-xl border border-border/50 bg-muted/40 p-5 sm:flex-row sm:items-center">
-                                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xl font-semibold text-primary">
-                                    {getInitials(employee.name ?? '?')}
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                    <h2 className="truncate text-xl font-semibold">
-                                        {employee.name}
-                                    </h2>
-                                    <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                                        {employee.position && (
-                                            <span className="text-sm text-muted-foreground">
-                                                {employee.position}
-                                            </span>
-                                        )}
-                                        {employee.position &&
-                                            employee.department && (
-                                                <span className="text-muted-foreground/40">
-                                                    ·
-                                                </span>
-                                            )}
-                                        {employee.department && (
-                                            <span className="text-sm text-muted-foreground">
-                                                {employee.department}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div className="mt-2.5 flex flex-wrap gap-2">
-                                        {employee.employment_type && (
-                                            <Badge variant="secondary">
-                                                {employee.employment_type}
-                                            </Badge>
-                                        )}
-                                        {employee.employee_code && (
-                                            <Badge
-                                                variant="outline"
-                                                className="font-mono text-xs"
-                                            >
-                                                {employee.employee_code}
-                                            </Badge>
-                                        )}
-                                    </div>
-                                </div>
-                                <div className="flex shrink-0 gap-4 sm:flex-col sm:gap-1 sm:text-right">
-                                    <div>
-                                        <p className="text-xs tracking-wide text-muted-foreground uppercase">
-                                            Base salary
-                                        </p>
-                                        <p className="text-base font-semibold tabular-nums">
-                                            {formatCurrency(
-                                                employee.base_salary,
-                                            )}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs tracking-wide text-muted-foreground uppercase">
-                                            Hourly rate
-                                        </p>
-                                        <p className="text-base font-semibold tabular-nums">
-                                            {formatCurrency(
-                                                employee.hourly_rate,
-                                            )}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                <div className="rounded-xl border border-border/50 px-4 py-2">
-                                    <p className="pt-2 pb-1 text-xs font-semibold tracking-widest text-muted-foreground uppercase">
-                                        Contact information
-                                    </p>
-                                    <DetailRow
-                                        label="Contact number"
-                                        value={employee.contact_number}
-                                        icon={
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                width="15"
-                                                height="15"
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                strokeWidth="1.75"
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                            >
-                                                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.39 2 2 0 0 1 3.6 1.2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6 6l.92-.92a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-                                            </svg>
-                                        }
-                                    />
-                                    <DetailRow
-                                        label="Address"
-                                        value={employee.address}
-                                        icon={
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                width="15"
-                                                height="15"
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                strokeWidth="1.75"
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                            >
-                                                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-                                                <circle cx="12" cy="10" r="3" />
-                                            </svg>
-                                        }
-                                    />
-                                </div>
-
-                                <div className="rounded-xl border border-border/50 px-4 py-2">
-                                    <p className="pt-2 pb-1 text-xs font-semibold tracking-widest text-muted-foreground uppercase">
-                                        Tax & compliance
-                                    </p>
-                                    <DetailRow
-                                        label="TIN"
-                                        value={employee.tin}
-                                        icon={
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                width="15"
-                                                height="15"
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                strokeWidth="1.75"
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                            >
-                                                <rect
-                                                    width="20"
-                                                    height="14"
-                                                    x="2"
-                                                    y="5"
-                                                    rx="2"
-                                                />
-                                                <line
-                                                    x1="2"
-                                                    x2="22"
-                                                    y1="10"
-                                                    y2="10"
-                                                />
-                                            </svg>
-                                        }
-                                    />
-                                    <DetailRow
-                                        label="Created at"
-                                        value={formatDateTime(
-                                            employee.created_at,
-                                        )}
-                                        icon={
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                width="15"
-                                                height="15"
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                strokeWidth="1.75"
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                            >
-                                                <circle
-                                                    cx="12"
-                                                    cy="12"
-                                                    r="10"
-                                                />
-                                                <polyline points="12 6 12 12 16 14" />
-                                            </svg>
-                                        }
-                                    />
-                                    <DetailRow
-                                        label="Last updated"
-                                        value={formatDateTime(
-                                            employee.updated_at,
-                                        )}
-                                        icon={
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                width="15"
-                                                height="15"
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                strokeWidth="1.75"
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                            >
-                                                <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
-                                                <path d="M21 3v5h-5" />
-                                            </svg>
-                                        }
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* ── EDIT MODE ── */}
-                    {isEditing && (
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                            <EditField
-                                label="Name"
-                                value={data.name}
-                                onChange={(v) => setData('name', v)}
-                                error={errors.name}
-                            />
-                            <EditField
-                                label="Employee code"
-                                value={data.employee_code}
-                                readOnly
-                            />
-                            <EditField
-                                label="Position"
-                                value={data.position}
-                                onChange={(v) => setData('position', v)}
-                                error={errors.position}
-                            />
-                            <EditField
-                                label="Department"
-                                value={data.department}
-                                onChange={(v) => setData('department', v)}
-                                error={errors.department}
-                            />
-                            <EditField
-                                label="Employment type"
-                                value={data.employment_type}
-                                onChange={(v) => setData('employment_type', v)}
-                                error={errors.employment_type}
-                            />
-                            <EditField
-                                label="Base salary"
-                                value={data.base_salary}
-                                onChange={(v) => {
-                                    setData('base_salary', v);
-                                    setData(
-                                        'hourly_rate',
-                                        calculateHourlyRate(
-                                            v,
-                                            hourlyRateSettings,
-                                        ),
-                                    );
-                                }}
-                                error={errors.base_salary}
-                            />
-                            <EditField
-                                label="Hourly rate"
-                                value={data.hourly_rate}
-                                readOnly
-                            />
-                            <EditField
-                                label="Contact number"
-                                value={data.contact_number}
-                                onChange={(v) => setData('contact_number', v)}
-                                error={errors.contact_number}
-                            />
-                            <EditField
-                                label="TIN"
-                                value={data.tin}
-                                onChange={(v) => setData('tin', v)}
-                                error={errors.tin}
-                            />
-                            <Field className="md:col-span-2 xl:col-span-3">
-                                <Label>Address</Label>
-                                <Input
-                                    value={data.address}
-                                    onChange={(e) =>
-                                        setData('address', e.target.value)
-                                    }
-                                />
-                                {errors.address && (
-                                    <p className="mt-1 text-xs text-destructive">
-                                        {errors.address}
-                                    </p>
-                                )}
-                            </Field>
-                            <EditField
-                                label="Created at"
-                                value={formatDateTime(employee.created_at)}
-                                readOnly
-                            />
-                            <EditField
-                                label="Last updated"
-                                value={formatDateTime(employee.updated_at)}
-                                readOnly
-                            />
-                        </div>
-                    )}
-                </Container>
-            </form>
+            <Head title={`${employee.name} | Employee Profile`} />
 
             <Container>
                 <ContainerHeader>
-                    Attendance & Payroll
+                    <div className="min-w-0 flex-1">
+                        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground truncate">
+                            Employee Profile Details
+                        </h1>
+                        <p className="text-xs sm:text-sm font-normal text-muted-foreground mt-0.5 truncate">
+                            Real-world profile configurations and constant payroll deductions.
+                        </p>
+                    </div>
+                    <ContainerHeaderEnd>
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto mt-2 sm:mt-0">
+                            <Button variant="outline" size="sm" asChild>
+                                <Link href={employeeIndex().url}>
+                                    <ArrowLeft className="mr-1.5 h-4 w-4" />
+                                    Back to List
+                                </Link>
+                            </Button>
+                            <Button size="sm" asChild className="px-4">
+                                <Link href={employeeEdit(employee.id).url}>
+                                    <Edit3 className="mr-1.5 h-4 w-4" />
+                                    Edit Profile
+                                </Link>
+                            </Button>
+                        </div>
+                    </ContainerHeaderEnd>
+                </ContainerHeader>
+
+                <div className="space-y-6 pt-2">
+                    {/* Profile Executive Banner */}
+                    <div className="flex flex-col items-start gap-4 rounded-xl border border-border bg-card p-4 sm:p-6 sm:flex-row sm:items-center shadow-sm">
+                        <div className="flex h-14 w-14 sm:h-16 sm:w-16 shrink-0 items-center justify-center rounded-full bg-primary/10 text-lg sm:text-xl font-bold text-primary">
+                            {getInitials(employee.name ?? '?')}
+                        </div>
+                        <div className="min-w-0 flex-1 w-full">
+                            <h2 className="truncate text-lg sm:text-xl font-bold text-foreground">
+                                {employee.name}
+                            </h2>
+                            <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">
+                                Designation: <span className="text-foreground font-semibold">{employee.position ?? 'Encoder'}</span>
+                            </p>
+                            <div className="mt-2 flex flex-wrap gap-2">
+                                <Badge variant="outline" className="font-mono text-xs">
+                                    Code: {employee.employee_code}
+                                </Badge>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-left sm:text-right w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-border">
+                            <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-3">
+                                <p className="text-xs uppercase font-bold text-emerald-700 dark:text-emerald-400">
+                                    Daily Rate
+                                </p>
+                                <p className="text-base sm:text-lg font-extrabold text-emerald-700 dark:text-emerald-300">
+                                    {formatCurrency(employee.daily_rate)}
+                                </p>
+                            </div>
+                            <div className="rounded-lg bg-card border border-border p-3">
+                                <p className="text-xs uppercase font-semibold text-muted-foreground">
+                                    Monthly Salary
+                                </p>
+                                <p className="text-sm sm:text-base font-bold text-foreground">
+                                    {formatCurrency(employee.base_salary)}
+                                </p>
+                            </div>
+                            <div className="rounded-lg bg-card border border-border p-3">
+                                <p className="text-xs uppercase font-semibold text-muted-foreground">
+                                    Hourly Rate
+                                </p>
+                                <p className="text-sm sm:text-base font-bold text-foreground">
+                                    {formatCurrency(employee.hourly_rate)}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                        {/* Contact & Government Identification */}
+                        <div className="rounded-xl border border-border bg-card p-4 sm:p-5 space-y-4 shadow-sm">
+                            <div className="flex items-center gap-2 border-b border-border/60 pb-3">
+                                <ShieldCheck className="h-5 w-5 text-primary shrink-0" />
+                                <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-foreground truncate">
+                                    Contact & Government Identifiers
+                                </h3>
+                            </div>
+                            <div className="space-y-1">
+                                <DetailRow label="Contact Number" value={employee.contact_number} />
+                                <DetailRow label="Address" value={employee.address} />
+                                <DetailRow label="TIN Number" value={employee.tin} />
+                                <DetailRow label="SSS Number" value={employee.sss_no} />
+                                <DetailRow label="Pag-IBIG MID" value={employee.pagibig_no} />
+                                <DetailRow label="PhilHealth No." value={employee.philhealth_no} />
+                            </div>
+                        </div>
+
+                        {/* Constant Loan Deductions & Statutory Defaults */}
+                        <div className="rounded-xl border border-border bg-card p-4 sm:p-5 space-y-4 shadow-sm">
+                            <div className="flex items-center justify-between border-b border-border/60 pb-3">
+                                <div className="flex items-center gap-2 min-w-0">
+                                    <MinusCircle className="h-5 w-5 text-rose-600 dark:text-rose-400 shrink-0" />
+                                    <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-foreground truncate">
+                                        Constant Payroll Deductions
+                                    </h3>
+                                </div>
+                                <span className="rounded-full bg-rose-100 dark:bg-rose-950/60 px-2.5 py-0.5 text-xs font-bold text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 shrink-0">
+                                    - Per Cutoff
+                                </span>
+                            </div>
+                            <div className="space-y-1">
+                                <DetailRow label="SSS Loan Deduction" value={formatCurrency(employee.sss_loan, true)} isDeduction />
+                                <DetailRow label="Pag-IBIG Loan Deduction" value={formatCurrency(employee.pagibig_loan, true)} isDeduction />
+                                <DetailRow label="Emergency Loan Deduction" value={formatCurrency(employee.emergency_loan, true)} isDeduction />
+                                <DetailRow label="Pag-IBIG Contribution" value={formatCurrency(employee.pagibig_contribution, true)} isDeduction />
+                                <DetailRow label="SSS Contribution" value={formatCurrency(employee.sss_contribution, true)} isDeduction />
+                                <DetailRow label="PhilHealth Contribution" value={formatCurrency(employee.philhealth_contribution, true)} isDeduction />
+                                <DetailRow label="Tax W/Held Payable" value={formatCurrency(employee.withholding_tax, true)} isDeduction />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </Container>
+
+            <Container>
+                <ContainerHeader>
+                    <div className="min-w-0 flex-1">
+                        <h2 className="text-base sm:text-lg font-bold tracking-tight text-foreground truncate">
+                            Attendance & Payroll History
+                        </h2>
+                        <p className="text-xs text-muted-foreground font-normal mt-0.5 truncate">
+                            Historical records generated for this employee profile.
+                        </p>
+                    </div>
                     <ContainerHeaderEnd>
                         <div className="flex flex-wrap items-center gap-2">
-                            <Badge variant="secondary">
+                            <Badge variant="secondary" className="text-xs">
                                 Attendance {attendanceRecords.length}
                             </Badge>
-                            <Badge variant="secondary">
+                            <Badge variant="secondary" className="text-xs">
                                 Payrolls {payrollRecords.length}
                             </Badge>
                         </div>
@@ -538,24 +249,19 @@ export default function Show({
                 <Tabs defaultValue="attendance" className="w-full">
                     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                         <TabsList variant="line">
-                            <TabsTrigger value="attendance" className="gap-2">
+                            <TabsTrigger value="attendance" className="gap-2 text-xs sm:text-sm">
                                 Attendance
                                 <Badge variant="outline">
                                     {attendanceRecords.length}
                                 </Badge>
                             </TabsTrigger>
-                            <TabsTrigger value="payroll" className="gap-2">
+                            <TabsTrigger value="payroll" className="gap-2 text-xs sm:text-sm">
                                 Payroll
                                 <Badge variant="outline">
                                     {payrollRecords.length}
                                 </Badge>
                             </TabsTrigger>
                         </TabsList>
-                        <p className="text-sm text-muted-foreground">
-                            {payrollRecords.length > 0
-                                ? 'Double-click a payroll row to view details.'
-                                : 'No payroll records available yet.'}
-                        </p>
                     </div>
 
                     <TabsContent value="attendance" className="mt-4">

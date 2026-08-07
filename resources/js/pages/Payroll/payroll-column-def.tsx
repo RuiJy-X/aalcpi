@@ -4,6 +4,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { ArrowUpDown, Eye, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 import { PayrollType } from './payroll-types';
 import { Link, router } from '@inertiajs/react';
 import {
@@ -20,6 +21,22 @@ export type PayrollColumnsOptions = {
     onCellChange?: CellChangeHandler;
 };
 
+function formatCurrency(
+    val?: string | number | null,
+    isDeduction: boolean = false,
+) {
+    if (val === null || val === undefined || val === '')
+        return isDeduction ? '-₱0.00' : '₱0.00';
+    const num = typeof val === 'string' ? parseFloat(val) : val;
+    if (isNaN(num)) return isDeduction ? '-₱0.00' : '₱0.00';
+    const formatted = new Intl.NumberFormat('en-PH', {
+        style: 'currency',
+        currency: 'PHP',
+        minimumFractionDigits: 2,
+    }).format(num);
+    return isDeduction && num > 0 ? `-${formatted}` : formatted;
+}
+
 function SortHeader({
     label,
     column,
@@ -33,10 +50,12 @@ function SortHeader({
     return (
         <Button
             variant="ghost"
+            size="sm"
+            className="-ml-3 h-8 data-[state=open]:bg-accent"
             onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
         >
-            {label}
-            <ArrowUpDown className="ml-2 h-4 w-4" />
+            <span>{label}</span>
+            <ArrowUpDown className="ml-2 h-3.5 w-3.5" />
         </Button>
     );
 }
@@ -49,6 +68,7 @@ export function createPayrollColumns(
     return [
         {
             id: 'select',
+            size: 20,
             header: ({ table }) => (
                 <Checkbox
                     checked={
@@ -73,110 +93,140 @@ export function createPayrollColumns(
             enableHiding: false,
         },
         {
+            accessorKey: 'employee_code',
+            header: ({ column }) => <SortHeader label="Code" column={column} />,
+            cell: ({ row }) => (
+                <div className="font-mono text-xs font-semibold">
+                    {row.original.employee_code ||
+                        `EMP-${String(row.original.employee_id).padStart(3, '0')}`}
+                </div>
+            ),
+        },
+        {
             accessorKey: 'employee_name',
             header: ({ column }) => (
-                <SortHeader label="Employee" column={column} />
+                <SortHeader label="Employee Name" column={column} />
             ),
             cell: ({ row }) => (
-                <div className="font-medium">{row.original.employee_name}</div>
-            ),
-        },
-        {
-            accessorKey: 'period_start',
-            header: ({ column }) => (
-                <SortHeader label="Period Start" column={column} />
-            ),
-            cell: ({ row }) => (
-                <div>
-                    {new Date(row.original.period_start).toLocaleDateString()}
-                </div>
-            ),
-            meta: { isDateFilter: true },
-        },
-        {
-            accessorKey: 'period_end',
-            header: ({ column }) => (
-                <SortHeader label="Period End" column={column} />
-            ),
-            cell: ({ row }) => (
-                <div>
-                    {new Date(row.original.period_end).toLocaleDateString()}
-                </div>
-            ),
-            meta: { isDateFilter: true },
-        },
-        {
-            accessorFn: (row) => `${row.days_worked} / ${row.total_days}`,
-            id: 'attendance_days',
-            header: ({ column }) => (
-                <SortHeader label="Attendance (Days)" column={column} />
-            ),
-            cell: ({ row }) => (
-                <div className="text-center">
-                    {row.original.days_worked ?? 'NA'} /{' '}
-                    {row.original.total_days ?? 'NA'}
+                <div className="font-bold text-foreground">
+                    {row.original.employee_name}
                 </div>
             ),
         },
         {
-            accessorFn: (row) => `${row.hours_worked} / ${row.total_hours}`,
-            id: 'attendance_hours',
+            accessorKey: 'position',
             header: ({ column }) => (
-                <SortHeader label="Attendance (Hours)" column={column} />
+                <SortHeader label="Designation" column={column} />
             ),
             cell: ({ row }) => (
-                <div className="text-center">
-                    {row.original.hours_worked ?? 'NA'} /{' '}
-                    {row.original.total_hours ?? 'NA'}
+                <div className="text-xs text-muted-foreground">
+                    {row.original.position || 'Encoder'}
                 </div>
             ),
         },
         {
-            accessorKey: 'basic_pay',
+            accessorKey: 'daily_rate',
             header: ({ column }) => (
-                <SortHeader label="Basic Pay" column={column} />
-            ),
-            cell: ({ row }) => (
                 <div className="text-right">
-                    ₱{Number(row.original.basic_pay).toFixed(2)}
+                    <SortHeader label="Daily Rate" column={column} />
+                </div>
+            ),
+            cell: ({ row }) => (
+                <div className="text-right font-semibold text-emerald-700 dark:text-emerald-400">
+                    {formatCurrency(row.original.daily_rate)}
                 </div>
             ),
         },
         {
-            accessorKey: 'holidays',
+            accessorKey: 'days_worked',
             header: ({ column }) => (
-                <SortHeader label="Holidays" column={column} />
+                <div className="text-center">
+                    <SortHeader label="Days Worked" column={column} />
+                </div>
             ),
             cell: ({ row }) => (
-                <div className="text-center">{row.original.holidays}</div>
+                <div className="text-center">
+                    <Badge variant="outline" className="font-mono text-xs">
+                        {row.original.days_worked ?? 0} days
+                    </Badge>
+                </div>
             ),
         },
         {
             accessorKey: 'gross_pay',
             header: ({ column }) => (
-                <SortHeader label="Gross Pay" column={column} />
+                <div className="text-right">
+                    <SortHeader label="Gross Earnings" column={column} />
+                </div>
             ),
             cell: ({ row }) => (
+                <div className="text-right font-bold text-foreground">
+                    {formatCurrency(row.original.gross_pay)}
+                </div>
+            ),
+        },
+        {
+            accessorKey: 'sss_loan',
+            header: ({ column }) => (
                 <div className="text-right">
-                    ₱{Number(row.original.gross_pay).toFixed(2)}
+                    <SortHeader label="SSS Loan" column={column} />
+                </div>
+            ),
+            cell: ({ row }) => (
+                <div className="text-right font-medium text-rose-600 dark:text-rose-400">
+                    {formatCurrency(row.original.sss_loan, true)}
+                </div>
+            ),
+        },
+        {
+            accessorKey: 'pagibig_loan',
+            header: ({ column }) => (
+                <div className="text-right">
+                    <SortHeader label="Pag-IBIG Loan" column={column} />
+                </div>
+            ),
+            cell: ({ row }) => (
+                <div className="text-right font-medium text-rose-600 dark:text-rose-400">
+                    {formatCurrency(row.original.pagibig_loan, true)}
+                </div>
+            ),
+        },
+        {
+            accessorKey: 'emergency_loan',
+            header: ({ column }) => (
+                <div className="text-right">
+                    <SortHeader label="Emergency Loan" column={column} />
+                </div>
+            ),
+            cell: ({ row }) => (
+                <div className="text-right font-medium text-rose-600 dark:text-rose-400">
+                    {formatCurrency(row.original.emergency_loan, true)}
                 </div>
             ),
         },
         {
             accessorKey: 'deductions',
-            header: 'Deductions',
-            cell: ({ row }) => (
+            header: ({ column }) => (
                 <div className="text-right">
-                    ₱{Number(row.original.deductions).toFixed(2)}
+                    <SortHeader label="Total Deductions" column={column} />
+                </div>
+            ),
+            cell: ({ row }) => (
+                <div className="text-right font-bold text-rose-600 dark:text-rose-400">
+                    {formatCurrency(row.original.deductions, true)}
                 </div>
             ),
         },
         {
             accessorKey: 'net_pay',
-            header: 'Net Pay',
-            cell: ({ row }) => (
+            header: ({ column }) => (
                 <div className="text-right">
-                    ₱{Number(row.original.net_pay).toFixed(2)}
+                    <SortHeader label="Net Pay" column={column} />
+                </div>
+            ),
+            cell: ({ row }) => (
+                <div className="text-right text-sm font-extrabold text-emerald-700 dark:text-emerald-300">
+                    {formatCurrency(row.original.net_pay)}
                 </div>
             ),
         },
@@ -187,10 +237,10 @@ export function createPayrollColumns(
                 const status = row.original.status;
                 const statusClass =
                     status === 'draft'
-                        ? 'bg-yellow-100 text-yellow-800'
+                        ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
                         : status === 'pending'
-                          ? 'bg-blue-100 text-blue-800'
-                          : 'bg-green-100 text-green-800';
+                          ? 'bg-blue-100 text-blue-800 border-blue-200'
+                          : 'bg-emerald-100 text-emerald-800 border-emerald-200';
 
                 return (
                     <EditableSelectCell
@@ -200,7 +250,7 @@ export function createPayrollColumns(
                         value={status}
                         display={
                             <span
-                                className={`rounded-full px-3 py-1 text-sm font-medium ${statusClass}`}
+                                className={`rounded-full border px-2.5 py-0.5 text-xs font-bold tracking-wider uppercase ${statusClass}`}
                             >
                                 {status}
                             </span>
@@ -241,19 +291,19 @@ export function createPayrollColumns(
             header: 'Actions',
             cell: ({ row }) => (
                 <div
-                    className="flex items-center gap-2"
+                    className="flex items-center justify-end gap-1.5"
                     data-no-row-open="true"
                 >
-                    <Button size="sm" variant="outline" asChild>
+                    <Button size="xs" variant="outline" asChild>
                         <Link href={payrollShow(row.original.id).url}>
-                            <Eye className="mr-2 h-4 w-4" />
+                            <Eye className="mr-1 h-3 w-3" />
                             View
                         </Link>
                     </Button>
                     <Button
-                        size="icon"
+                        size="xs"
                         variant="ghost"
-                        className="text-red-600 hover:text-red-700"
+                        className="text-rose-600 hover:text-rose-700"
                         onClick={() => {
                             const confirmed = window.confirm(
                                 'Delete this payroll record? This action cannot be undone.',
@@ -267,7 +317,7 @@ export function createPayrollColumns(
                         }}
                         aria-label="Delete payroll"
                     >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                 </div>
             ),

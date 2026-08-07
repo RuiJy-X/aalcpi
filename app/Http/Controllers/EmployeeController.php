@@ -90,28 +90,53 @@ class EmployeeController extends Controller
     }
 
 
+    public function create()
+    {
+        return Inertia::render('Employees/Create');
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name'            => 'required|string|max:255',
-            'employee_code'   => 'required|string|unique:employees,employee_code',
-            'position'        => 'sometimes|string',
-            'employment_type' => 'sometimes|string',
-            'department' => 'sometimes|string|max:255',
-            'base_salary'     => 'required|numeric|min:0',
-            'hourly_rate'     => 'sometimes|numeric|min:0',
-            'address'         => 'sometimes|string|max:255',
-            'tin'             => 'sometimes|string|max:255',
-            'contact_number'  => 'sometimes|string|max:255',
+            'name'                     => 'required|string|max:255',
+            'employee_code'            => 'required|string|unique:employees,employee_code',
+            'position'                 => 'nullable|string|max:255',
+            'daily_rate'               => 'required|numeric|min:0',
+            'base_salary'              => 'nullable|numeric|min:0',
+            'hourly_rate'              => 'nullable|numeric|min:0',
+            'address'                  => 'nullable|string|max:255',
+            'tin'                      => 'nullable|string|max:255',
+            'sss_no'                   => 'nullable|string|max:255',
+            'pagibig_no'               => 'nullable|string|max:255',
+            'philhealth_no'            => 'nullable|string|max:255',
+            'contact_number'           => 'nullable|string|max:255',
+            'sss_loan'                 => 'nullable|numeric|min:0',
+            'pagibig_loan'             => 'nullable|numeric|min:0',
+            'emergency_loan'           => 'nullable|numeric|min:0',
+            'pagibig_contribution'     => 'nullable|numeric|min:0',
+            'sss_contribution'         => 'nullable|numeric|min:0',
+            'philhealth_contribution'   => 'nullable|numeric|min:0',
+            'withholding_tax'          => 'nullable|numeric|min:0',
         ]);
 
-        $validated['hourly_rate'] = $this->calculateHourlyRate(
-            $validated['base_salary'],
-            $this->getHourlyRateSettings(),
-        );
+        $settings = $this->getHourlyRateSettings();
+        $daysPerMonth = (int) ($settings['days_per_month'] ?? 24);
+        $hoursPerDay = (float) ($settings['hours_per_day'] ?? 8);
+
+        $dailyRate = (float) ($validated['daily_rate'] ?? 0);
+        if ($dailyRate > 0) {
+            $validated['hourly_rate'] = number_format($dailyRate / $hoursPerDay, 2, '.', '');
+            if (empty($validated['base_salary'])) {
+                $validated['base_salary'] = number_format($dailyRate * $daysPerMonth, 2, '.', '');
+            }
+        } elseif (!empty($validated['base_salary'])) {
+            $baseSalary = (float) $validated['base_salary'];
+            $validated['daily_rate'] = number_format($baseSalary / $daysPerMonth, 2, '.', '');
+            $validated['hourly_rate'] = number_format($baseSalary / ($daysPerMonth * $hoursPerDay), 2, '.', '');
+        }
 
         $employee = Employee::create($validated);
-         return redirect()->back()->with('success', 'Employee created successfully!');
+        return redirect()->route('employees.index')->with('success', 'Employee profile created successfully!');
     }
 
     public function show_with_payroll($id)
@@ -131,30 +156,59 @@ class EmployeeController extends Controller
         return response()->json($employee);
     }
 
+    public function edit($id)
+    {
+        $employee = Employee::findOrFail($id);
+
+        return Inertia::render('Employees/Edit', [
+            'employee' => $employee,
+        ]);
+    }
+
     public function update(Request $request, $id)
     {
         $employee = Employee::findOrFail($id);
 
         $validated = $request->validate([
-            'name'            => 'required|string|max:255',
-            'employee_code'   => 'required|string',
-            'position'        => 'sometimes|string',
-            'employment_type' => 'sometimes|string',
-            'department' => 'sometimes|string|max:255',
-            'base_salary'     => 'required|numeric|min:0',
-            'hourly_rate'     => 'sometimes|numeric|min:0',
-            'address'         => 'sometimes|string|max:255',
-            'tin'             => 'sometimes|string|max:255',
-            'contact_number'  => 'sometimes|string|max:255',
+            'name'                     => 'required|string|max:255',
+            'employee_code'            => 'required|string|unique:employees,employee_code,' . $id,
+            'position'                 => 'nullable|string|max:255',
+            'daily_rate'               => 'required|numeric|min:0',
+            'base_salary'              => 'nullable|numeric|min:0',
+            'hourly_rate'              => 'nullable|numeric|min:0',
+            'address'                  => 'nullable|string|max:255',
+            'tin'                      => 'nullable|string|max:255',
+            'sss_no'                   => 'nullable|string|max:255',
+            'pagibig_no'               => 'nullable|string|max:255',
+            'philhealth_no'            => 'nullable|string|max:255',
+            'contact_number'           => 'nullable|string|max:255',
+            'sss_loan'                 => 'nullable|numeric|min:0',
+            'pagibig_loan'             => 'nullable|numeric|min:0',
+            'emergency_loan'           => 'nullable|numeric|min:0',
+            'pagibig_contribution'     => 'nullable|numeric|min:0',
+            'sss_contribution'         => 'nullable|numeric|min:0',
+            'philhealth_contribution'   => 'nullable|numeric|min:0',
+            'withholding_tax'          => 'nullable|numeric|min:0',
         ]);
 
-        $validated['hourly_rate'] = $this->calculateHourlyRate(
-            $validated['base_salary'],
-            $this->getHourlyRateSettings(),
-        );
+        $settings = $this->getHourlyRateSettings();
+        $daysPerMonth = (int) ($settings['days_per_month'] ?? 24);
+        $hoursPerDay = (float) ($settings['hours_per_day'] ?? 8);
+
+        $dailyRate = (float) ($validated['daily_rate'] ?? 0);
+        if ($dailyRate > 0) {
+            $validated['hourly_rate'] = number_format($dailyRate / $hoursPerDay, 2, '.', '');
+            if (empty($validated['base_salary'])) {
+                $validated['base_salary'] = number_format($dailyRate * $daysPerMonth, 2, '.', '');
+            }
+        } elseif (!empty($validated['base_salary'])) {
+            $baseSalary = (float) $validated['base_salary'];
+            $validated['daily_rate'] = number_format($baseSalary / $daysPerMonth, 2, '.', '');
+            $validated['hourly_rate'] = number_format($baseSalary / ($daysPerMonth * $hoursPerDay), 2, '.', '');
+        }
 
         $employee->update($validated);
-        return redirect()->back()->with('success', 'Employee updated successfully!');
+        return redirect()->route('employees.show', $employee->id)->with('success', 'Employee profile updated successfully!');
     }
 
     public function bulkUpdate(Request $request)
@@ -166,20 +220,36 @@ class EmployeeController extends Controller
                 'employee_code' => ['sometimes', 'nullable', 'string', 'max:255'],
                 'name' => ['sometimes', 'nullable', 'string', 'max:255'],
                 'position' => ['sometimes', 'nullable', 'string', 'max:255'],
-                'department' => ['sometimes', 'nullable', 'string', 'max:255'],
-                'employment_type' => ['sometimes', 'nullable', 'string', 'max:255'],
+                'daily_rate' => ['sometimes', 'nullable', 'numeric', 'min:0'],
                 'base_salary' => ['sometimes', 'nullable', 'numeric', 'min:0'],
                 'hourly_rate' => ['sometimes', 'nullable', 'numeric', 'min:0'],
                 'contact_number' => ['sometimes', 'nullable', 'string', 'max:255'],
                 'address' => ['sometimes', 'nullable', 'string', 'max:255'],
                 'tin' => ['sometimes', 'nullable', 'string', 'max:255'],
+                'sss_no' => ['sometimes', 'nullable', 'string', 'max:255'],
+                'pagibig_no' => ['sometimes', 'nullable', 'string', 'max:255'],
+                'philhealth_no' => ['sometimes', 'nullable', 'string', 'max:255'],
+                'sss_loan' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+                'pagibig_loan' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+                'emergency_loan' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+                'pagibig_contribution' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+                'sss_contribution' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+                'philhealth_contribution' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+                'withholding_tax' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             ],
             function (Employee $employee, array $payload): array {
-                if (array_key_exists('base_salary', $payload) && $payload['base_salary'] !== null) {
-                    $payload['hourly_rate'] = $this->calculateHourlyRate(
-                        (float) $payload['base_salary'],
-                        $this->getHourlyRateSettings(),
-                    );
+                $settings = $this->getHourlyRateSettings();
+                $hoursPerDay = (float) ($settings['hours_per_day'] ?? 8);
+                $daysPerMonth = (int) ($settings['days_per_month'] ?? 24);
+
+                if (array_key_exists('daily_rate', $payload) && $payload['daily_rate'] !== null) {
+                    $dailyRate = (float) $payload['daily_rate'];
+                    $payload['hourly_rate'] = number_format($dailyRate / $hoursPerDay, 2, '.', '');
+                    $payload['base_salary'] = number_format($dailyRate * $daysPerMonth, 2, '.', '');
+                } elseif (array_key_exists('base_salary', $payload) && $payload['base_salary'] !== null) {
+                    $monthly = (float) $payload['base_salary'];
+                    $payload['daily_rate'] = number_format($monthly / $daysPerMonth, 2, '.', '');
+                    $payload['hourly_rate'] = number_format($monthly / ($daysPerMonth * $hoursPerDay), 2, '.', '');
                 }
 
                 return $payload;

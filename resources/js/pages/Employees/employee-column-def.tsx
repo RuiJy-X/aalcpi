@@ -37,6 +37,13 @@ function SortHeader({
     );
 }
 
+const formatCurrency = (val: unknown, isDeduction: boolean = false) => {
+    const num = parseFloat(String(val ?? 0));
+    if (isNaN(num)) return isDeduction ? '-₱0.00' : '₱0.00';
+    const formatted = `₱${num.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return isDeduction && num > 0 ? `-${formatted}` : formatted;
+};
+
 export function createEmployeeColumns(
     options: EmployeeColumnsOptions = {},
 ): ColumnDef<EmployeeType>[] {
@@ -47,20 +54,39 @@ export function createEmployeeColumns(
         label: string,
         getValue: (e: EmployeeType) => unknown,
         inputType: 'text' | 'number' = 'text',
+        isMoney: boolean = false,
+        isDeduction: boolean = false,
+        isEarnings: boolean = false,
     ): ColumnDef<EmployeeType> => ({
         accessorKey: field,
         header: ({ column }) => <SortHeader label={label} column={column} />,
-        cell: ({ row }) => (
-            <EditableTextCell
-                rowId={row.original.id}
-                field={field}
-                isEditing={isEditing}
-                value={getValue(row.original)}
-                display={String(getValue(row.original) ?? 'NA')}
-                onCellChange={onCellChange}
-                inputType={inputType}
-            />
-        ),
+        cell: ({ row }) => {
+            const displayVal = isMoney
+                ? formatCurrency(getValue(row.original), isDeduction)
+                : String(getValue(row.original) ?? 'N/A');
+
+            return (
+                <div
+                    className={
+                        isDeduction
+                            ? 'font-semibold text-rose-600 dark:text-rose-400'
+                            : isEarnings
+                            ? 'font-bold text-emerald-600 dark:text-emerald-400'
+                            : ''
+                    }
+                >
+                    <EditableTextCell
+                        rowId={row.original.id}
+                        field={field}
+                        isEditing={isEditing}
+                        value={getValue(row.original)}
+                        display={displayVal}
+                        onCellChange={onCellChange}
+                        inputType={inputType}
+                    />
+                </div>
+            );
+        },
     });
 
     return [
@@ -90,15 +116,15 @@ export function createEmployeeColumns(
             enableSorting: false,
             enableHiding: false,
         },
-        text('employee_code', 'Employee Code', (e) => e.employee_code),
+        text('employee_code', 'Code', (e) => e.employee_code),
         text('name', 'Name', (e) => e.name),
-        text('position', 'Position', (e) => e.position),
-        text('department', 'Department', (e) => e.department),
-        text('employment_type', 'Employment Type', (e) => e.employment_type),
-        text('base_salary', 'Base Salary', (e) => e.base_salary, 'number'),
-        text('hourly_rate', 'Hourly Rate', (e) => e.hourly_rate, 'number'),
-        text('contact_number', 'Contact Number', (e) => e.contact_number),
-        text('address', 'Address', (e) => e.address),
+        text('position', 'Designation', (e) => e.position),
+        text('daily_rate', 'Daily Rate', (e) => e.daily_rate, 'number', true, false, true),
+        text('base_salary', 'Monthly Salary', (e) => e.base_salary, 'number', true, false, true),
+        text('sss_loan', 'SSS Loan', (e) => e.sss_loan, 'number', true, true, false),
+        text('pagibig_loan', 'Pag-IBIG Loan', (e) => e.pagibig_loan, 'number', true, true, false),
+        text('emergency_loan', 'Emergency Loan', (e) => e.emergency_loan, 'number', true, true, false),
+        text('contact_number', 'Contact', (e) => e.contact_number),
         text('tin', 'TIN', (e) => e.tin),
         {
             id: 'actions',
