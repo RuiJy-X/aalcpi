@@ -108,7 +108,12 @@ export default function Show({ payroll }: { payroll: PayrollDetailType }) {
     const deductions = parseFloat(String(payroll.deductions || 0));
     const netPay = parseFloat(String(payroll.net_pay || 0));
     const basicPay = parseFloat(String(payroll.basic_pay || 0));
-    const overtimePay = Math.max(0, grossPay - basicPay);
+    const cashAdvancePayout = parseFloat(String(payroll.cash_advance_payout || 0));
+    const cashAdvanceDeduction = parseFloat(String(payroll.cash_advance_deduction || 0));
+    const overtimePay = parseFloat(String(payroll.overtime_pay ?? Math.max(0, grossPay - basicPay - cashAdvancePayout)));
+    const overtimeHours = parseFloat(String(payroll.overtime_hours ?? 0));
+    const holidayPay = parseFloat(String((payroll as any).holiday_pay ?? (dailyRate * Number(payroll.holidays ?? 0))));
+    const holidaysCount = Number(payroll.holidays ?? 0);
 
     const dailyRate = parseFloat(String(employee?.daily_rate || (Number(payroll.hourly_rate) * 8) || 0));
 
@@ -236,7 +241,9 @@ export default function Show({ payroll }: { payroll: PayrollDetailType }) {
                                 <DetailRow label="Daily Rate" value={formatCurrency(dailyRate)} isEarnings />
                                 <DetailRow label="Days Worked" value={`${payroll.days_worked ?? 0} Days`} />
                                 <DetailRow label="Basic Pay (Daily × Days)" value={formatCurrency(basicPay)} />
-                                <DetailRow label="Overtime / Holiday Pay" value={formatCurrency(overtimePay)} />
+                                <DetailRow label={overtimeHours > 0 ? `Overtime Pay (${overtimeHours} hrs)` : "Overtime Pay (+)"} value={formatCurrency(overtimePay)} isEarnings={overtimePay > 0} />
+                                <DetailRow label={holidaysCount > 0 ? `Holiday Pay (${holidaysCount} days)` : "Holiday Pay (+)"} value={formatCurrency(holidayPay)} isEarnings={holidayPay > 0} />
+                                <DetailRow label="Cash Advance Payout (+)" value={formatCurrency(payroll.cash_advance_payout)} isEarnings={parseFloat(String(payroll.cash_advance_payout ?? 0)) > 0} />
                                 <div className="pt-2 border-t border-border flex justify-between font-bold text-foreground text-sm sm:text-base">
                                     <span>Total Gross Earnings:</span>
                                     <span className="text-emerald-600 dark:text-emerald-400">
@@ -261,10 +268,11 @@ export default function Show({ payroll }: { payroll: PayrollDetailType }) {
                             </div>
 
                             <div className="space-y-1">
+                                <DetailRow label="Cash Advance Repayment Deduction (-)" value={formatCurrency(payroll.cash_advance_deduction, true)} isDeduction={parseFloat(String(payroll.cash_advance_deduction ?? 0)) > 0} />
                                 <DetailRow label="SSS Loan Deduction" value={formatCurrency(sssLoan, true)} isDeduction />
-                                <DetailRow label="Pag-IBIG Loan Deduction" value={formatCurrency(pagibigLoan, true)} isDeduction />
+                                <DetailRow label="Pag-IBIG Contribution" value={formatCurrency(payroll.employee?.pagibig_contribution ?? 200, true)} isDeduction />
                                 <DetailRow label="Emergency Loan Deduction" value={formatCurrency(emergencyLoan, true)} isDeduction />
-                                <DetailRow label="Total Statutory & Tax Deductions" value={formatCurrency(deductions - (sssLoan + pagibigLoan + emergencyLoan), true)} isDeduction />
+                                <DetailRow label="Tax W/Held Payable" value={formatCurrency(payroll.employee?.withholding_tax ?? 0, true)} isDeduction />
                                 <div className="pt-2 border-t border-border flex justify-between font-bold text-foreground text-sm sm:text-base">
                                     <span>Total Deductions:</span>
                                     <span className="text-rose-600 dark:text-rose-400">

@@ -78,10 +78,26 @@ class EmployeeController extends Controller
                 ];
             });
 
+        $advancements = $employee->advancements()
+            ->latest('advancement_date')
+            ->get()
+            ->map(function ($adv) {
+                return [
+                    'id' => $adv->id,
+                    'amount' => (float) $adv->amount,
+                    'remaining_balance' => (float) $adv->remaining_balance,
+                    'advancement_date' => $adv->advancement_date?->toDateString(),
+                    'status' => $adv->status,
+                    'notes' => $adv->notes,
+                    'created_at' => $adv->created_at?->toDateTimeString(),
+                ];
+            });
+
         return Inertia::render('Employees/Show', [
             'employee' => $employee,
             'attendance' => $attendance,
             'payrolls' => $payrolls,
+            'advancements' => $advancements,
             'hourlyRateSettings' => [
                 'days_per_month' => $settings?->days_per_month ?? 24,
                 'hours_per_day' => $settings?->hours_per_day ?? 8,

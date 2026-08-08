@@ -16,8 +16,12 @@ export type PayrollType = {
     hours_worked: number;
     hourly_rate?: string | number | null;
     basic_pay: string | number;
+    overtime_pay?: string | number | null;
+    overtime_hours?: string | number | null;
     holidays: number;
     gross_pay: string | number;
+    cash_advance_payout?: string | number | null;
+    cash_advance_deduction?: string | number | null;
     sss_loan?: string | number | null;
     pagibig_loan?: string | number | null;
     emergency_loan?: string | number | null;
@@ -36,6 +40,7 @@ export type PayrollEmployeeSummary = {
     hourly_rate?: string | number | null;
     daily_rate?: string | number | null;
     base_salary?: string | number | null;
+    cash_advance_balance?: string | number | null;
     attendances?: AttendanceType[];
 };
 

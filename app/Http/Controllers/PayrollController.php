@@ -9,6 +9,7 @@ use App\Http\Requests\PreviewPayrollRequest;
 use App\Models\Payroll;
 use App\Models\Employee;
 use App\Models\Attendance;
+use App\Models\Advancement;
 use App\Imports\AttendanceImport;
 use App\Services\PayrollCalculationService;
 use App\Services\PayrollAuditService;
@@ -45,32 +46,47 @@ class PayrollController extends Controller
             ->latest('period_end')
             ->get()
             ->map(function (Payroll $record) {
+                $payout = (float) ($record->cash_advance_payout ?? 0);
+                if ($payout <= 0) {
+                    $payout = (float) Advancement::where('payout_payroll_id', $record->id)->sum('amount');
+                }
+
+                $deduction = (float) ($record->cash_advance_deduction ?? 0);
+                if ($deduction <= 0) {
+                    $deduction = (float) Advancement::where('deduction_payroll_id', $record->id)->sum('amount');
+                }
+
                 return [
-                    'id' => $record->id,
-                    'employee_id' => $record->employee_id,
-                    'employee_code' => $record->employee?->employee_code ?? ('EMP-' . str_pad((string) $record->employee_id, 3, '0', STR_PAD_LEFT)),
-                    'employee_name' => $record->employee?->name,
-                    'position' => $record->employee?->position ?? 'Encoder',
-                    'daily_rate' => $record->employee?->daily_rate ?? 0,
-                    'period_start' => $record->period_start?->toDateString(),
-                    'period_end' => $record->period_end?->toDateString(),
-                    'payroll_date' => $record->payroll_date?->toDateString(),
-                    'days_worked' => $record->days_worked,
-                    'total_days' => $record->total_days,
-                    'total_hours' => $record->total_hours,
-                    'hours_worked' => $record->hours_worked,
-                    'hourly_rate' => $record->hourly_rate,
-                    'basic_pay' => $record->basic_pay,
-                    'holidays' => $record->holidays,
-                    'gross_pay' => $record->gross_pay,
-                    'sss_loan' => $record->employee?->sss_loan ?? 0,
-                    'pagibig_loan' => $record->employee?->pagibig_loan ?? 0,
-                    'emergency_loan' => $record->employee?->emergency_loan ?? 0,
-                    'deductions' => $record->deductions,
-                    'net_pay' => $record->net_pay,
-                    'status' => $record->status,
-                    'created_at' => $record->created_at,
-                    'updated_at' => $record->updated_at,
+                    'id'                     => $record->id,
+                    'employee_id'            => $record->employee_id,
+                    'employee_code'          => $record->employee?->employee_code ?? ('EMP-' . str_pad((string) $record->employee_id, 3, '0', STR_PAD_LEFT)),
+                    'employee_name'          => $record->employee?->name ?? 'N/A',
+                    'position'               => $record->employee?->position ?? 'Encoder',
+                    'daily_rate'             => (float) ($record->employee?->daily_rate ?? 0),
+                    'period_start'           => $record->period_start?->toDateString(),
+                    'period_end'             => $record->period_end?->toDateString(),
+                    'payroll_date'           => $record->payroll_date?->toDateString(),
+                    'days_worked'            => $record->days_worked,
+                    'total_days'             => $record->total_days,
+                    'total_hours'            => $record->total_hours,
+                    'hours_worked'           => $record->hours_worked,
+                    'hourly_rate'            => $record->hourly_rate,
+                    'basic_pay'              => (float) $record->basic_pay,
+                    'overtime_pay'           => (float) ($record->overtime_pay ?? max(0, (float) $record->gross_pay - (float) $record->basic_pay - $payout)),
+                    'overtime_hours'         => (float) ($record->overtime_hours ?? 0),
+                    'holidays'               => $record->holidays,
+                    'holiday_pay'            => (float) ($record->holiday_pay ?? round((float) ($record->employee?->daily_rate ?? 0) * (int) $record->holidays, 2)),
+                    'gross_pay'              => (float) $record->gross_pay,
+                    'cash_advance_payout'    => $payout,
+                    'cash_advance_deduction' => $deduction,
+                    'sss_loan'               => (float) ($record->sss_loan ?? $record->employee?->sss_loan ?? 0),
+                    'pagibig_loan'           => (float) ($record->pagibig_loan ?? $record->employee?->pagibig_loan ?? 0),
+                    'emergency_loan'         => (float) ($record->emergency_loan ?? $record->employee?->emergency_loan ?? 0),
+                    'deductions'             => (float) $record->deductions,
+                    'net_pay'                => (float) $record->net_pay,
+                    'status'                 => $record->status,
+                    'created_at'             => $record->created_at?->toDateTimeString(),
+                    'updated_at'             => $record->updated_at?->toDateTimeString(),
                 ];
             });
 
@@ -114,7 +130,7 @@ class PayrollController extends Controller
     }
 
     /**
-     * Import attendance Excel file directly on the batch generation page
+     * Upload an Excel attendance file and re-audit batch
      */
     public function uploadAttendanceBatch(Request $request)
     {
@@ -126,7 +142,7 @@ class PayrollController extends Controller
 
         try {
             $import = new AttendanceImport(persist: true);
-            Excel::import($import, $request->file('attendance_file'));
+            Excel::import($import, $validated['attendance_file']);
 
             $start = Carbon::parse($validated['period_start']);
             $end = Carbon::parse($validated['period_end']);
@@ -134,8 +150,8 @@ class PayrollController extends Controller
             $batchData = $this->auditService->auditBatch($start, $end);
 
             return response()->json([
-                'success' => true,
-                'message' => 'Attendance data imported successfully!',
+                'success'   => true,
+                'message'   => "Successfully imported attendance records!",
                 'batchData' => $batchData,
             ]);
         } catch (\Exception $e) {
@@ -152,16 +168,17 @@ class PayrollController extends Controller
     public function quickUpdateEmployee(Request $request, Employee $employee)
     {
         $validated = $request->validate([
-            'daily_rate'            => 'required|numeric|min:0',
-            'sss_loan'              => 'nullable|numeric|min:0',
-            'pagibig_loan'          => 'nullable|numeric|min:0',
-            'emergency_loan'        => 'nullable|numeric|min:0',
-            'pagibig_contribution'  => 'nullable|numeric|min:0',
-            'sss_contribution'      => 'nullable|numeric|min:0',
+            'daily_rate'              => 'required|numeric|min:0',
+            'holidays'                => 'nullable|integer|min:0',
+            'sss_loan'                => 'nullable|numeric|min:0',
+            'pagibig_loan'            => 'nullable|numeric|min:0',
+            'emergency_loan'          => 'nullable|numeric|min:0',
+            'pagibig_contribution'    => 'nullable|numeric|min:0',
+            'sss_contribution'        => 'nullable|numeric|min:0',
             'philhealth_contribution' => 'nullable|numeric|min:0',
-            'withholding_tax'       => 'nullable|numeric|min:0',
-            'period_start'          => 'required|date',
-            'period_end'            => 'required|date|after_or_equal:period_start',
+            'withholding_tax'         => 'nullable|numeric|min:0',
+            'period_start'            => 'required|date',
+            'period_end'              => 'required|date|after_or_equal:period_start',
         ]);
 
         $hoursPerDay = 8;
@@ -179,14 +196,14 @@ class PayrollController extends Controller
         $batchData = $this->auditService->auditBatch($start, $end);
 
         return response()->json([
-            'success' => true,
-            'message' => "Updated profile setup for {$employee->name}.",
+            'success'   => true,
+            'message'   => "Updated pay setup for {$employee->name}!",
             'batchData' => $batchData,
         ]);
     }
 
     /**
-     * Process and save batch payroll records
+     * Process and save audited batch payroll records
      */
     public function processBatch(Request $request)
     {
@@ -194,18 +211,17 @@ class PayrollController extends Controller
             'period_start' => 'required|date',
             'period_end'   => 'required|date|after_or_equal:period_start',
             'employee_ids' => 'nullable|array',
-            'employee_ids.*' => 'exists:employees,id',
         ]);
 
         $start = Carbon::parse($validated['period_start']);
         $end = Carbon::parse($validated['period_end']);
 
-        $auditData = $this->auditService->auditBatch($start, $end);
-        $readyEmployees = $auditData['ready'];
+        $batchData = $this->auditService->auditBatch($start, $end);
+        $readyEmployees = $batchData['ready'];
 
         if (empty($readyEmployees)) {
-            throw ValidationException::withMessages([
-                'period_start' => 'No ready employees available to process for this date range.',
+            return redirect()->back()->withErrors([
+                'batch' => 'No ready employees available to process for this date range.',
             ]);
         }
 
@@ -217,24 +233,50 @@ class PayrollController extends Controller
                 continue;
             }
 
-            Payroll::updateOrCreate([
+            // Skip if employee already has a PAID payroll in this date range
+            $existingPaid = Payroll::where('employee_id', $empData['employee_id'])
+                ->where('status', 'paid')
+                ->whereDate('period_start', '<=', $end)
+                ->whereDate('period_end', '>=', $start)
+                ->exists();
+
+            if ($existingPaid) {
+                continue;
+            }
+
+            $payrollRecord = Payroll::updateOrCreate([
                 'employee_id'  => $empData['employee_id'],
                 'period_start' => $start->toDateString(),
                 'period_end'   => $end->toDateString(),
             ], [
-                'payroll_date'  => $end->toDateString(),
-                'days_worked'   => $empData['days_worked'],
-                'total_days'    => $empData['days_worked'],
-                'total_hours'   => $empData['hours_worked'],
-                'hours_worked'  => $empData['hours_worked'],
-                'hourly_rate'   => $empData['hourly_rate'],
-                'basic_pay'     => $empData['gross_earnings'],
-                'holidays'       => 0,
-                'gross_pay'     => $empData['total_earnings'],
-                'deductions'    => $empData['total_deductions'],
-                'net_pay'       => $empData['net_amount'],
-                'status'        => 'draft',
+                'payroll_date'           => $end->toDateString(),
+                'days_worked'            => $empData['days_worked'],
+                'total_days'             => $empData['days_worked'],
+                'total_hours'            => $empData['hours_worked'],
+                'hours_worked'           => $empData['hours_worked'],
+                'hourly_rate'            => $empData['hourly_rate'],
+                'basic_pay'              => $empData['basic_pay'] ?? $empData['gross_earnings'],
+                'overtime_pay'           => $empData['overtime_pay'] ?? 0.00,
+                'overtime_hours'         => $empData['overtime_hours'] ?? 0.00,
+                'holidays'               => $empData['holidays'] ?? 0,
+                'holiday_pay'            => $empData['holiday_pay'] ?? 0.00,
+                'gross_pay'              => $empData['total_earnings'],
+                'cash_advance_payout'    => $empData['cash_advance_payout'] ?? 0.00,
+                'cash_advance_deduction' => $empData['cash_advance_deduction'] ?? 0.00,
+                'sss_loan'               => $empData['sss_loan'] ?? 0.00,
+                'pagibig_loan'           => $empData['pagibig_loan'] ?? 0.00,
+                'emergency_loan'         => $empData['emergency_loan'] ?? 0.00,
+                'deductions'             => $empData['total_deductions'],
+                'net_pay'                => $empData['net_amount'],
+                'status'                 => 'draft',
             ]);
+
+            // Link Advancement Payouts to this draft payroll without prematurely setting status to paid_out
+            if (!empty($empData['pending_advancement_ids'])) {
+                Advancement::whereIn('id', $empData['pending_advancement_ids'])->update([
+                    'payout_payroll_id' => $payrollRecord->id,
+                ]);
+            }
 
             $savedCount++;
         }
@@ -250,6 +292,9 @@ class PayrollController extends Controller
         $payrollRecord = Payroll::with('employee')->findOrFail($id);
         $employee = $payrollRecord->employee;
 
+        $cashAdvancePayout = (float) (($payrollRecord->cash_advance_payout ?? 0) > 0 ? $payrollRecord->cash_advance_payout : Advancement::where('payout_payroll_id', $payrollRecord->id)->sum('amount'));
+        $cashAdvanceDeduction = (float) (($payrollRecord->cash_advance_deduction ?? 0) > 0 ? $payrollRecord->cash_advance_deduction : Advancement::where('deduction_payroll_id', $payrollRecord->id)->sum('amount'));
+
         $payroll = [
             'id'                     => $payrollRecord->id,
             'employee_code'          => $employee?->employee_code ?? ('EMP-' . str_pad((string) $payrollRecord->employee_id, 3, '0', STR_PAD_LEFT)),
@@ -260,11 +305,13 @@ class PayrollController extends Controller
             'period_end'             => $payrollRecord->period_end?->toDateString(),
             'days_worked'            => $payrollRecord->days_worked ?? 0,
             'basic_pay'              => (float) $payrollRecord->basic_pay,
-            'overtime_pay'           => max(0, (float) $payrollRecord->gross_pay - (float) $payrollRecord->basic_pay),
+            'cash_advance_payout'    => $cashAdvancePayout,
+            'cash_advance_deduction' => $cashAdvanceDeduction,
+            'overtime_pay'           => max(0, (float) $payrollRecord->gross_pay - (float) $payrollRecord->basic_pay - $cashAdvancePayout),
             'gross_pay'              => (float) $payrollRecord->gross_pay,
-            'sss_loan'               => (float) ($employee?->sss_loan ?? 0),
-            'pagibig_loan'           => (float) ($employee?->pagibig_loan ?? 0),
-            'emergency_loan'         => (float) ($employee?->emergency_loan ?? 0),
+            'sss_loan'               => (float) ($payrollRecord->sss_loan ?? $employee?->sss_loan ?? 0),
+            'pagibig_loan'           => (float) ($payrollRecord->pagibig_loan ?? $employee?->pagibig_loan ?? 0),
+            'emergency_loan'         => (float) ($payrollRecord->emergency_loan ?? $employee?->emergency_loan ?? 0),
             'pagibig_contribution'   => (float) ($employee?->pagibig_contribution ?? 200.00),
             'sss_contribution'       => (float) ($employee?->sss_contribution ?? 0),
             'philhealth_contribution' => (float) ($employee?->philhealth_contribution ?? 0),
@@ -286,38 +333,82 @@ class PayrollController extends Controller
         $validated = $request->validate([
             'period_start' => 'required|date',
             'period_end'   => 'required|date|after_or_equal:period_start',
+            'status'       => 'nullable|string|in:all,draft,pending,paid',
         ]);
 
         $start = Carbon::parse($validated['period_start']);
         $end = Carbon::parse($validated['period_end']);
+        $statusFilter = strtolower($validated['status'] ?? 'all');
 
-        $auditData = $this->auditService->auditBatch($start, $end);
-        $readyList = $auditData['ready'];
+        // Check if saved payroll records exist in database
+        $query = Payroll::with('employee')
+            ->whereDate('period_start', '>=', $start)
+            ->whereDate('period_end', '<=', $end);
+
+        if ($statusFilter !== 'all') {
+            $query->where('status', $statusFilter);
+        }
+
+        $savedPayrolls = $query->orderBy('payroll_date')->get();
+
+        if ($savedPayrolls->count() > 0) {
+            $payrollsList = $savedPayrolls->map(function ($p) {
+                $emp = $p->employee;
+                return [
+                    'name'                      => $emp?->name ?? 'N/A',
+                    'position'                  => $emp?->position ?? 'Encoder',
+                    'daily_rate'                => (float) ($emp?->daily_rate ?? ($p->hourly_rate * 8)),
+                    'days_worked'               => (int) $p->days_worked,
+                    'gross_earnings'            => (float) $p->basic_pay,
+                    'cash_advance_payout'        => (float) (($p->cash_advance_payout ?? 0) > 0 ? $p->cash_advance_payout : Advancement::where('payout_payroll_id', $p->id)->sum('amount')),
+                    'total_earnings'            => (float) $p->gross_pay,
+                    'cash_advance_deduction'     => (float) (($p->cash_advance_deduction ?? 0) > 0 ? $p->cash_advance_deduction : Advancement::where('deduction_payroll_id', $p->id)->sum('amount')),
+                    'pagibig_contribution'      => (float) ($emp?->pagibig_contribution ?? 200),
+                    'sss_contribution'          => (float) ($emp?->sss_contribution ?? 0),
+                    'philhealth_contribution'    => (float) ($emp?->philhealth_contribution ?? 0),
+                    'withholding_tax'           => (float) ($emp?->withholding_tax ?? 0),
+                    'sss_loan'                  => (float) ($p->sss_loan ?? $emp?->sss_loan ?? 0),
+                    'pagibig_loan'              => (float) ($p->pagibig_loan ?? $emp?->pagibig_loan ?? 0),
+                    'emergency_loan'            => (float) ($p->emergency_loan ?? $emp?->emergency_loan ?? 0),
+                    'total_deductions'          => (float) $p->deductions,
+                    'net_amount'                => (float) $p->net_pay,
+                    'status'                    => $p->status,
+                ];
+            })->toArray();
+        } else {
+            // Pre-payroll audit preview fallback
+            $auditData = $this->auditService->auditBatch($start, $end);
+            $payrollsList = $auditData['ready'];
+            if ($statusFilter !== 'all') {
+                $payrollsList = array_values(array_filter($payrollsList, fn($item) => ($item['status'] ?? 'draft') === $statusFilter));
+            }
+        }
 
         $totals = [
-            'total_days_worked'        => array_sum(array_column($readyList, 'days_worked')),
-            'total_basic'              => array_sum(array_column($readyList, 'gross_earnings')),
-            'total_overtime'           => array_sum(array_column($readyList, 'overtime_pay')),
-            'total_gross'              => array_sum(array_column($readyList, 'total_earnings')),
-            'total_pagibig_contrib'    => array_sum(array_column($readyList, 'pagibig_contribution')),
-            'total_sss_contrib'        => array_sum(array_column($readyList, 'sss_contribution')),
-            'total_philhealth_contrib' => array_sum(array_column($readyList, 'philhealth_contribution')),
-            'total_tax'                => array_sum(array_column($readyList, 'withholding_tax')),
-            'total_sss_loan'           => array_sum(array_column($readyList, 'sss_loan')),
-            'total_pagibig_loan'       => array_sum(array_column($readyList, 'pagibig_loan')),
-            'total_emergency_loan'     => array_sum(array_column($readyList, 'emergency_loan')),
-            'total_deductions'         => array_sum(array_column($readyList, 'total_deductions')),
-            'total_net'                => array_sum(array_column($readyList, 'net_amount')),
+            'total_days_worked'        => array_sum(array_column($payrollsList, 'days_worked')),
+            'total_basic'              => array_sum(array_column($payrollsList, 'gross_earnings')),
+            'total_overtime'           => array_sum(array_column($payrollsList, 'overtime_pay')),
+            'total_gross'              => array_sum(array_column($payrollsList, 'total_earnings')),
+            'total_pagibig_contrib'    => array_sum(array_column($payrollsList, 'pagibig_contribution')),
+            'total_sss_contrib'        => array_sum(array_column($payrollsList, 'sss_contribution')),
+            'total_philhealth_contrib' => array_sum(array_column($payrollsList, 'philhealth_contribution')),
+            'total_tax'                => array_sum(array_column($payrollsList, 'withholding_tax')),
+            'total_sss_loan'           => array_sum(array_column($payrollsList, 'sss_loan')),
+            'total_pagibig_loan'       => array_sum(array_column($payrollsList, 'pagibig_loan')),
+            'total_emergency_loan'     => array_sum(array_column($payrollsList, 'emergency_loan')),
+            'total_deductions'         => array_sum(array_column($payrollsList, 'total_deductions')),
+            'total_net'                => array_sum(array_column($payrollsList, 'net_amount')),
         ];
 
         $pdf = Pdf::loadView('pdfs.payroll_summary', [
-            'payrolls' => $readyList,
+            'payrolls' => $payrollsList,
             'periodStart' => $start->toDateString(),
             'periodEnd' => $end->toDateString(),
+            'statusFilter' => strtoupper($statusFilter),
             'totals' => $totals,
         ])->setPaper('a4', 'landscape');
 
-        return $pdf->stream("payroll_summary_{$start->format('Ymd')}_to_{$end->format('Ymd')}.pdf");
+        return $pdf->stream("payroll_summary_{$statusFilter}_{$start->format('Ymd')}_to_{$end->format('Ymd')}.pdf");
     }
 
     /**
@@ -355,106 +446,95 @@ class PayrollController extends Controller
                     'name' => $employee?->name ?? $import->employeeName,
                     'position' => $employee?->position,
                     'hourly_rate' => $employee?->hourly_rate,
-                    'base_salary' => $employee?->base_salary,
-                    'exists' => (bool) $employee,
                 ],
-                'period_start' => $periodStart?->toDateString(),
-                'period_end' => $periodEnd?->toDateString(),
-                'attendance' => [
-                    'rows' => $import->attendanceRows,
-                    'total_hours' => round($import->totalHours, 2),
-                    'total_days' => $import->totalDays,
+                'period' => [
+                    'start' => $periodStart?->toDateString(),
+                    'end' => $periodEnd?->toDateString(),
+                    'days_worked' => $import->importedCount,
+                    'total_hours' => $import->totalHours,
                 ],
-                'payroll' => [
-                    'basic_pay' => $summary['basic_pay'],
-                    'holiday_pay' => $summary['holiday_pay'],
-                    'gross_pay' => $summary['gross_pay'],
-                    'deductions' => (float) $validated['deductions'],
-                    'net_pay' => $summary['net_pay'],
-                ],
+                'summary' => $summary,
             ]);
-        } catch (ValidationException $e) {
-            throw $e;
         } catch (\Exception $e) {
-            throw ValidationException::withMessages([
-                'attendance_file' => 'Error previewing payroll: ' . $e->getMessage(),
-            ]);
+            return response()->json([
+                'message' => 'Failed to calculate payroll preview',
+                'error' => $e->getMessage(),
+            ], 422);
         }
     }
 
     /**
-     * Generate payroll for an employee (legacy endpoint)
+     * Generate payroll for single attendance file (legacy endpoint)
      */
     public function generate(GeneratePayrollRequest $request)
     {
-        try {
-            $validated = $request->validated();
-            $employeeData = [
-                'name' => $validated['employee_name'],
-                'position' => $validated['position'] ?? null,
-                'hourly_rate' => (float) $validated['hourly_rate'],
-                'base_salary' => isset($validated['base_salary']) ? (float) $validated['base_salary'] : null,
-            ];
+        $validated = $request->validated();
 
-            $import = new AttendanceImport(persist: true, employeeData: $employeeData);
-            Excel::import($import, $validated['attendance_file']);
+        $import = new AttendanceImport(persist: true);
+        Excel::import($import, $validated['attendance_file']);
 
-            if ($import->importedCount === 0) {
-                throw ValidationException::withMessages([
-                    'attendance_file' => 'No attendance records were imported from the file.',
-                ]);
-            }
-
-            $employee = $import->employee;
-            if (!$employee) {
-                throw ValidationException::withMessages([
-                    'attendance_file' => 'Employee could not be resolved from the attendance file.',
-                ]);
-            }
-
-            [$periodStart, $periodEnd] = $this->resolvePeriodRange($import);
-
-            if (!$periodStart || !$periodEnd) {
-                throw ValidationException::withMessages([
-                    'attendance_file' => 'Unable to determine payroll period from the attendance file.',
-                ]);
-            }
-
-            $payroll = $this->payrollService->generatePayroll(
-                employee: $employee,
-                periodStart: Carbon::parse($periodStart),
-                periodEnd: Carbon::parse($periodEnd),
-                holidays: (int) $validated['holidays'],
-                deductions: (float) $validated['deductions'],
-                totalHours: $import->totalHours,
-                totalDays: $import->totalDays,
-            );
-
-            if ($payroll->payroll_date === null) {
-                $payroll->update([
-                    'payroll_date' => $payroll->period_end,
-                ]);
-            }
-
-            return back()->with('success', "Payroll generated successfully for {$employee->name}.");
-        } catch (ValidationException $e) {
-            throw $e;
-        } catch (\Exception $e) {
+        if ($import->importedCount === 0) {
             throw ValidationException::withMessages([
-                'attendance_file' => 'Error generating payroll: ' . $e->getMessage(),
+                'attendance_file' => 'No attendance records were imported from the file.',
             ]);
         }
+
+        [$periodStart, $periodEnd] = $this->resolvePeriodRange($import);
+        $employee = $import->employee;
+        $hourlyRate = (float) ($employee?->hourly_rate ?? 0);
+
+        $summary = $this->payrollService->calculateSimplePayroll(
+            hourlyRate: $hourlyRate,
+            totalHours: $import->totalHours,
+            holidays: (int) $validated['holidays'],
+            deductions: (float) $validated['deductions'],
+        );
+
+        $payroll = Payroll::create([
+            'employee_id'  => $employee?->id,
+            'period_start' => $periodStart?->toDateString(),
+            'period_end'   => $periodEnd?->toDateString(),
+            'payroll_date' => $periodEnd?->toDateString(),
+            'days_worked'  => $import->importedCount,
+            'total_days'   => $import->importedCount,
+            'total_hours'  => $import->totalHours,
+            'hours_worked' => $import->totalHours,
+            'hourly_rate'  => $hourlyRate,
+            'basic_pay'    => $summary['basic_pay'],
+            'holidays'     => (int) $validated['holidays'],
+            'gross_pay'    => $summary['gross_pay'],
+            'deductions'   => (float) $validated['deductions'],
+            'net_pay'      => $summary['net_pay'],
+            'status'       => 'draft',
+        ]);
+
+        return redirect()->route('payroll.index')
+            ->with('success', 'Payroll created successfully for employee: ' . ($employee?->name ?? 'N/A'));
     }
 
     /**
-     * @return array{0: CarbonImmutable|null, 1: CarbonImmutable|null}
+     * Update the status of a payroll record.
      */
+    public function updateStatus(Request $request, Payroll $payroll)
+    {
+        $validated = $request->validate([
+            'status' => 'required|in:draft,pending,paid',
+        ]);
+
+        $oldStatus = $payroll->status;
+        $newStatus = $validated['status'];
+
+        $payroll->update([
+            'status' => $newStatus,
+        ]);
+
+        $this->syncAdvancementStatusForPayroll($payroll, $oldStatus, $newStatus);
+
+        return redirect()->back()->with('success', 'Payroll status updated successfully.');
+    }
+
     private function resolvePeriodRange(AttendanceImport $import): array
     {
-        if ($import->periodStart && $import->periodEnd) {
-            return [$import->periodStart, $import->periodEnd];
-        }
-
         if ($import->attendanceRows === []) {
             return [null, null];
         }
@@ -509,7 +589,7 @@ class PayrollController extends Controller
 
     public function show($id)
     {
-        $payroll = Payroll::with('employee:id,name,position,hourly_rate,base_salary')->findOrFail($id);
+        $payroll = Payroll::with('employee:id,name,employee_code,position,daily_rate,hourly_rate,base_salary,sss_loan,pagibig_loan,emergency_loan,tin,sss_no,pagibig_no,philhealth_no,contact_number,address')->findOrFail($id);
 
         $attendanceRecords = [];
         if ($payroll->employee && $payroll->period_start && $payroll->period_end) {
@@ -539,35 +619,73 @@ class PayrollController extends Controller
 
         return Inertia::render('Payroll/Show', [
             'payroll' => [
-                'id' => $payroll->id,
-                'employee_id' => $payroll->employee_id,
-                'employee_name' => $payroll->employee?->name,
-                'employee' => $payroll->employee ? [
-                    'id' => $payroll->employee->id,
-                    'name' => $payroll->employee->name,
-                    'position' => $payroll->employee->position,
-                    'hourly_rate' => $payroll->hourly_rate,
-                    'base_salary' => $payroll->employee->base_salary,
-                    'attendances' => $attendanceRecords,
+                'id'                     => $payroll->id,
+                'employee_id'            => $payroll->employee_id,
+                'employee_name'          => $payroll->employee?->name,
+                'employee'               => $payroll->employee ? [
+                    'id'                      => $payroll->employee->id,
+                    'name'                    => $payroll->employee->name,
+                    'employee_code'           => $payroll->employee->employee_code,
+                    'position'                => $payroll->employee->position,
+                    'daily_rate'              => (float) ($payroll->employee->daily_rate ?? 0),
+                    'hourly_rate'             => (float) ($payroll->hourly_rate ?? 0),
+                    'base_salary'             => (float) ($payroll->employee->base_salary ?? 0),
+                    'sss_loan'                => (float) ($payroll->sss_loan ?? $payroll->employee->sss_loan ?? 0),
+                    'pagibig_loan'            => (float) ($payroll->pagibig_loan ?? $payroll->employee->pagibig_loan ?? 0),
+                    'emergency_loan'          => (float) ($payroll->emergency_loan ?? $payroll->employee->emergency_loan ?? 0),
+                    'attendances'             => $attendanceRecords,
                 ] : null,
-                'period_start' => $payroll->period_start?->toDateString(),
-                'period_end' => $payroll->period_end?->toDateString(),
-                'payroll_date' => $payroll->payroll_date?->toDateString(),
-                'days_worked' => $payroll->days_worked,
-                'total_days' => $payroll->total_days,
-                'total_hours' => $payroll->total_hours,
-                'hours_worked' => $payroll->hours_worked,
-                'hourly_rate' => $payroll->hourly_rate,
-                'basic_pay' => $payroll->basic_pay,
-                'holidays' => $payroll->holidays,
-                'gross_pay' => $payroll->gross_pay,
-                'deductions' => $payroll->deductions,
-                'net_pay' => $payroll->net_pay,
-                'status' => $payroll->status,
-                'created_at' => $payroll->created_at?->toDateTimeString(),
-                'updated_at' => $payroll->updated_at?->toDateTimeString(),
+                'period_start'           => $payroll->period_start?->toDateString(),
+                'period_end'             => $payroll->period_end?->toDateString(),
+                'payroll_date'           => $payroll->payroll_date?->toDateString(),
+                'days_worked'            => $payroll->days_worked,
+                'total_days'             => $payroll->total_days,
+                'total_hours'            => $payroll->total_hours,
+                'hours_worked'           => $payroll->hours_worked,
+                'hourly_rate'            => $payroll->hourly_rate,
+                'basic_pay'              => (float) $payroll->basic_pay,
+                'overtime_pay'           => (float) ($payroll->overtime_pay ?? max(0, (float) $payroll->gross_pay - (float) $payroll->basic_pay - (float) (($payroll->cash_advance_payout ?? 0) > 0 ? $payroll->cash_advance_payout : Advancement::where('payout_payroll_id', $payroll->id)->sum('amount')))),
+                'overtime_hours'         => (float) ($payroll->overtime_hours ?? 0),
+                'holidays'               => $payroll->holidays,
+                'holiday_pay'            => (float) ($payroll->holiday_pay ?? round((float) ($payroll->employee?->daily_rate ?? 0) * (int) $payroll->holidays, 2)),
+                'gross_pay'              => (float) $payroll->gross_pay,
+                'cash_advance_payout'    => (float) (($payroll->cash_advance_payout ?? 0) > 0 ? $payroll->cash_advance_payout : Advancement::where('payout_payroll_id', $payroll->id)->sum('amount')),
+                'cash_advance_deduction' => (float) (($payroll->cash_advance_deduction ?? 0) > 0 ? $payroll->cash_advance_deduction : Advancement::where('deduction_payroll_id', $payroll->id)->sum('amount')),
+                'sss_loan'               => (float) ($payroll->sss_loan ?? $payroll->employee?->sss_loan ?? 0),
+                'pagibig_loan'           => (float) ($payroll->pagibig_loan ?? $payroll->employee?->pagibig_loan ?? 0),
+                'emergency_loan'         => (float) ($payroll->emergency_loan ?? $payroll->employee?->emergency_loan ?? 0),
+                'deductions'             => (float) $payroll->deductions,
+                'net_pay'                => (float) $payroll->net_pay,
+                'status'                 => $payroll->status,
+                'created_at'             => $payroll->created_at?->toDateTimeString(),
+                'updated_at'             => $payroll->updated_at?->toDateTimeString(),
             ],
         ]);
+    }
+
+    /**
+     * Delete a payroll record and safely revert any linked cash advance statuses.
+     */
+    public function destroy($id)
+    {
+        $payroll = Payroll::findOrFail($id);
+
+        // Safely release linked cash advance payouts and deductions
+        Advancement::where('payout_payroll_id', $payroll->id)
+            ->orWhere('deduction_payroll_id', $payroll->id)
+            ->get()
+            ->each(fn(Advancement $adv) => $adv->releaseFromPayroll($payroll->id));
+
+        $payroll->delete();
+
+        if (request()->wantsJson() || request()->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Payroll record deleted successfully.',
+            ]);
+        }
+
+        return redirect()->route('payroll.index')->with('success', 'Payroll record deleted successfully.');
     }
 
     public function bulkUpdate(Request $request)
@@ -575,58 +693,68 @@ class PayrollController extends Controller
         return $this->performBulkUpdate(
             $request,
             Payroll::class,
-            [
-                'status' => ['required', 'string', 'in:draft,pending,paid'],
-            ],
-            successLabel: 'payroll record',
+            ['status' => 'required|in:draft,pending,paid'],
+            function (Payroll $payroll, array $payload): array {
+                if (isset($payload['status'])) {
+                    $oldStatus = $payroll->status;
+                    $newStatus = $payload['status'];
+                    $this->syncAdvancementStatusForPayroll($payroll, $oldStatus, $newStatus);
+                }
+                return $payload;
+            },
+            successLabel: 'payroll',
         );
     }
 
-    public function update(Request $request, Payroll $payroll)
+    /**
+     * Synchronize cash advancement lifecycle states based on payroll status transitions.
+     */
+    private function syncAdvancementStatusForPayroll(Payroll $payroll, string $oldStatus, string $newStatus): void
     {
-        $validated = $request->validate([
-            'status' => 'sometimes|in:draft,pending,paid',
-            'payroll_date' => 'sometimes|date',
-            'holidays' => 'sometimes|integer|min:0',
-            'deductions' => 'sometimes|numeric|min:0',
-            'net_pay' => 'sometimes|numeric',
-        ]);
+        if ($oldStatus === $newStatus) {
+            return;
+        }
 
-        $payroll->update($validated);
+        // When status becomes 'paid' -> commit payout and repayment deductions
+        if ($newStatus === 'paid') {
+            Advancement::where('payout_payroll_id', $payroll->id)
+                ->where('status', 'pending_payout')
+                ->update(['status' => 'paid_out']);
 
-        return back()->with('success', 'Payroll updated successfully!');
-    }
+            $deductionPool = (float) ($payroll->cash_advance_deduction ?? 0);
+            if ($deductionPool > 0) {
+                $repayables = Advancement::where('employee_id', $payroll->employee_id)
+                    ->whereIn('status', ['paid_out', 'partially_deducted'])
+                    ->where('remaining_balance', '>', 0)
+                    ->orderBy('advancement_date', 'asc')
+                    ->get();
 
-    public function updateStatus(Request $request, Payroll $payroll)
-    {
-        $validated = $request->validate([
-            'status' => 'required|in:draft,pending,paid',
-        ]);
-        $payroll->update([
-            'status' => $validated['status'],
-        ]);
+                foreach ($repayables as $adv) {
+                    if ($deductionPool <= 0) break;
+                    $rem = (float) $adv->remaining_balance;
+                    $deductNow = min($rem, $deductionPool);
+                    $newRem = round($rem - $deductNow, 2);
+                    $deductionPool = round($deductionPool - $deductNow, 2);
 
-        return back()->with('success', 'Payroll status updated successfully!');
-    }
+                    $adv->update([
+                        'remaining_balance' => $newRem,
+                        'status' => $newRem <= 0 ? 'deducted' : 'partially_deducted',
+                        'deduction_payroll_id' => $payroll->id,
+                    ]);
+                }
+            }
+        }
 
-    public function destroy($id)
-    {
-        $payroll = Payroll::findOrFail($id);
-        $payroll->delete();
-        return back()->with('success', 'Payroll record deleted successfully!');
-    }
-
-    public function bulkDestroy(Request $request)
-    {
-        $validated = $request->validate([
-            'ids' => ['required', 'array', 'min:1'],
-            'ids.*' => ['integer', 'distinct', 'exists:payrolls,id'],
-        ]);
-
-        Payroll::whereIn('id', $validated['ids'])->delete();
-
-        return redirect()
-            ->back()
-            ->with('success', 'Selected payroll records deleted successfully.');
+        // When moving from 'paid' back to 'draft' or 'pending' -> revert committed deduction balance
+        if ($oldStatus === 'paid' && in_array($newStatus, ['draft', 'pending'], true)) {
+            Advancement::where('deduction_payroll_id', $payroll->id)->get()->each(function (Advancement $adv) use ($payroll) {
+                $revertedBal = round((float) $adv->remaining_balance + (float) ($payroll->cash_advance_deduction ?? 0), 2);
+                $adv->update([
+                    'remaining_balance' => min((float) $adv->amount, $revertedBal),
+                    'status' => !empty($adv->payout_payroll_id) ? 'paid_out' : 'pending_payout',
+                    'deduction_payroll_id' => null,
+                ]);
+            });
+        }
     }
 }

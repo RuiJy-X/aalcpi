@@ -14,6 +14,7 @@ import {
     User,
     Users,
     Banknote,
+    HandCoins,
 } from 'lucide-react';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain, type NavGroup } from '@/components/nav-main';
@@ -110,6 +111,11 @@ export function AppSidebar() {
             title: 'Payroll',
             href: payrollIndex(),
             icon: DollarSign,
+        }),
+        ...optionalItem(can('payroll.view'), {
+            title: 'Cash Advancements',
+            href: '/advancements-page',
+            icon: HandCoins,
         }),
         ...optionalItem(can('users.view'), {
             title: 'User Management',

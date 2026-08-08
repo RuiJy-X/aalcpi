@@ -13,6 +13,8 @@ use App\Http\Controllers\ImportJobStatusController;
 use App\Http\Controllers\ImportMappingController;
 use App\Http\Controllers\MillingPeriodsController;
 use App\Http\Controllers\PayrollController;
+use App\Http\Controllers\AdvancementController;
+use App\Http\Controllers\HolidayController;
 use App\Http\Controllers\PlanterController;
 use App\Http\Controllers\ProductionController;
 use App\Http\Controllers\WeeklyController;
@@ -133,6 +135,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('permission:attendance.delete')
         ->name('attendance.destroy');
 
+    // --- Holidays ---
+    Route::post('/Holidays', [HolidayController::class, 'store'])->name('holidays.store');
+    Route::delete('/Holidays/{Holiday}', [HolidayController::class, 'destroy'])->name('holidays.destroy');
+
     // --- Payroll ---
     Route::middleware('permission:payroll.view')->group(function () {
         Route::get('/Payroll', [PayrollController::class, 'index'])->name('payroll.index');
@@ -154,9 +160,23 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->whereNumber('Payroll')
         ->middleware('permission:payroll.update')
         ->name('payroll.update');
+    Route::delete('/Payroll/{Payroll}', [PayrollController::class, 'destroy'])
+        ->whereNumber('Payroll')
+        ->middleware('permission:payroll.delete')
+        ->name('payroll.destroy');
     Route::patch('/Payroll/bulk-update', [PayrollController::class, 'bulkUpdate'])
         ->middleware('permission:payroll.update')
         ->name('payroll.bulk-update');
+    Route::get('/advancements-page', [AdvancementController::class, 'page'])
+        ->middleware('permission:payroll.view')
+        ->name('advancements.page');
+    Route::get('/advancements', [AdvancementController::class, 'index'])
+        ->name('advancements.index');
+    Route::post('/advancements', [AdvancementController::class, 'store'])
+        ->name('advancements.store');
+    Route::delete('/advancements/{id}', [AdvancementController::class, 'destroy'])
+        ->name('advancements.destroy');
+
     Route::get('/Payroll/{payroll}/pdf', [PayrollController::class, 'downloadPayslipPdf'])
         ->middleware('permission:payroll.view')
         ->name('payroll.payslip-pdf');

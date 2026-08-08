@@ -1,7 +1,7 @@
 'use client';
 
 import type { ColumnDef } from '@tanstack/react-table';
-import { ArrowUpDown, Eye, Trash2 } from 'lucide-react';
+import { ArrowUpDown, Eye, Trash2, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
@@ -35,6 +35,17 @@ function formatCurrency(
         minimumFractionDigits: 2,
     }).format(num);
     return isDeduction && num > 0 ? `-${formatted}` : formatted;
+}
+
+function formatDate(val?: string | null) {
+    if (!val) return 'N/A';
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return 'N/A';
+    return d.toLocaleDateString('en-PH', {
+        month: 'short',
+        day: '2-digit',
+        year: 'numeric',
+    });
 }
 
 function SortHeader({
@@ -93,144 +104,6 @@ export function createPayrollColumns(
             enableHiding: false,
         },
         {
-            accessorKey: 'employee_code',
-            header: ({ column }) => <SortHeader label="Code" column={column} />,
-            cell: ({ row }) => (
-                <div className="font-mono text-xs font-semibold">
-                    {row.original.employee_code ||
-                        `EMP-${String(row.original.employee_id).padStart(3, '0')}`}
-                </div>
-            ),
-        },
-        {
-            accessorKey: 'employee_name',
-            header: ({ column }) => (
-                <SortHeader label="Employee Name" column={column} />
-            ),
-            cell: ({ row }) => (
-                <div className="font-bold text-foreground">
-                    {row.original.employee_name}
-                </div>
-            ),
-        },
-        {
-            accessorKey: 'position',
-            header: ({ column }) => (
-                <SortHeader label="Designation" column={column} />
-            ),
-            cell: ({ row }) => (
-                <div className="text-xs text-muted-foreground">
-                    {row.original.position || 'Encoder'}
-                </div>
-            ),
-        },
-        {
-            accessorKey: 'daily_rate',
-            header: ({ column }) => (
-                <div className="text-right">
-                    <SortHeader label="Daily Rate" column={column} />
-                </div>
-            ),
-            cell: ({ row }) => (
-                <div className="text-right font-semibold text-emerald-700 dark:text-emerald-400">
-                    {formatCurrency(row.original.daily_rate)}
-                </div>
-            ),
-        },
-        {
-            accessorKey: 'days_worked',
-            header: ({ column }) => (
-                <div className="text-center">
-                    <SortHeader label="Days Worked" column={column} />
-                </div>
-            ),
-            cell: ({ row }) => (
-                <div className="text-center">
-                    <Badge variant="outline" className="font-mono text-xs">
-                        {row.original.days_worked ?? 0} days
-                    </Badge>
-                </div>
-            ),
-        },
-        {
-            accessorKey: 'gross_pay',
-            header: ({ column }) => (
-                <div className="text-right">
-                    <SortHeader label="Gross Earnings" column={column} />
-                </div>
-            ),
-            cell: ({ row }) => (
-                <div className="text-right font-bold text-foreground">
-                    {formatCurrency(row.original.gross_pay)}
-                </div>
-            ),
-        },
-        {
-            accessorKey: 'sss_loan',
-            header: ({ column }) => (
-                <div className="text-right">
-                    <SortHeader label="SSS Loan" column={column} />
-                </div>
-            ),
-            cell: ({ row }) => (
-                <div className="text-right font-medium text-rose-600 dark:text-rose-400">
-                    {formatCurrency(row.original.sss_loan, true)}
-                </div>
-            ),
-        },
-        {
-            accessorKey: 'pagibig_loan',
-            header: ({ column }) => (
-                <div className="text-right">
-                    <SortHeader label="Pag-IBIG Loan" column={column} />
-                </div>
-            ),
-            cell: ({ row }) => (
-                <div className="text-right font-medium text-rose-600 dark:text-rose-400">
-                    {formatCurrency(row.original.pagibig_loan, true)}
-                </div>
-            ),
-        },
-        {
-            accessorKey: 'emergency_loan',
-            header: ({ column }) => (
-                <div className="text-right">
-                    <SortHeader label="Emergency Loan" column={column} />
-                </div>
-            ),
-            cell: ({ row }) => (
-                <div className="text-right font-medium text-rose-600 dark:text-rose-400">
-                    {formatCurrency(row.original.emergency_loan, true)}
-                </div>
-            ),
-        },
-        {
-            accessorKey: 'deductions',
-            header: ({ column }) => (
-                <div className="text-right">
-                    <SortHeader label="Total Deductions" column={column} />
-                </div>
-            ),
-            cell: ({ row }) => (
-                <div className="text-right font-bold text-rose-600 dark:text-rose-400">
-                    {formatCurrency(row.original.deductions, true)}
-                </div>
-            ),
-        },
-        {
-            accessorKey: 'net_pay',
-            header: ({ column }) => (
-                <div className="text-right">
-                    <SortHeader label="Net Pay" column={column} />
-                </div>
-            ),
-            cell: ({ row }) => (
-                <div className="text-right text-sm font-extrabold text-emerald-700 dark:text-emerald-300">
-                    {formatCurrency(row.original.net_pay)}
-                </div>
-            ),
-        },
-        {
             accessorKey: 'status',
             header: 'Status',
             cell: ({ row }) => {
@@ -276,16 +149,252 @@ export function createPayrollColumns(
                 }
                 return String(rowValue) === String(filterValue);
             },
-            meta: {
-                label: 'Status',
-                filterOptions: [
-                    { label: 'All', value: '' },
-                    { label: 'Draft', value: 'draft' },
-                    { label: 'Pending', value: 'pending' },
-                    { label: 'Paid', value: 'paid' },
-                ],
+        },
+
+        {
+            accessorKey: 'employee_code',
+            header: ({ column }) => (
+                <SortHeader label="Code" column={column} />
+            ),
+            cell: ({ row }) => (
+                <div className="font-mono font-semibold text-primary">
+                    {row.original.employee_code ||
+                        `EMP-${String(row.original.employee_id).padStart(3, '0')}`}
+                </div>
+            ),
+        },
+        {
+            accessorKey: 'employee_name',
+            header: ({ column }) => (
+                <SortHeader label="Employee Name" column={column} />
+            ),
+            cell: ({ row }) => (
+                <div className="font-medium text-foreground">
+                    {row.original.employee_name || 'N/A'}
+                </div>
+            ),
+        },
+        {
+            accessorKey: 'position',
+            header: ({ column }) => (
+                <SortHeader label="Designation" column={column} />
+            ),
+            cell: ({ row }) => (
+                <div className="text-muted-foreground">
+                    {row.original.position || 'Encoder'}
+                </div>
+            ),
+        },
+        {
+            accessorKey: 'period_range',
+            header: 'Pay Period Dates',
+            cell: ({ row }) => {
+                const start = formatDate(row.original.period_start);
+                const end = formatDate(row.original.period_end);
+                return (
+                    <div className="flex items-center gap-1.5 text-xs whitespace-nowrap text-muted-foreground">
+                        <Calendar className="h-3.5 w-3.5 shrink-0 text-primary" />
+                        <span className="font-semibold text-foreground">
+                            {start} — {end}
+                        </span>
+                    </div>
+                );
             },
         },
+        {
+            accessorKey: 'daily_rate',
+            header: ({ column }) => (
+                <div className="text-right">
+                    <SortHeader label="Daily Rate" column={column} />
+                </div>
+            ),
+            cell: ({ row }) => (
+                <div className="text-right font-semibold text-emerald-700 dark:text-emerald-400">
+                    {formatCurrency(row.original.daily_rate)}
+                </div>
+            ),
+        },
+        {
+            accessorKey: 'days_worked',
+            header: ({ column }) => (
+                <div className="text-center">
+                    <SortHeader label="Days Worked" column={column} />
+                </div>
+            ),
+            cell: ({ row }) => (
+                <div className="text-center">
+                    <Badge variant="outline" className="font-mono text-xs">
+                        {row.original.days_worked ?? 0} days
+                    </Badge>
+                </div>
+            ),
+        },
+        {
+            accessorKey: 'gross_pay',
+            header: ({ column }) => (
+                <div className="text-right">
+                    <SortHeader label="Gross Earnings" column={column} />
+                </div>
+            ),
+            cell: ({ row }) => (
+                <div className="text-right font-bold text-foreground">
+                    {formatCurrency(row.original.gross_pay)}
+                </div>
+            ),
+        },
+        {
+            accessorKey: 'overtime_pay',
+            header: ({ column }) => (
+                <div className="text-right">
+                    <SortHeader label="Overtime Pay (+)" column={column} />
+                </div>
+            ),
+            cell: ({ row }) => {
+                const val = parseFloat(String(row.original.overtime_pay ?? 0));
+                const hrs = parseFloat(String(row.original.overtime_hours ?? 0));
+                if (!val || val <= 0) {
+                    return <div className="text-right text-muted-foreground/40 font-mono">—</div>;
+                }
+                return (
+                    <div className="text-right text-xs">
+                        <span className="font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(val)}</span>
+                        {hrs > 0 && <span className="block text-[10px] text-muted-foreground font-mono">({hrs} hrs)</span>}
+                    </div>
+                );
+            },
+        },
+        {
+            accessorKey: 'holiday_pay',
+            header: ({ column }) => (
+                <div className="text-right">
+                    <SortHeader label="Holiday Pay (+)" column={column} />
+                </div>
+            ),
+            cell: ({ row }) => {
+                const val = parseFloat(String((row.original as any).holiday_pay ?? 0));
+                const holCount = parseInt(String(row.original.holidays ?? 0), 10);
+                if (!val || val <= 0) {
+                    return <div className="text-right text-muted-foreground/40 font-mono">—</div>;
+                }
+                return (
+                    <div className="text-right text-xs">
+                        <span className="font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(val)}</span>
+                        {holCount > 0 && <span className="block text-[10px] text-muted-foreground font-mono">({holCount} days)</span>}
+                    </div>
+                );
+            },
+        },
+        {
+            accessorKey: 'cash_advance_payout',
+            header: ({ column }) => (
+                <div className="text-right">
+                    <SortHeader label="Adv Payout (+)" column={column} />
+                </div>
+            ),
+            cell: ({ row }) => {
+                const val = parseFloat(String(row.original.cash_advance_payout ?? 0));
+                return (
+                    <div className={`text-right font-bold ${val > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}`}>
+                        {formatCurrency(val)}
+                    </div>
+                );
+            },
+        },
+        {
+            accessorKey: 'cash_advance_deduction',
+            header: ({ column }) => (
+                <div className="text-right">
+                    <SortHeader label="Adv Deduct (-)" column={column} />
+                </div>
+            ),
+            cell: ({ row }) => {
+                const val = parseFloat(String(row.original.cash_advance_deduction ?? 0));
+                return (
+                    <div className={`text-right font-bold ${val > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-muted-foreground'}`}>
+                        {formatCurrency(val, true)}
+                    </div>
+                );
+            },
+        },
+        {
+            accessorKey: 'sss_loan',
+            header: ({ column }) => (
+                <div className="text-right">
+                    <SortHeader label="SSS Loan" column={column} />
+                </div>
+            ),
+            cell: ({ row }) => (
+                <div className="text-right font-medium text-rose-600 dark:text-rose-400">
+                    {formatCurrency(row.original.sss_loan, true)}
+                </div>
+            ),
+        },
+        {
+            accessorKey: 'pagibig_contribution',
+            header: ({ column }) => (
+                <div className="text-right">
+                    <SortHeader label="Pag-IBIG Contrib" column={column} />
+                </div>
+            ),
+            cell: ({ row }) => (
+                <div className="text-right font-medium text-rose-600 dark:text-rose-400">
+                    {formatCurrency((row.original as any).pagibig_contribution ?? 200, true)}
+                </div>
+            ),
+        },
+        {
+            accessorKey: 'emergency_loan',
+            header: ({ column }) => (
+                <div className="text-right">
+                    <SortHeader label="Emergency Loan" column={column} />
+                </div>
+            ),
+            cell: ({ row }) => (
+                <div className="text-right font-medium text-rose-600 dark:text-rose-400">
+                    {formatCurrency(row.original.emergency_loan, true)}
+                </div>
+            ),
+        },
+        {
+            accessorKey: 'withholding_tax',
+            header: ({ column }) => (
+                <div className="text-right">
+                    <SortHeader label="Tax W/Held" column={column} />
+                </div>
+            ),
+            cell: ({ row }) => (
+                <div className="text-right font-medium text-rose-600 dark:text-rose-400">
+                    {formatCurrency((row.original as any).withholding_tax ?? 0, true)}
+                </div>
+            ),
+        },
+        {
+            accessorKey: 'deductions',
+            header: ({ column }) => (
+                <div className="text-right">
+                    <SortHeader label="Total Deductions" column={column} />
+                </div>
+            ),
+            cell: ({ row }) => (
+                <div className="text-right font-bold text-rose-600 dark:text-rose-400">
+                    {formatCurrency(row.original.deductions, true)}
+                </div>
+            ),
+        },
+        {
+            accessorKey: 'net_pay',
+            header: ({ column }) => (
+                <div className="text-right">
+                    <SortHeader label="Net Pay" column={column} />
+                </div>
+            ),
+            cell: ({ row }) => (
+                <div className="text-right text-sm font-extrabold text-emerald-700 dark:text-emerald-300">
+                    {formatCurrency(row.original.net_pay)}
+                </div>
+            ),
+        },
+
         {
             id: 'actions',
             header: 'Actions',
@@ -303,10 +412,10 @@ export function createPayrollColumns(
                     <Button
                         size="xs"
                         variant="ghost"
-                        className="text-rose-600 hover:text-rose-700"
+                        className="font-semibold text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:hover:bg-rose-950/40"
                         onClick={() => {
                             const confirmed = window.confirm(
-                                'Delete this payroll record? This action cannot be undone.',
+                                'Are you sure you want to delete this payroll record? Any associated cash advance deductions will be safely reverted.',
                             );
                             if (!confirmed) {
                                 return;
@@ -317,7 +426,8 @@ export function createPayrollColumns(
                         }}
                         aria-label="Delete payroll"
                     >
-                        <Trash2 className="h-3.5 w-3.5" />
+                        <Trash2 className="mr-1 h-3.5 w-3.5" />
+                        Delete
                     </Button>
                 </div>
             ),

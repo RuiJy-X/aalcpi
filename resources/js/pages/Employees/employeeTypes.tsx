@@ -15,6 +15,8 @@ export type EmployeeType = {
     sss_loan?: string | number;
     pagibig_loan?: string | number;
     emergency_loan?: string | number;
+    cash_advance_balance?: string | number;
+    pending_advancement_payout?: string | number;
     pagibig_contribution?: string | number;
     sss_contribution?: string | number;
     philhealth_contribution?: string | number;

@@ -121,9 +121,40 @@ export function createEmployeeColumns(
         text('position', 'Designation', (e) => e.position),
         text('daily_rate', 'Daily Rate', (e) => e.daily_rate, 'number', true, false, true),
         text('base_salary', 'Monthly Salary', (e) => e.base_salary, 'number', true, false, true),
+        {
+            accessorKey: 'pending_advancement_payout',
+            header: ({ column }) => <SortHeader label="Adv Payout Queue (+)" column={column} />,
+            cell: ({ row }) => {
+                const val = parseFloat(String(row.original.pending_advancement_payout ?? 0));
+                if (!val || val <= 0) {
+                    return <div className="text-muted-foreground/40 font-mono">—</div>;
+                }
+                return (
+                    <div className="font-bold text-emerald-600 dark:text-emerald-400">
+                        {formatCurrency(val)}
+                    </div>
+                );
+            },
+        },
+        {
+            accessorKey: 'cash_advance_balance',
+            header: ({ column }) => <SortHeader label="Advancement Loan" column={column} />,
+            cell: ({ row }) => {
+                const val = parseFloat(String(row.original.cash_advance_balance ?? 0));
+                if (!val || val <= 0) {
+                    return <div className="text-muted-foreground/40 font-mono">—</div>;
+                }
+                return (
+                    <div className="font-semibold text-rose-600 dark:text-rose-400">
+                        {formatCurrency(val, true)}
+                    </div>
+                );
+            },
+        },
         text('sss_loan', 'SSS Loan', (e) => e.sss_loan, 'number', true, true, false),
-        text('pagibig_loan', 'Pag-IBIG Loan', (e) => e.pagibig_loan, 'number', true, true, false),
+        text('pagibig_contribution', 'Pag-IBIG Contrib', (e) => e.pagibig_contribution, 'number', true, true, false),
         text('emergency_loan', 'Emergency Loan', (e) => e.emergency_loan, 'number', true, true, false),
+        text('withholding_tax', 'Tax W/Held', (e) => e.withholding_tax, 'number', true, true, false),
         text('contact_number', 'Contact', (e) => e.contact_number),
         text('tin', 'TIN', (e) => e.tin),
         {

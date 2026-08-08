@@ -39,9 +39,17 @@ class AttendanceController extends Controller
             ->orderBy('name', 'asc')
             ->get();
 
+        $holidays = \App\Models\Holiday::orderBy('date')->get()->map(fn($h) => [
+            'id' => $h->id,
+            'date' => $h->date?->toDateString() ?? (string) $h->date,
+            'name' => $h->name,
+            'type' => $h->type,
+        ]);
+
         return Inertia::render('Attendance/Index', [
             'attendance' => $attendance,
             'employees' => $employees,
+            'holidays' => $holidays,
         ]);
     }
 

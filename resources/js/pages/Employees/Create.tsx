@@ -100,15 +100,12 @@ export default function CreateEmployeePage() {
     };
 
     // Calculate estimated net pay for quick setup validation preview
-    const dailyRateNum = parseFloat(data.daily_rate) || 0;
+    const dailyRateNum = parseFloat(String(data.daily_rate ?? '0')) || 0;
     const estGrossCutoff = dailyRateNum * 12; // 12-day cutoff estimate
     const totalDeductionsCutoff =
         (parseFloat(String(data.sss_loan)) || 0) +
-        (parseFloat(String(data.pagibig_loan)) || 0) +
         (parseFloat(String(data.emergency_loan)) || 0) +
         (parseFloat(String(data.pagibig_contribution)) || 0) +
-        (parseFloat(String(data.sss_contribution)) || 0) +
-        (parseFloat(String(data.philhealth_contribution)) || 0) +
         (parseFloat(String(data.withholding_tax)) || 0);
     const estNetCutoff = Math.max(0, estGrossCutoff - totalDeductionsCutoff);
 
@@ -130,7 +127,7 @@ export default function CreateEmployeePage() {
                             </p>
                         </div>
                         <ContainerHeaderEnd>
-                            <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto mt-2 sm:mt-0">
+                            <div className="mt-2 flex w-full flex-wrap items-center gap-2 sm:mt-0 sm:w-auto sm:gap-3">
                                 <Button variant="outline" asChild>
                                     <Link href={employeeIndex().url}>
                                         <ArrowLeft className="mr-2 h-4 w-4" />
@@ -479,32 +476,6 @@ export default function CreateEmployeePage() {
                                                 onChange={(e) =>
                                                     setData(
                                                         'sss_loan',
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                disabled={processing}
-                                            />
-                                        </div>
-
-                                        <div className="space-y-1">
-                                            <Label
-                                                htmlFor="pagibig_loan"
-                                                className="text-xs font-semibold text-foreground"
-                                            >
-                                                Pag-IBIG Loan Deduction (₱)
-                                            </Label>
-                                            <Input
-                                                id="pagibig_loan"
-                                                type="number"
-                                                min="0"
-                                                step="0.01"
-                                                placeholder="0.00"
-                                                value={
-                                                    data.pagibig_loan ?? '0.00'
-                                                }
-                                                onChange={(e) =>
-                                                    setData(
-                                                        'pagibig_loan',
                                                         e.target.value,
                                                     )
                                                 }

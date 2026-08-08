@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Employee extends Model
 {
@@ -29,6 +30,7 @@ class Employee extends Model
         'sss_contribution',
         'philhealth_contribution',
         'withholding_tax',
+        'holidays',
     ];
 
     protected $casts = [
@@ -44,11 +46,37 @@ class Employee extends Model
         'withholding_tax' => 'decimal:2',
     ];
 
-    public function attendances() {
+    protected $appends = [
+        'cash_advance_balance',
+        'pending_advancement_payout',
+    ];
+
+    public function getCashAdvanceBalanceAttribute(): float
+    {
+        return (float) Advancement::where('employee_id', $this->id)
+            ->whereIn('status', ['pending_payout', 'paid_out', 'partially_deducted'])
+            ->sum('remaining_balance');
+    }
+
+    public function getPendingAdvancementPayoutAttribute(): float
+    {
+        return (float) Advancement::where('employee_id', $this->id)
+            ->where('status', 'pending_payout')
+            ->sum('amount');
+    }
+
+    public function attendances(): HasMany
+    {
         return $this->hasMany(Attendance::class);
     }
 
-    public function payrolls() {
+    public function payrolls(): HasMany
+    {
         return $this->hasMany(Payroll::class);
+    }
+
+    public function advancements(): HasMany
+    {
+        return $this->hasMany(Advancement::class);
     }
 }

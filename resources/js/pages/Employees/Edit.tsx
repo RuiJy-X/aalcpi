@@ -92,15 +92,12 @@ export default function EditEmployeePage({
     };
 
     // Calculate estimated net pay for quick setup validation preview
-    const dailyRateNum = parseFloat(data.daily_rate) || 0;
+    const dailyRateNum = parseFloat(String(data.daily_rate ?? '0')) || 0;
     const estGrossCutoff = dailyRateNum * 12; // 12-day cutoff estimate
     const totalDeductionsCutoff =
         (parseFloat(String(data.sss_loan)) || 0) +
-        (parseFloat(String(data.pagibig_loan)) || 0) +
         (parseFloat(String(data.emergency_loan)) || 0) +
         (parseFloat(String(data.pagibig_contribution)) || 0) +
-        (parseFloat(String(data.sss_contribution)) || 0) +
-        (parseFloat(String(data.philhealth_contribution)) || 0) +
         (parseFloat(String(data.withholding_tax)) || 0);
     const estNetCutoff = Math.max(0, estGrossCutoff - totalDeductionsCutoff);
 

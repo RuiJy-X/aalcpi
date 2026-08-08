@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import axios from 'axios';
 import {
@@ -15,6 +15,8 @@ import {
     RefreshCw,
     X,
     Printer,
+    HandCoins,
+    History,
 } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
 import {
@@ -32,6 +34,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DataTable } from '@/components/data-table/data-table';
+import type { ColumnDef } from '@tanstack/react-table';
+import { ArrowUpDown } from 'lucide-react';
 import {
     Dialog,
     DialogContent,
@@ -50,15 +55,18 @@ interface AuditedEmployee {
     hourly_rate: number;
     days_worked: number;
     hours_worked: number;
+    basic_pay?: number;
     gross_earnings: number;
-    overtime_pay: number;
+    overtime_hours?: number;
+    overtime_pay?: number;
+    holidays?: number;
+    holiday_pay?: number;
+    cash_advance_payout?: number;
+    cash_advance_deduction?: number;
     total_earnings: number;
     sss_loan: number;
-    pagibig_loan: number;
     emergency_loan: number;
     pagibig_contribution: number;
-    sss_contribution: number;
-    philhealth_contribution: number;
     withholding_tax: number;
     total_deductions: number;
     net_amount: number;
@@ -111,18 +119,408 @@ export default function GenerateBatchPage({
     const [isUploadingAttendance, setIsUploadingAttendance] = useState(false);
     const [isProcessingBatch, setIsProcessingBatch] = useState(false);
 
+    // Advancements Modal state
+    const [isGrantAdvanceOpen, setIsGrantAdvanceOpen] = useState(false);
+    const [isAdvancementLogsOpen, setIsAdvancementLogsOpen] = useState(false);
+
+    // Derived counts with bulletproof fallbacks
+    const readyCount =
+        batchData.ready?.length ??
+        (batchData.totals as any)?.ready_count ??
+        (batchData.totals as any)?.total_ready ??
+        0;
+    const actionRequiredCount =
+        batchData.action_required?.length ??
+        (batchData.totals as any)?.action_required_count ??
+        (batchData.totals as any)?.total_action_required ??
+        0;
+
+    function SortHeader({
+        label,
+        column,
+    }: {
+        label: string;
+        column: {
+            toggleSorting: (desc?: boolean) => void;
+            getIsSorted: () => false | 'asc' | 'desc';
+        };
+    }) {
+        return (
+            <Button
+                variant="ghost"
+                size="sm"
+                className="-ml-3 h-8 text-xs font-semibold data-[state=open]:bg-accent"
+                onClick={() =>
+                    column.toggleSorting(column.getIsSorted() === 'asc')
+                }
+            >
+                <span>{label}</span>
+                <ArrowUpDown className="ml-1.5 h-3 w-3" />
+            </Button>
+        );
+    }
+
+    const readyColumns = useMemo<ColumnDef<AuditedEmployee>[]>(
+        () => [
+            {
+                accessorKey: 'employee_code',
+                header: ({ column }) => (
+                    <SortHeader label="Code" column={column} />
+                ),
+                cell: ({ row }) => (
+                    <div className="font-mono text-xs font-bold text-primary">
+                        {row.original.employee_code}
+                    </div>
+                ),
+            },
+            {
+                accessorKey: 'name',
+                header: ({ column }) => (
+                    <SortHeader label="Employee Name" column={column} />
+                ),
+                cell: ({ row }) => (
+                    <div className="text-xs font-bold text-foreground">
+                        {row.original.name}
+                    </div>
+                ),
+            },
+            {
+                accessorKey: 'position',
+                header: ({ column }) => (
+                    <SortHeader label="Designation" column={column} />
+                ),
+                cell: ({ row }) => (
+                    <div className="text-xs text-muted-foreground">
+                        {row.original.position}
+                    </div>
+                ),
+            },
+            {
+                accessorKey: 'daily_rate',
+                header: ({ column }) => (
+                    <div className="text-right">
+                        <SortHeader label="Daily Rate" column={column} />
+                    </div>
+                ),
+                cell: ({ row }) => (
+                    <div className="text-right text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                        {formatCurrency(row.original.daily_rate)}
+                    </div>
+                ),
+            },
+            {
+                accessorKey: 'days_worked',
+                header: ({ column }) => (
+                    <div className="text-center">
+                        <SortHeader label="Days Worked" column={column} />
+                    </div>
+                ),
+                cell: ({ row }) => (
+                    <div className="text-center">
+                        <Badge variant="outline" className="text-xs">
+                            {row.original.days_worked} days
+                        </Badge>
+                    </div>
+                ),
+            },
+            {
+                accessorKey: 'gross_earnings',
+                header: ({ column }) => (
+                    <div className="text-right">
+                        <SortHeader label="Basic Pay" column={column} />
+                    </div>
+                ),
+                cell: ({ row }) => (
+                    <div className="text-right text-xs font-bold text-foreground">
+                        {formatCurrency(row.original.gross_earnings)}
+                    </div>
+                ),
+            },
+            {
+                accessorKey: 'overtime_pay',
+                header: ({ column }) => (
+                    <div className="text-right">
+                        <SortHeader label="Overtime Pay (+)" column={column} />
+                    </div>
+                ),
+                cell: ({ row }) => {
+                    const otPay = row.original.overtime_pay ?? 0;
+                    const otHrs = row.original.overtime_hours ?? 0;
+                    if (!otPay || otPay <= 0)
+                        return (
+                            <div className="text-right font-mono text-xs text-muted-foreground/40">
+                                —
+                            </div>
+                        );
+                    return (
+                        <div className="text-right text-xs">
+                            <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                                {formatCurrency(otPay)}
+                            </span>
+                            {otHrs > 0 && (
+                                <span className="block font-mono text-[10px] text-muted-foreground">
+                                    ({otHrs} hrs)
+                                </span>
+                            )}
+                        </div>
+                    );
+                },
+            },
+            {
+                accessorKey: 'holiday_pay',
+                header: ({ column }) => (
+                    <div className="text-right">
+                        <SortHeader label="Holiday Pay (+)" column={column} />
+                    </div>
+                ),
+                cell: ({ row }) => {
+                    const holPay = (row.original as any).holiday_pay ?? 0;
+                    const holCount = (row.original as any).holidays ?? 0;
+                    if (!holPay || holPay <= 0)
+                        return (
+                            <div className="text-right font-mono text-xs text-muted-foreground/40">
+                                —
+                            </div>
+                        );
+                    return (
+                        <div className="text-right text-xs">
+                            <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                                {formatCurrency(holPay)}
+                            </span>
+                            {holCount > 0 && (
+                                <span className="block font-mono text-[10px] text-muted-foreground">
+                                    ({holCount} days)
+                                </span>
+                            )}
+                        </div>
+                    );
+                },
+            },
+            {
+                accessorKey: 'cash_advance_payout',
+                header: ({ column }) => (
+                    <div className="text-right">
+                        <SortHeader label="Adv Payout (+)" column={column} />
+                    </div>
+                ),
+                cell: ({ row }) => {
+                    const val = (row.original as any).cash_advance_payout ?? 0;
+                    if (!val || val <= 0)
+                        return (
+                            <div className="text-right font-mono text-xs text-muted-foreground/40">
+                                —
+                            </div>
+                        );
+                    return (
+                        <div className="text-right text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                            {formatCurrency(val)}
+                        </div>
+                    );
+                },
+            },
+            {
+                accessorKey: 'cash_advance_deduction',
+                header: ({ column }) => (
+                    <div className="text-right">
+                        <SortHeader label="Adv Deduct (-)" column={column} />
+                    </div>
+                ),
+                cell: ({ row }) => {
+                    const val =
+                        (row.original as any).cash_advance_deduction ?? 0;
+                    if (!val || val <= 0)
+                        return (
+                            <div className="text-right font-mono text-xs text-muted-foreground/40">
+                                —
+                            </div>
+                        );
+                    return (
+                        <div className="text-right text-xs font-bold text-rose-600 dark:text-rose-400">
+                            {formatCurrency(val, true)}
+                        </div>
+                    );
+                },
+            },
+            {
+                accessorKey: 'sss_loan',
+                header: ({ column }) => (
+                    <div className="text-right">
+                        <SortHeader label="SSS Loan" column={column} />
+                    </div>
+                ),
+                cell: ({ row }) => (
+                    <div className="text-right text-xs text-rose-600 dark:text-rose-400">
+                        {formatCurrency(row.original.sss_loan, true)}
+                    </div>
+                ),
+            },
+            {
+                accessorKey: 'pagibig_contribution',
+                header: ({ column }) => (
+                    <div className="text-right">
+                        <SortHeader label="Pag-IBIG Contrib" column={column} />
+                    </div>
+                ),
+                cell: ({ row }) => (
+                    <div className="text-right text-xs text-rose-600 dark:text-rose-400">
+                        {formatCurrency(row.original.pagibig_contribution, true)}
+                    </div>
+                ),
+            },
+            {
+                accessorKey: 'emergency_loan',
+                header: ({ column }) => (
+                    <div className="text-right">
+                        <SortHeader label="Emergency Loan" column={column} />
+                    </div>
+                ),
+                cell: ({ row }) => (
+                    <div className="text-right text-xs text-rose-600 dark:text-rose-400">
+                        {formatCurrency(row.original.emergency_loan, true)}
+                    </div>
+                ),
+            },
+            {
+                accessorKey: 'withholding_tax',
+                header: ({ column }) => (
+                    <div className="text-right">
+                        <SortHeader label="Tax W/Held" column={column} />
+                    </div>
+                ),
+                cell: ({ row }) => (
+                    <div className="text-right text-xs text-rose-600 dark:text-rose-400">
+                        {formatCurrency(row.original.withholding_tax, true)}
+                    </div>
+                ),
+            },
+            {
+                accessorKey: 'total_deductions',
+                header: ({ column }) => (
+                    <div className="text-right">
+                        <SortHeader label="Total Deductions" column={column} />
+                    </div>
+                ),
+                cell: ({ row }) => (
+                    <div className="text-right text-xs font-semibold text-rose-600 dark:text-rose-400">
+                        {formatCurrency(row.original.total_deductions, true)}
+                    </div>
+                ),
+            },
+            {
+                accessorKey: 'net_amount',
+                header: ({ column }) => (
+                    <div className="text-right">
+                        <SortHeader label="Net Pay" column={column} />
+                    </div>
+                ),
+                cell: ({ row }) => (
+                    <div className="text-right text-sm font-extrabold text-emerald-700 dark:text-emerald-300">
+                        {formatCurrency(row.original.net_amount)}
+                    </div>
+                ),
+            },
+        ],
+        [],
+    );
+
+    const actionRequiredColumns = useMemo<ColumnDef<AuditedEmployee>[]>(
+        () => [
+            {
+                accessorKey: 'employee_code',
+                header: ({ column }) => (
+                    <SortHeader label="Code" column={column} />
+                ),
+                cell: ({ row }) => (
+                    <div className="font-mono text-xs font-bold text-primary">
+                        {row.original.employee_code}
+                    </div>
+                ),
+            },
+            {
+                accessorKey: 'name',
+                header: ({ column }) => (
+                    <SortHeader label="Employee Name" column={column} />
+                ),
+                cell: ({ row }) => (
+                    <div className="text-xs font-bold text-foreground">
+                        {row.original.name}
+                    </div>
+                ),
+            },
+            {
+                accessorKey: 'position',
+                header: ({ column }) => (
+                    <SortHeader label="Designation" column={column} />
+                ),
+                cell: ({ row }) => (
+                    <div className="text-xs text-muted-foreground">
+                        {row.original.position}
+                    </div>
+                ),
+            },
+            {
+                accessorKey: 'reasons',
+                header: 'Audit Disqualification Reasons',
+                cell: ({ row }) => (
+                    <div className="flex flex-wrap gap-1.5">
+                        {row.original.reasons.map((reason, idx) => (
+                            <Badge
+                                key={idx}
+                                variant="destructive"
+                                className="text-xs font-normal"
+                            >
+                                ⚠️ {reason}
+                            </Badge>
+                        ))}
+                    </div>
+                ),
+            },
+            {
+                id: 'actions',
+                header: () => (
+                    <div className="text-right text-xs">Quick Resolution</div>
+                ),
+                cell: ({ row }) => (
+                    <div className="flex shrink-0 items-center justify-end gap-2">
+                        <label className="cursor-pointer">
+                            <span className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-2.5 py-1 text-xs font-semibold text-foreground shadow-xs hover:bg-muted">
+                                <Upload className="mr-1 h-3 w-3 text-primary" />
+                                Attendance
+                            </span>
+                            <input
+                                type="file"
+                                accept=".xlsx,.xls,.csv"
+                                className="hidden"
+                                onChange={handleBatchAttendanceUpload}
+                                disabled={isUploadingAttendance}
+                            />
+                        </label>
+                        <Button
+                            variant="secondary"
+                            size="xs"
+                            className="h-8"
+                            onClick={() => openQuickFix(row.original)}
+                        >
+                            <Edit3 className="mr-1 h-3 w-3" />
+                            Quick Fix
+                        </Button>
+                    </div>
+                ),
+            },
+        ],
+        [isUploadingAttendance],
+    );
+
     // Quick profile fix drawer/modal state
     const [activeEditEmployee, setActiveEditEmployee] =
         useState<AuditedEmployee | null>(null);
     const [editForm, setEditForm] = useState({
         daily_rate: '',
         sss_loan: '',
-        pagibig_loan: '',
         emergency_loan: '',
         pagibig_contribution: '',
-        sss_contribution: '',
-        philhealth_contribution: '',
         withholding_tax: '',
+        holidays: '',
     });
     const [isSavingQuickSetup, setIsSavingQuickSetup] = useState(false);
 
@@ -207,14 +605,10 @@ export default function GenerateBatchPage({
         setEditForm({
             daily_rate: String(emp.daily_rate || '550.00'),
             sss_loan: String(emp.sss_loan || '0.00'),
-            pagibig_loan: String(emp.pagibig_loan || '0.00'),
             emergency_loan: String(emp.emergency_loan || '0.00'),
             pagibig_contribution: String(emp.pagibig_contribution || '200.00'),
-            sss_contribution: String(emp.sss_contribution || '0.00'),
-            philhealth_contribution: String(
-                emp.philhealth_contribution || '0.00',
-            ),
             withholding_tax: String(emp.withholding_tax || '0.00'),
+            holidays: String(emp.holidays || '0'),
         });
     };
 
@@ -294,7 +688,7 @@ export default function GenerateBatchPage({
                         </p>
                     </div>
                     <ContainerHeaderEnd>
-                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto mt-2 sm:mt-0">
+                        <div className="mt-2 flex w-full flex-wrap items-center gap-2 sm:mt-0 sm:w-auto sm:gap-3">
                             <Button variant="outline" asChild>
                                 <Link href={payrollIndex().url}>
                                     <ArrowLeft className="mr-2 h-4 w-4" />
@@ -310,9 +704,9 @@ export default function GenerateBatchPage({
                                         '_blank',
                                     )
                                 }
-                                className="font-semibold"
+                                className="text-xs font-semibold sm:text-sm"
                             >
-                                <Printer className="mr-2 h-4 w-4" />
+                                <Printer className="mr-1.5 h-4 w-4" />
                                 Export Summary PDF
                             </Button>
 
@@ -332,9 +726,45 @@ export default function GenerateBatchPage({
                         </div>
                     </ContainerHeaderEnd>
                 </ContainerHeader>
+                <div className="my-6 grid grid-cols-1 gap-4 sm:grid-cols-4">
+                    <div className="space-y-1 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4">
+                        <p className="text-xs font-bold text-emerald-700 uppercase dark:text-emerald-400">
+                            Ready for Payroll
+                        </p>
+                        <p className="text-2xl font-black text-emerald-700 dark:text-emerald-300">
+                            {readyCount}{' '}
+                        </p>
+                    </div>
 
+                    <div className="space-y-1 rounded-xl border border-rose-500/30 bg-rose-500/5 p-4">
+                        <p className="text-xs font-bold text-rose-700 uppercase dark:text-rose-400">
+                            Action Required / Ineligible
+                        </p>
+                        <p className="text-2xl font-black text-rose-700 dark:text-rose-300">
+                            {actionRequiredCount}{' '}
+                        </p>
+                    </div>
+
+                    <div className="space-y-1 rounded-xl border border-border bg-card p-4">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase">
+                            Est. Batch Gross Income
+                        </p>
+                        <p className="text-2xl font-bold text-foreground">
+                            {formatCurrency(batchData.totals.total_gross)}
+                        </p>
+                    </div>
+
+                    <div className="space-y-1 rounded-xl border border-primary/30 bg-primary/5 p-4">
+                        <p className="text-xs font-bold text-primary uppercase">
+                            Est. Total Net Payout
+                        </p>
+                        <p className="text-2xl font-extrabold text-primary">
+                            {formatCurrency(batchData.totals.total_net)}
+                        </p>
+                    </div>
+                </div>
                 {/* Date Range Selection Bar & Presets */}
-                <div className="my-4 space-y-4 rounded-xl border border-border bg-card p-5 shadow-sm">
+                <div className="my-4 space-y-4 rounded-xl border border-border bg-card p-5">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex items-center gap-2">
                             <Calendar className="h-5 w-5 text-primary" />
@@ -437,58 +867,15 @@ export default function GenerateBatchPage({
                 </div>
 
                 {/* Pre-Payroll Audit Stat Summary Banner */}
-                <div className="my-6 grid grid-cols-1 gap-4 sm:grid-cols-4">
-                    <div className="space-y-1 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4">
-                        <p className="text-xs font-bold text-emerald-700 uppercase dark:text-emerald-400">
-                            Ready for Payroll
-                        </p>
-                        <p className="text-2xl font-black text-emerald-700 dark:text-emerald-300">
-                            {batchData.totals.ready_count}{' '}
-                            <span className="text-sm font-normal text-emerald-600">
-                                Employees
-                            </span>
-                        </p>
-                    </div>
-
-                    <div className="space-y-1 rounded-xl border border-rose-500/30 bg-rose-500/5 p-4">
-                        <p className="text-xs font-bold text-rose-700 uppercase dark:text-rose-400">
-                            Action Required / Ineligible
-                        </p>
-                        <p className="text-2xl font-black text-rose-700 dark:text-rose-300">
-                            {batchData.totals.action_required_count}{' '}
-                            <span className="text-sm font-normal text-rose-600">
-                                Employees
-                            </span>
-                        </p>
-                    </div>
-
-                    <div className="space-y-1 rounded-xl border border-border bg-card p-4">
-                        <p className="text-xs font-semibold text-muted-foreground uppercase">
-                            Est. Batch Gross Income
-                        </p>
-                        <p className="text-2xl font-bold text-foreground">
-                            {formatCurrency(batchData.totals.total_gross)}
-                        </p>
-                    </div>
-
-                    <div className="space-y-1 rounded-xl border border-primary/30 bg-primary/5 p-4">
-                        <p className="text-xs font-bold text-primary uppercase">
-                            Est. Total Net Payout
-                        </p>
-                        <p className="text-2xl font-extrabold text-primary">
-                            {formatCurrency(batchData.totals.total_net)}
-                        </p>
-                    </div>
-                </div>
 
                 {/* Pre-Audit Employee Categorization Tabs */}
-                <Tabs defaultValue="ready" className="w-full space-y-6">
+                <Tabs defaultValue="ready" className="w-full space-y-2">
                     <TabsList className="grid max-w-md grid-cols-2">
                         <TabsTrigger value="ready" className="gap-2 font-bold">
                             <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                             Ready for Processing
                             <Badge variant="secondary" className="ml-1">
-                                {batchData.totals.ready_count}
+                                {readyCount}
                             </Badge>
                         </TabsTrigger>
                         <TabsTrigger
@@ -498,16 +885,16 @@ export default function GenerateBatchPage({
                             <AlertTriangle className="h-4 w-4 text-rose-600" />
                             Action Required
                             <Badge variant="destructive" className="ml-1">
-                                {batchData.totals.action_required_count}
+                                {actionRequiredCount}
                             </Badge>
                         </TabsTrigger>
                     </TabsList>
 
                     {/* TAB 1: READY LIST */}
                     <TabsContent value="ready">
-                        <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-                            <div className="flex items-center justify-between border-b border-border bg-muted/30 p-4">
-                                <h3 className="text-sm font-bold tracking-wider text-foreground uppercase">
+                        <div className="overflow-hidden rounded-xl border border-border bg-card p-1 shadow-sm">
+                            <div className="flex items-center justify-between border-b border-border bg-muted/30 p-3">
+                                <h3 className="text-xs font-bold tracking-wider text-foreground uppercase">
                                     Audited & Verified Employees (
                                     {batchData.ready.length})
                                 </h3>
@@ -516,232 +903,33 @@ export default function GenerateBatchPage({
                                     {periodStart} to {periodEnd}
                                 </span>
                             </div>
-
-                            {batchData.ready.length === 0 ? (
-                                <div className="space-y-2 p-8 text-center">
-                                    <AlertTriangle className="mx-auto h-10 w-10 text-amber-500" />
-                                    <p className="text-base font-semibold text-foreground">
-                                        No Employees Ready Yet
-                                    </p>
-                                    <p className="text-sm text-muted-foreground">
-                                        Import attendance or complete profile
-                                        setups for ineligible employees in the
-                                        "Action Required" tab.
-                                    </p>
-                                </div>
-                            ) : (
-                                <div className="custom-scrollbar overflow-x-auto">
-                                    <table className="w-full text-left text-xs">
-                                        <thead className="border-b border-border bg-muted/50 font-semibold tracking-wider text-muted-foreground uppercase">
-                                            <tr>
-                                                <th className="px-4 py-3">
-                                                    Code
-                                                </th>
-                                                <th className="px-4 py-3">
-                                                    Employee Name
-                                                </th>
-                                                <th className="px-4 py-3">
-                                                    Designation
-                                                </th>
-                                                <th className="px-4 py-3 text-right">
-                                                    Daily Rate
-                                                </th>
-                                                <th className="px-4 py-3 text-center">
-                                                    Days Worked
-                                                </th>
-                                                <th className="px-4 py-3 text-right">
-                                                    Gross Earnings
-                                                </th>
-                                                <th className="px-4 py-3 text-right">
-                                                    SSS Loan
-                                                </th>
-                                                <th className="px-4 py-3 text-right">
-                                                    Pag-IBIG Loan
-                                                </th>
-                                                <th className="px-4 py-3 text-right">
-                                                    Emergency Loan
-                                                </th>
-                                                <th className="px-4 py-3 text-right">
-                                                    Total Deductions
-                                                </th>
-                                                <th className="px-4 py-3 text-right">
-                                                    Net Pay
-                                                </th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-border/60 font-medium">
-                                            {batchData.ready.map((emp) => (
-                                                <tr
-                                                    key={emp.employee_id}
-                                                    className="transition-colors hover:bg-muted/40"
-                                                >
-                                                    <td className="px-4 py-3 font-mono">
-                                                        {emp.employee_code}
-                                                    </td>
-                                                    <td className="px-4 py-3 font-bold text-foreground">
-                                                        {emp.name}
-                                                    </td>
-                                                    <td className="px-4 py-3 text-muted-foreground">
-                                                        {emp.position}
-                                                    </td>
-                                                    <td className="px-4 py-3 text-right font-semibold text-emerald-700 dark:text-emerald-400">
-                                                        {formatCurrency(
-                                                            emp.daily_rate,
-                                                        )}
-                                                    </td>
-                                                    <td className="px-4 py-3 text-center">
-                                                        <Badge variant="outline">
-                                                            {emp.days_worked}{' '}
-                                                            days
-                                                        </Badge>
-                                                    </td>
-                                                    <td className="px-4 py-3 text-right font-bold text-foreground">
-                                                        {formatCurrency(
-                                                            emp.gross_earnings,
-                                                        )}
-                                                    </td>
-                                                    <td className="px-4 py-3 text-right text-rose-600 dark:text-rose-400">
-                                                        {formatCurrency(
-                                                            emp.sss_loan,
-                                                            true,
-                                                        )}
-                                                    </td>
-                                                    <td className="px-4 py-3 text-right text-rose-600 dark:text-rose-400">
-                                                        {formatCurrency(
-                                                            emp.pagibig_loan,
-                                                            true,
-                                                        )}
-                                                    </td>
-                                                    <td className="px-4 py-3 text-right text-rose-600 dark:text-rose-400">
-                                                        {formatCurrency(
-                                                            emp.emergency_loan,
-                                                            true,
-                                                        )}
-                                                    </td>
-                                                    <td className="px-4 py-3 text-right font-semibold text-rose-600 dark:text-rose-400">
-                                                        {formatCurrency(
-                                                            emp.total_deductions,
-                                                            true,
-                                                        )}
-                                                    </td>
-                                                    <td className="px-4 py-3 text-right text-sm font-extrabold text-emerald-700 dark:text-emerald-300">
-                                                        {formatCurrency(
-                                                            emp.net_amount,
-                                                        )}
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
+                            <DataTable
+                                data={batchData.ready}
+                                columns={readyColumns}
+                            />
                         </div>
                     </TabsContent>
 
                     {/* TAB 2: ACTION REQUIRED LIST */}
                     <TabsContent value="action_required">
-                        <div className="overflow-hidden rounded-xl border border-rose-500/30 bg-card shadow-sm">
-                            <div className="flex items-center justify-between border-b border-border bg-rose-500/5 p-4">
+                        <div className="overflow-hidden rounded-xl border border-rose-500/30 bg-card p-1 shadow-sm">
+                            <div className="flex items-center justify-between border-b border-border bg-rose-500/5 p-3">
                                 <div>
-                                    <h3 className="text-sm font-bold tracking-wider text-rose-700 uppercase dark:text-rose-400">
+                                    <h3 className="text-xs font-bold tracking-wider text-rose-700 uppercase dark:text-rose-400">
                                         Ineligible Employees - In-Page
                                         Resolution Hub (
                                         {batchData.action_required.length})
                                     </h3>
                                     <p className="mt-0.5 text-xs text-muted-foreground">
                                         Resolve missing attendance or profile
-                                        setups directly below. Once fixed,
-                                        employees instantly move to Ready
-                                        status!
+                                        setups directly below.
                                     </p>
                                 </div>
                             </div>
-
-                            {batchData.action_required.length === 0 ? (
-                                <div className="space-y-2 p-8 text-center">
-                                    <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-600" />
-                                    <p className="text-base font-semibold text-foreground">
-                                        All Employees Are Ready!
-                                    </p>
-                                    <p className="text-sm text-muted-foreground">
-                                        No action required. You can process the
-                                        payroll batch now.
-                                    </p>
-                                </div>
-                            ) : (
-                                <div className="divide-y divide-border/60">
-                                    {batchData.action_required.map((emp) => (
-                                        <div
-                                            key={emp.employee_id}
-                                            className="flex flex-col justify-between gap-4 p-4 transition-colors hover:bg-muted/40 sm:flex-row sm:items-center"
-                                        >
-                                            <div className="space-y-1">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-sm font-bold text-foreground">
-                                                        {emp.name}
-                                                    </span>
-                                                    <Badge
-                                                        variant="outline"
-                                                        className="font-mono text-xs"
-                                                    >
-                                                        {emp.employee_code}
-                                                    </Badge>
-                                                    <span className="text-xs text-muted-foreground">
-                                                        ({emp.position})
-                                                    </span>
-                                                </div>
-                                                <div className="flex flex-wrap gap-2 pt-1">
-                                                    {emp.reasons.map(
-                                                        (reason, idx) => (
-                                                            <Badge
-                                                                key={idx}
-                                                                variant="destructive"
-                                                                className="text-xs font-normal"
-                                                            >
-                                                                ⚠️ {reason}
-                                                            </Badge>
-                                                        ),
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            {/* In-Page Action Resolution Buttons */}
-                                            <div className="flex shrink-0 items-center gap-3">
-                                                {/* Inline Attendance Upload */}
-                                                <label className="cursor-pointer">
-                                                    <span className="inline-flex h-9 items-center justify-center rounded-md border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm hover:bg-muted">
-                                                        <Upload className="mr-1.5 h-3.5 w-3.5 text-primary" />
-                                                        Upload Attendance
-                                                    </span>
-                                                    <input
-                                                        type="file"
-                                                        accept=".xlsx,.xls,.csv"
-                                                        className="hidden"
-                                                        onChange={
-                                                            handleBatchAttendanceUpload
-                                                        }
-                                                        disabled={
-                                                            isUploadingAttendance
-                                                        }
-                                                    />
-                                                </label>
-
-                                                {/* Quick Fix Setup Drawer Trigger */}
-                                                <Button
-                                                    variant="secondary"
-                                                    size="sm"
-                                                    onClick={() =>
-                                                        openQuickFix(emp)
-                                                    }
-                                                >
-                                                    <Edit3 className="mr-1.5 h-3.5 w-3.5" />
-                                                    Quick Fix Setup
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                            <DataTable
+                                data={batchData.action_required}
+                                columns={actionRequiredColumns}
+                            />
                         </div>
                     </TabsContent>
                 </Tabs>
@@ -811,27 +999,6 @@ export default function GenerateBatchPage({
                             </div>
                             <div className="space-y-1.5">
                                 <Label
-                                    htmlFor="quick_pagibig_loan"
-                                    className="text-xs font-semibold"
-                                >
-                                    Pag-IBIG Loan (₱)
-                                </Label>
-                                <Input
-                                    id="quick_pagibig_loan"
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={editForm.pagibig_loan}
-                                    onChange={(e) =>
-                                        setEditForm({
-                                            ...editForm,
-                                            pagibig_loan: e.target.value,
-                                        })
-                                    }
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <Label
                                     htmlFor="quick_emergency_loan"
                                     className="text-xs font-semibold"
                                 >
@@ -847,6 +1014,27 @@ export default function GenerateBatchPage({
                                         setEditForm({
                                             ...editForm,
                                             emergency_loan: e.target.value,
+                                        })
+                                    }
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label
+                                    htmlFor="quick_holidays"
+                                    className="text-xs font-semibold text-amber-700 dark:text-amber-400"
+                                >
+                                    Holidays (Days)
+                                </Label>
+                                <Input
+                                    id="quick_holidays"
+                                    type="number"
+                                    min="0"
+                                    step="1"
+                                    value={editForm.holidays}
+                                    onChange={(e) =>
+                                        setEditForm({
+                                            ...editForm,
+                                            holidays: e.target.value,
                                         })
                                     }
                                 />
