@@ -72,14 +72,15 @@ export default function Dashboard({
             'base_salary',
             'hourly_rate',
             'sss_loan',
-            'pagibig_loan',
+            'pagibig_contribution',
             'emergency_loan',
+            'withholding_tax',
             'contact_number',
             'address',
             'tin',
         ],
         saveUrl: employeesBulkUpdate().url,
-        numericFields: ['daily_rate', 'base_salary', 'hourly_rate', 'sss_loan', 'pagibig_loan', 'emergency_loan'],
+        numericFields: ['daily_rate', 'base_salary', 'hourly_rate', 'sss_loan', 'pagibig_contribution', 'emergency_loan', 'withholding_tax'],
     });
 
     const employeeColumns = useMemo(

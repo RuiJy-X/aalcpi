@@ -136,10 +136,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('attendance.destroy');
 
     // --- Holidays ---
-    Route::post('/Holidays', [HolidayController::class, 'store'])->name('holidays.store');
-    Route::delete('/Holidays/{Holiday}', [HolidayController::class, 'destroy'])->name('holidays.destroy');
+    Route::post('/Holidays', [HolidayController::class, 'store'])
+        ->middleware('permission:holidays.create')
+        ->name('holidays.store');
+    Route::delete('/Holidays/{Holiday}', [HolidayController::class, 'destroy'])
+        ->middleware('permission:holidays.delete')
+        ->name('holidays.destroy');
 
-    // --- Payroll ---
+    // --- Payroll & Advancements ---
     Route::middleware('permission:payroll.view')->group(function () {
         Route::get('/Payroll', [PayrollController::class, 'index'])->name('payroll.index');
         Route::get('/Payroll/{Payroll}', [PayrollController::class, 'show'])
@@ -167,14 +171,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/Payroll/bulk-update', [PayrollController::class, 'bulkUpdate'])
         ->middleware('permission:payroll.update')
         ->name('payroll.bulk-update');
+
+    // --- Cash Advancements ---
     Route::get('/advancements-page', [AdvancementController::class, 'page'])
-        ->middleware('permission:payroll.view')
+        ->middleware('permission:advancements.view')
         ->name('advancements.page');
     Route::get('/advancements', [AdvancementController::class, 'index'])
+        ->middleware('permission:advancements.view')
         ->name('advancements.index');
     Route::post('/advancements', [AdvancementController::class, 'store'])
+        ->middleware('permission:advancements.create')
         ->name('advancements.store');
     Route::delete('/advancements/{id}', [AdvancementController::class, 'destroy'])
+        ->middleware('permission:advancements.delete')
         ->name('advancements.destroy');
 
     Route::get('/Payroll/{payroll}/pdf', [PayrollController::class, 'downloadPayslipPdf'])

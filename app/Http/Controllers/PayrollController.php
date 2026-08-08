@@ -244,11 +244,25 @@ class PayrollController extends Controller
                 continue;
             }
 
-            $payrollRecord = Payroll::updateOrCreate([
-                'employee_id'  => $empData['employee_id'],
-                'period_start' => $start->toDateString(),
-                'period_end'   => $end->toDateString(),
-            ], [
+            // Search for an existing DRAFT payroll row for this employee matching or overlapping the period
+            $existingDraft = Payroll::where('employee_id', $empData['employee_id'])
+                ->where('status', 'draft')
+                ->where(function ($q) use ($start, $end) {
+                    $q->where(function ($sub) use ($start, $end) {
+                        $sub->whereDate('period_start', '<=', $end->toDateString())
+                            ->whereDate('period_end', '>=', $start->toDateString());
+                    })
+                    ->orWhere(function ($sub) use ($start, $end) {
+                        $sub->where('period_start', $start->toDateString())
+                            ->where('period_end', $end->toDateString());
+                    });
+                })
+                ->first();
+
+            $payrollData = [
+                'employee_id'            => $empData['employee_id'],
+                'period_start'           => $start->toDateString(),
+                'period_end'             => $end->toDateString(),
                 'payroll_date'           => $end->toDateString(),
                 'days_worked'            => $empData['days_worked'],
                 'total_days'             => $empData['days_worked'],
@@ -269,7 +283,14 @@ class PayrollController extends Controller
                 'deductions'             => $empData['total_deductions'],
                 'net_pay'                => $empData['net_amount'],
                 'status'                 => 'draft',
-            ]);
+            ];
+
+            if ($existingDraft) {
+                $existingDraft->update($payrollData);
+                $payrollRecord = $existingDraft;
+            } else {
+                $payrollRecord = Payroll::create($payrollData);
+            }
 
             // Link Advancement Payouts to this draft payroll without prematurely setting status to paid_out
             if (!empty($empData['pending_advancement_ids'])) {
@@ -281,7 +302,22 @@ class PayrollController extends Controller
             $savedCount++;
         }
 
-        return redirect()->route('payroll.index')->with('success', "Successfully generated payroll batch for {$savedCount} employees!");
+        $msg = $savedCount === 1
+            ? "Successfully generated draft payroll for 1 employee!"
+            : "Successfully generated payroll batch for {$savedCount} employees!";
+
+        $updatedBatchData = $this->auditService->auditBatch($start, $end);
+
+        if ($request->wantsJson() || $request->ajax() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+            return response()->json([
+                'success'   => true,
+                'message'   => $msg,
+                'savedCount'=> $savedCount,
+                'batchData' => $updatedBatchData,
+            ]);
+        }
+
+        return redirect()->back()->with('success', $msg);
     }
 
     /**
@@ -704,6 +740,41 @@ class PayrollController extends Controller
             },
             successLabel: 'payroll',
         );
+    }
+
+    /**
+     * Bulk destroy payroll records and safely release any linked cash advance statuses.
+     */
+    public function bulkDestroy(Request $request)
+    {
+        $validated = $request->validate([
+            'ids'   => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer', 'distinct', 'exists:payrolls,id'],
+        ]);
+
+        $payrolls = Payroll::whereIn('id', $validated['ids'])->get();
+
+        foreach ($payrolls as $payroll) {
+            // Safely release linked cash advance payouts and deductions
+            Advancement::where('payout_payroll_id', $payroll->id)
+                ->orWhere('deduction_payroll_id', $payroll->id)
+                ->get()
+                ->each(fn(Advancement $adv) => $adv->releaseFromPayroll($payroll->id));
+
+            $payroll->delete();
+        }
+
+        $count = count($payrolls);
+        $msg = "Successfully deleted {$count} payroll " . ($count === 1 ? 'record' : 'records') . '.';
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => $msg,
+            ]);
+        }
+
+        return redirect()->back()->with('success', $msg);
     }
 
     /**

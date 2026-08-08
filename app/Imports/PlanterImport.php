@@ -23,41 +23,44 @@ class PlanterImport implements ToModel, WithHeadingRow, WithSkipDuplicates, With
         $row = $this->applyMapping($row);
 
         // Pad codes to 5 digits with leading zeros
-        $planterCode = $this->padCode($row['planter_code'] ?? '0');
-        $haciendaCode = $this->padCode($row['land_code'] ?? $row['hacienda_code'] ?? '0');
+        $planterCode = $this->padCode($row['planter_code'] ?? $row['Pcode'] ?? '0');
+        $haciendaCode = $this->padCode($row['hacienda_code'] ?? $row['land_code'] ?? $row['Hcode'] ?? '0');
 
-        $planter = Planter::firstOrCreate(
-            ['planter_code'=> $planterCode],
-            [
-                'name' => $row['name'] ?? $row['planter_name'] ?? 'Unknown Planter',
-                'address' => $row['address'] ?? 'Unknown Address',
-                'contact_number' => $row['contact_number'] ?? null,
-                'tin_number' => $row['tin_number'] ?? null,
-                'registration_date' => $row['registration_date'] ?? now()->toDateString(),
-            ]
+        $planterName = $row['name'] ?? $row['planter_name'] ?? $row['Pname'] ?? 'Unknown Planter';
+        $planterAddress = $row['address'] ?? 'Unknown Address';
+        $contactNumber = $row['contact_number'] ?? null;
+        $tinNumber = $row['tin_number'] ?? null;
+        $regDate = $row['registration_date'] ?? now()->toDateString();
+
+        $planter = Planter::updateOrCreate(
+            ['planter_code' => $planterCode],
+            array_filter([
+                'name' => $planterName,
+                'address' => $planterAddress,
+                'contact_number' => $contactNumber,
+                'tin_number' => $tinNumber,
+                'registration_date' => $regDate,
+            ], fn($val) => !is_null($val) && $val !== '')
         );
 
-        $hacienda = Hacienda::firstOrCreate(
+        $haciendaName = $row['hacienda_name'] ?? $row['land_name'] ?? 'Unknown Hacienda';
+        $haciendaAddress = $row['hacienda_address'] ?? 'Unknown Address';
+        $areaHectares = isset($row['area_hectares']) ? (float) $row['area_hectares'] : 0;
+        $distanceFromUrc = isset($row['distance_from_urc']) ? (float) $row['distance_from_urc'] : 0;
+
+        $hacienda = Hacienda::updateOrCreate(
             ['hacienda_code' => $haciendaCode],
             [
                 'planter_id' => $planter->id,
-                'name' => $row['hacienda_name'] ?? $row['land_name'] ?? 'Unknown Hacienda',
-                'address' => $row['hacienda_address'] ?? 'Unknown Address',
-                'area_hectares' => $row['area_hectares'] ?? 0,
-                'distance_from_urc' => $row['distance_from_urc'] ?? 0,
-                'is_active' => true, // Default to active
+                'name' => $haciendaName,
+                'address' => $haciendaAddress,
+                'area_hectares' => $areaHectares,
+                'distance_from_urc' => $distanceFromUrc,
+                'is_active' => true,
             ]
         );
-        return new Planter([
-            'planter_id' => $planter->id,
-            'planter_code' => $planterCode,
-            'name' => $row['name'] ?? $row['planter_name'] ?? 'Unknown Planter',
-            'address' => $row['address'] ?? 'Unknown Address',
-            'contact_number' => $row['contact_number'] ?? null,
-            'tin_number' => $row['tin_number'] ?? null,
-            'registration_date' => $row['registration_date'] ?? now()->toDateString(),
-            'haciendas' => $hacienda, // Associate the hacienda with the planter
-        ]);
+
+        return $planter;
     }
     public function uniqueBy()
     {

@@ -339,7 +339,7 @@ export default function Show({
                                     isDeduction={advanceBalanceVal > 0}
                                 />
                                 <DetailRow
-                                    label="SSS Loan Deduction"
+                                    label="SSS Loan"
                                     value={formatCurrency(
                                         employee.sss_loan,
                                         true,
@@ -355,7 +355,7 @@ export default function Show({
                                     isDeduction
                                 />
                                 <DetailRow
-                                    label="Emergency Loan Deduction"
+                                    label="Emergency Loan"
                                     value={formatCurrency(
                                         employee.emergency_loan,
                                         true,
@@ -363,7 +363,7 @@ export default function Show({
                                     isDeduction
                                 />
                                 <DetailRow
-                                    label="Tax W/Held Payable"
+                                    label="Tax W/Held"
                                     value={formatCurrency(
                                         employee.withholding_tax,
                                         true,

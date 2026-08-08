@@ -118,6 +118,10 @@ export default function GenerateBatchPage({
     const [isLoadingAudit, setIsLoadingAudit] = useState(false);
     const [isUploadingAttendance, setIsUploadingAttendance] = useState(false);
     const [isProcessingBatch, setIsProcessingBatch] = useState(false);
+    const [processingEmployeeId, setProcessingEmployeeId] = useState<
+        number | null
+    >(null);
+    const [successNotification, setSuccessNotification] = useState<string | null>(null);
 
     // Advancements Modal state
     const [isGrantAdvanceOpen, setIsGrantAdvanceOpen] = useState(false);
@@ -135,6 +139,43 @@ export default function GenerateBatchPage({
         (batchData.totals as any)?.total_action_required ??
         0;
 
+    // Process Single Employee Payroll as Draft
+    const handleProcessSingle = async (emp: AuditedEmployee) => {
+        const isDraft = (emp as any).is_draft;
+        const confirmMsg = isDraft
+            ? `Re-process draft payroll for ${emp.name} (${emp.employee_code})?`
+            : `Are you sure you want to process draft payroll for ${emp.name} (${emp.employee_code})?`;
+
+        if (!confirm(confirmMsg)) {
+            return;
+        }
+
+        setProcessingEmployeeId(emp.employee_id);
+        setSuccessNotification(null);
+        try {
+            const res = await axios.post('/Payroll/process-batch', {
+                period_start: periodStart,
+                period_end: periodEnd,
+                employee_ids: [emp.employee_id],
+            });
+
+            if (res.data.success) {
+                if (res.data.batchData) {
+                    setBatchData(res.data.batchData);
+                }
+                setSuccessNotification(
+                    res.data.message || `Draft payroll processed for ${emp.name}!`,
+                );
+            }
+        } catch (err: any) {
+            alert(
+                err.response?.data?.message || 'Error processing draft payroll.',
+            );
+        } finally {
+            setProcessingEmployeeId(null);
+        }
+    };
+
     function SortHeader({
         label,
         column,
@@ -149,19 +190,82 @@ export default function GenerateBatchPage({
             <Button
                 variant="ghost"
                 size="sm"
-                className="-ml-3 h-8 text-xs font-semibold data-[state=open]:bg-accent"
+                className="-ml-3 h-8 text-xs font-semibold whitespace-nowrap data-[state=open]:bg-accent"
                 onClick={() =>
                     column.toggleSorting(column.getIsSorted() === 'asc')
                 }
             >
-                <span>{label}</span>
-                <ArrowUpDown className="ml-1.5 h-3 w-3" />
+                <span className="whitespace-nowrap">{label}</span>
+                <ArrowUpDown className="ml-1.5 h-3 w-3 shrink-0" />
             </Button>
         );
     }
 
     const readyColumns = useMemo<ColumnDef<AuditedEmployee>[]>(
         () => [
+            {
+                id: 'process_action',
+                header: () => (
+                    <span className="text-xs font-semibold whitespace-nowrap">
+                        Action
+                    </span>
+                ),
+                cell: ({ row }) => {
+                    const isDraft = (row.original as any).is_draft;
+                    const isProcessing =
+                        processingEmployeeId === row.original.employee_id;
+
+                    if (isDraft) {
+                        return (
+                            <div className="flex items-center gap-1.5">
+                                <Badge
+                                    variant="outline"
+                                    className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 text-[11px] font-bold py-0.5 px-2"
+                                >
+                                    <CheckCircle2 className="mr-1 h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                                    Draft Ready
+                                </Badge>
+                                <Button
+                                    variant="ghost"
+                                    size="xs"
+                                    className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                                    disabled={isProcessing || isProcessingBatch}
+                                    onClick={() => handleProcessSingle(row.original)}
+                                    title="Re-process draft for this employee"
+                                >
+                                    {isProcessing ? (
+                                        <RefreshCw className="h-3 w-3 animate-spin" />
+                                    ) : (
+                                        <RefreshCw className="h-3 w-3" />
+                                    )}
+                                </Button>
+                            </div>
+                        );
+                    }
+
+                    return (
+                        <Button
+                            variant="default"
+                            size="xs"
+                            className="h-7 bg-primary px-2.5 text-xs font-bold whitespace-nowrap text-primary-foreground shadow-xs hover:bg-primary/90"
+                            disabled={isProcessing || isProcessingBatch}
+                            onClick={() => handleProcessSingle(row.original)}
+                        >
+                            {isProcessing ? (
+                                <>
+                                    <RefreshCw className="mr-1 h-3 w-3 animate-spin" />
+                                    Processing...
+                                </>
+                            ) : (
+                                <>
+                                    <Play className="mr-1.5 h-3 w-3 fill-current" />
+                                    Process Payroll
+                                </>
+                            )}
+                        </Button>
+                    );
+                },
+            },
             {
                 accessorKey: 'employee_code',
                 header: ({ column }) => (
@@ -363,7 +467,10 @@ export default function GenerateBatchPage({
                 ),
                 cell: ({ row }) => (
                     <div className="text-right text-xs text-rose-600 dark:text-rose-400">
-                        {formatCurrency(row.original.pagibig_contribution, true)}
+                        {formatCurrency(
+                            row.original.pagibig_contribution,
+                            true,
+                        )}
                     </div>
                 ),
             },
@@ -420,11 +527,31 @@ export default function GenerateBatchPage({
                 ),
             },
         ],
-        [],
+        [processingEmployeeId, isProcessingBatch],
     );
 
     const actionRequiredColumns = useMemo<ColumnDef<AuditedEmployee>[]>(
         () => [
+            {
+                id: 'process_action',
+                header: () => (
+                    <span className="text-xs font-semibold whitespace-nowrap">
+                        Action
+                    </span>
+                ),
+                cell: ({ row }) => (
+                    <Button
+                        variant="outline"
+                        size="xs"
+                        className="h-7 cursor-not-allowed px-2.5 text-xs font-semibold whitespace-nowrap opacity-60"
+                        disabled
+                        title="Resolve audit disqualification issues first before processing"
+                    >
+                        <Play className="mr-1.5 h-3 w-3 text-muted-foreground" />
+                        Process Payroll
+                    </Button>
+                ),
+            },
             {
                 accessorKey: 'employee_code',
                 header: ({ column }) => (
@@ -642,7 +769,7 @@ export default function GenerateBatchPage({
     };
 
     // Process Payroll Batch
-    const handleProcessBatch = () => {
+    const handleProcessBatch = async () => {
         if (batchData.ready.length === 0) {
             alert(
                 'No ready employees available to process for this date range.',
@@ -659,16 +786,28 @@ export default function GenerateBatchPage({
         }
 
         setIsProcessingBatch(true);
-        router.post(
-            '/Payroll/process-batch',
-            {
+        setSuccessNotification(null);
+        try {
+            const res = await axios.post('/Payroll/process-batch', {
                 period_start: periodStart,
                 period_end: periodEnd,
-            },
-            {
-                onFinish: () => setIsProcessingBatch(false),
-            },
-        );
+            });
+
+            if (res.data.success) {
+                if (res.data.batchData) {
+                    setBatchData(res.data.batchData);
+                }
+                setSuccessNotification(
+                    res.data.message || 'Successfully processed payroll batch as draft!',
+                );
+            }
+        } catch (err: any) {
+            alert(
+                err.response?.data?.message || 'Error processing payroll batch.',
+            );
+        } finally {
+            setIsProcessingBatch(false);
+        }
     };
 
     return (
@@ -726,6 +865,24 @@ export default function GenerateBatchPage({
                         </div>
                     </ContainerHeaderEnd>
                 </ContainerHeader>
+
+                {successNotification && (
+                    <div className="mt-4 flex items-center justify-between rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+                        <div className="flex items-center gap-2">
+                            <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                            <span>{successNotification}</span>
+                        </div>
+                        <Button
+                            variant="ghost"
+                            size="xs"
+                            className="h-6 w-6 p-0 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300"
+                            onClick={() => setSuccessNotification(null)}
+                        >
+                            <X className="h-4 w-4" />
+                        </Button>
+                    </div>
+                )}
+
                 <div className="my-6 grid grid-cols-1 gap-4 sm:grid-cols-4">
                     <div className="space-y-1 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4">
                         <p className="text-xs font-bold text-emerald-700 uppercase dark:text-emerald-400">
@@ -869,68 +1026,98 @@ export default function GenerateBatchPage({
                 {/* Pre-Payroll Audit Stat Summary Banner */}
 
                 {/* Pre-Audit Employee Categorization Tabs */}
-                <Tabs defaultValue="ready" className="w-full space-y-2">
-                    <TabsList className="grid max-w-md grid-cols-2">
-                        <TabsTrigger value="ready" className="gap-2 font-bold">
-                            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                            Ready for Processing
-                            <Badge variant="secondary" className="ml-1">
-                                {readyCount}
-                            </Badge>
-                        </TabsTrigger>
-                        <TabsTrigger
-                            value="action_required"
-                            className="gap-2 font-bold"
-                        >
-                            <AlertTriangle className="h-4 w-4 text-rose-600" />
-                            Action Required
-                            <Badge variant="destructive" className="ml-1">
-                                {actionRequiredCount}
-                            </Badge>
-                        </TabsTrigger>
-                    </TabsList>
+                <Tabs defaultValue="ready" className="w-full space-y-4">
+                    <div className="flex flex-col gap-3 border-b border-border/60 pb-3 sm:flex-row sm:items-center sm:justify-between">
+                        <TabsList className="grid w-full max-w-md grid-cols-2 bg-muted/60 p-1 sm:w-auto">
+                            <TabsTrigger
+                                value="ready"
+                                className="gap-2 text-xs font-bold sm:text-sm"
+                            >
+                                <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                                Ready for Processing
+                                <Badge
+                                    variant="secondary"
+                                    className="py-0.2 ml-1 px-1.5 font-mono text-[11px]"
+                                >
+                                    {readyCount}
+                                </Badge>
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="action_required"
+                                className="gap-2 text-xs font-bold sm:text-sm"
+                            >
+                                <AlertTriangle className="h-4 w-4 text-rose-600 dark:text-rose-400" />
+                                Action Required
+                                <Badge
+                                    variant="destructive"
+                                    className="py-0.2 ml-1 px-1.5 font-mono text-[11px]"
+                                >
+                                    {actionRequiredCount}
+                                </Badge>
+                            </TabsTrigger>
+                        </TabsList>
+                    </div>
 
                     {/* TAB 1: READY LIST */}
-                    <TabsContent value="ready">
-                        <div className="overflow-hidden rounded-xl border border-border bg-card p-1 shadow-sm">
-                            <div className="flex items-center justify-between border-b border-border bg-muted/30 p-3">
-                                <h3 className="text-xs font-bold tracking-wider text-foreground uppercase">
-                                    Audited & Verified Employees (
-                                    {batchData.ready.length})
+                    <TabsContent
+                        value="ready"
+                        className="mt-0 space-y-3 focus-visible:outline-none"
+                    >
+                        <div className="flex flex-col justify-between gap-2 px-1 sm:flex-row sm:items-center">
+                            <div>
+                                <h3 className="flex items-center gap-2 text-sm font-bold tracking-tight text-foreground">
+                                    <span>Audited & Verified Employees</span>
+                                    <Badge
+                                        variant="outline"
+                                        className="border-emerald-500/30 bg-emerald-500/10 text-xs text-emerald-700 dark:text-emerald-300"
+                                    >
+                                        {batchData.ready.length} Ready
+                                    </Badge>
                                 </h3>
-                                <span className="text-xs text-muted-foreground">
-                                    All attendance & profile rates verified for{' '}
-                                    {periodStart} to {periodEnd}
-                                </span>
+                                <p className="text-xs text-muted-foreground">
+                                    All attendance & rate setups verified for
+                                    period {periodStart} to {periodEnd}
+                                </p>
                             </div>
-                            <DataTable
-                                data={batchData.ready}
-                                columns={readyColumns}
-                            />
                         </div>
+
+                        <DataTable
+                            data={batchData.ready}
+                            columns={readyColumns}
+                        />
                     </TabsContent>
 
                     {/* TAB 2: ACTION REQUIRED LIST */}
-                    <TabsContent value="action_required">
-                        <div className="overflow-hidden rounded-xl border border-rose-500/30 bg-card p-1 shadow-sm">
-                            <div className="flex items-center justify-between border-b border-border bg-rose-500/5 p-3">
-                                <div>
-                                    <h3 className="text-xs font-bold tracking-wider text-rose-700 uppercase dark:text-rose-400">
+                    <TabsContent
+                        value="action_required"
+                        className="mt-0 space-y-3 focus-visible:outline-none"
+                    >
+                        <div className="flex flex-col justify-between gap-2 px-1 sm:flex-row sm:items-center">
+                            <div>
+                                <h3 className="flex items-center gap-2 text-sm font-bold tracking-tight text-rose-700 dark:text-rose-400">
+                                    <span>
                                         Ineligible Employees - In-Page
-                                        Resolution Hub (
-                                        {batchData.action_required.length})
-                                    </h3>
-                                    <p className="mt-0.5 text-xs text-muted-foreground">
-                                        Resolve missing attendance or profile
-                                        setups directly below.
-                                    </p>
-                                </div>
+                                        Resolution Hub
+                                    </span>
+                                    <Badge
+                                        variant="outline"
+                                        className="border-rose-500/30 bg-rose-500/10 text-xs text-rose-700 dark:text-rose-300"
+                                    >
+                                        {batchData.action_required.length}{' '}
+                                        Disqualified
+                                    </Badge>
+                                </h3>
+                                <p className="text-xs text-muted-foreground">
+                                    Resolve missing attendance or profile setups
+                                    directly using Quick Fix below.
+                                </p>
                             </div>
-                            <DataTable
-                                data={batchData.action_required}
-                                columns={actionRequiredColumns}
-                            />
                         </div>
+
+                        <DataTable
+                            data={batchData.action_required}
+                            columns={actionRequiredColumns}
+                        />
                     </TabsContent>
                 </Tabs>
             </Container>

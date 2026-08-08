@@ -104,8 +104,8 @@ export default function CreateEmployeePage() {
     const estGrossCutoff = dailyRateNum * 12; // 12-day cutoff estimate
     const totalDeductionsCutoff =
         (parseFloat(String(data.sss_loan)) || 0) +
-        (parseFloat(String(data.emergency_loan)) || 0) +
         (parseFloat(String(data.pagibig_contribution)) || 0) +
+        (parseFloat(String(data.emergency_loan)) || 0) +
         (parseFloat(String(data.withholding_tax)) || 0);
     const estNetCutoff = Math.max(0, estGrossCutoff - totalDeductionsCutoff);
 
@@ -458,13 +458,13 @@ export default function CreateEmployeePage() {
                                         every payroll cutoff.
                                     </p>
 
-                                    <div className="space-y-3">
+                                    <div className="grid grid-cols-1 gap-3">
                                         <div className="space-y-1">
                                             <Label
                                                 htmlFor="sss_loan"
                                                 className="text-xs font-semibold text-foreground"
                                             >
-                                                SSS Loan Deduction (₱)
+                                                SSS Loan (₱)
                                             </Label>
                                             <Input
                                                 id="sss_loan"
@@ -472,7 +472,10 @@ export default function CreateEmployeePage() {
                                                 min="0"
                                                 step="0.01"
                                                 placeholder="0.00"
-                                                value={data.sss_loan ?? '0.00'}
+                                                value={
+                                                    data.sss_loan ??
+                                                    '0.00'
+                                                }
                                                 onChange={(e) =>
                                                     setData(
                                                         'sss_loan',
@@ -485,10 +488,36 @@ export default function CreateEmployeePage() {
 
                                         <div className="space-y-1">
                                             <Label
+                                                htmlFor="pagibig_contribution"
+                                                className="text-xs font-semibold text-foreground"
+                                            >
+                                                Pag-IBIG Contribution (₱)
+                                            </Label>
+                                            <Input
+                                                id="pagibig_contribution"
+                                                type="number"
+                                                min="0"
+                                                step="0.01"
+                                                value={
+                                                    data.pagibig_contribution ??
+                                                    '200.00'
+                                                }
+                                                onChange={(e) =>
+                                                    setData(
+                                                        'pagibig_contribution',
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                disabled={processing}
+                                            />
+                                        </div>
+
+                                        <div className="space-y-1">
+                                            <Label
                                                 htmlFor="emergency_loan"
                                                 className="text-xs font-semibold text-foreground"
                                             >
-                                                Emergency Loan Deduction (₱)
+                                                Emergency Loan (₱)
                                             </Label>
                                             <Input
                                                 id="emergency_loan"
@@ -510,110 +539,31 @@ export default function CreateEmployeePage() {
                                             />
                                         </div>
 
-                                        <div className="grid grid-cols-2 gap-3 border-t border-border/60 pt-2">
-                                            <div className="space-y-1">
-                                                <Label
-                                                    htmlFor="pagibig_contribution"
-                                                    className="text-xs font-medium"
-                                                >
-                                                    Pag-IBIG (₱)
-                                                </Label>
-                                                <Input
-                                                    id="pagibig_contribution"
-                                                    type="number"
-                                                    min="0"
-                                                    step="0.01"
-                                                    value={
-                                                        data.pagibig_contribution ??
-                                                        '200.00'
-                                                    }
-                                                    onChange={(e) =>
-                                                        setData(
-                                                            'pagibig_contribution',
-                                                            e.target.value,
-                                                        )
-                                                    }
-                                                    disabled={processing}
-                                                />
-                                            </div>
-                                            <div className="space-y-1">
-                                                <Label
-                                                    htmlFor="sss_contribution"
-                                                    className="text-xs font-medium"
-                                                >
-                                                    SSS (₱)
-                                                </Label>
-                                                <Input
-                                                    id="sss_contribution"
-                                                    type="number"
-                                                    min="0"
-                                                    step="0.01"
-                                                    placeholder="0.00"
-                                                    value={
-                                                        data.sss_contribution ??
-                                                        '0.00'
-                                                    }
-                                                    onChange={(e) =>
-                                                        setData(
-                                                            'sss_contribution',
-                                                            e.target.value,
-                                                        )
-                                                    }
-                                                    disabled={processing}
-                                                />
-                                            </div>
-                                            <div className="space-y-1">
-                                                <Label
-                                                    htmlFor="philhealth_contribution"
-                                                    className="text-xs font-medium"
-                                                >
-                                                    PhilHealth (₱)
-                                                </Label>
-                                                <Input
-                                                    id="philhealth_contribution"
-                                                    type="number"
-                                                    min="0"
-                                                    step="0.01"
-                                                    placeholder="0.00"
-                                                    value={
-                                                        data.philhealth_contribution ??
-                                                        '0.00'
-                                                    }
-                                                    onChange={(e) =>
-                                                        setData(
-                                                            'philhealth_contribution',
-                                                            e.target.value,
-                                                        )
-                                                    }
-                                                    disabled={processing}
-                                                />
-                                            </div>
-                                            <div className="space-y-1">
-                                                <Label
-                                                    htmlFor="withholding_tax"
-                                                    className="text-xs font-medium"
-                                                >
-                                                    Tax W/Held (₱)
-                                                </Label>
-                                                <Input
-                                                    id="withholding_tax"
-                                                    type="number"
-                                                    min="0"
-                                                    step="0.01"
-                                                    placeholder="0.00"
-                                                    value={
-                                                        data.withholding_tax ??
-                                                        '0.00'
-                                                    }
-                                                    onChange={(e) =>
-                                                        setData(
-                                                            'withholding_tax',
-                                                            e.target.value,
-                                                        )
-                                                    }
-                                                    disabled={processing}
-                                                />
-                                            </div>
+                                        <div className="space-y-1">
+                                            <Label
+                                                htmlFor="withholding_tax"
+                                                className="text-xs font-semibold text-foreground"
+                                            >
+                                                Tax W/Held (₱)
+                                            </Label>
+                                            <Input
+                                                id="withholding_tax"
+                                                type="number"
+                                                min="0"
+                                                step="0.01"
+                                                placeholder="0.00"
+                                                value={
+                                                    data.withholding_tax ??
+                                                    '0.00'
+                                                }
+                                                onChange={(e) =>
+                                                    setData(
+                                                        'withholding_tax',
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                disabled={processing}
+                                            />
                                         </div>
                                     </div>
                                 </div>

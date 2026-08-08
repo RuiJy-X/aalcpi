@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import {
     Dialog,
@@ -12,12 +12,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
+    Combobox,
+    ComboboxContent,
+    ComboboxEmpty,
+    ComboboxInput,
+    ComboboxItem,
+    ComboboxList,
+} from '@/components/ui/combobox';
 import { HandCoins, Calendar, Info } from 'lucide-react';
 
 interface EmployeeOption {
@@ -25,6 +26,14 @@ interface EmployeeOption {
     name: string;
     employee_code?: string;
     position?: string;
+}
+
+interface EmployeeOptionItem {
+    id: string;
+    label: string;
+    code?: string;
+    name: string;
+    position: string;
 }
 
 interface Props {
@@ -75,6 +84,20 @@ export function RecordAdvancementModal({
             });
         }
     }, [isOpen, employees.length]);
+
+    const employeeOptions = useMemo<EmployeeOptionItem[]>(() => {
+        return employees.map((emp) => ({
+            id: String(emp.id),
+            label: `${emp.employee_code ? `[${emp.employee_code}] ` : ''}${emp.name} (${emp.position || 'Encoder'})`,
+            code: emp.employee_code,
+            name: emp.name,
+            position: emp.position || 'Encoder',
+        }));
+    }, [employees]);
+
+    const selectedOption = useMemo(() => {
+        return employeeOptions.find((opt) => opt.id === employeeId) ?? null;
+    }, [employeeOptions, employeeId]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -137,19 +160,37 @@ export function RecordAdvancementModal({
                             <Label htmlFor="adv_employee" className="text-xs font-semibold">
                                 Select Employee *
                             </Label>
-                            <Select value={employeeId} onValueChange={setEmployeeId}>
-                                <SelectTrigger id="adv_employee" className="h-9">
-                                    <SelectValue placeholder="Choose Employee..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {employees.map((emp) => (
-                                        <SelectItem key={emp.id} value={String(emp.id)}>
-                                            {emp.employee_code ? `[${emp.employee_code}] ` : ''}
-                                            {emp.name} ({emp.position || 'Encoder'})
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <Combobox
+                                items={employeeOptions}
+                                value={selectedOption}
+                                onValueChange={(val: EmployeeOptionItem | null) => {
+                                    setEmployeeId(val ? val.id : '');
+                                }}
+                            >
+                                <ComboboxInput
+                                    id="adv_employee"
+                                    placeholder="Search employee by code, name, designation..."
+                                    className="w-full"
+                                />
+                                <ComboboxContent className="max-h-60 overflow-y-auto">
+                                    <ComboboxEmpty>No employee found.</ComboboxEmpty>
+                                    <ComboboxList>
+                                        {(item: EmployeeOptionItem) => (
+                                            <ComboboxItem key={item.id} value={item}>
+                                                <div className="flex flex-col text-xs py-0.5">
+                                                    <span className="font-bold text-foreground">
+                                                        {item.code ? `[${item.code}] ` : ''}
+                                                        {item.name}
+                                                    </span>
+                                                    <span className="text-[11px] text-muted-foreground">
+                                                        {item.position}
+                                                    </span>
+                                                </div>
+                                            </ComboboxItem>
+                                        )}
+                                    </ComboboxList>
+                                </ComboboxContent>
+                            </Combobox>
                         </div>
                     )}
 

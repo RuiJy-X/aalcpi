@@ -50,6 +50,18 @@ class Permissions
                 'delete' => 'payroll.delete',
                 'generate' => 'payroll.generate',
             ],
+            'advancements' => [
+                'view' => 'advancements.view',
+                'create' => 'advancements.create',
+                'update' => 'advancements.update',
+                'delete' => 'advancements.delete',
+            ],
+            'holidays' => [
+                'view' => 'holidays.view',
+                'create' => 'holidays.create',
+                'update' => 'holidays.update',
+                'delete' => 'holidays.delete',
+            ],
             'milling_periods' => [
                 'view' => 'milling_periods.view',
                 'create' => 'milling_periods.create',
@@ -88,6 +100,10 @@ class Permissions
                 'update' => 'bank_reconciliation.update',
                 'delete' => 'bank_reconciliation.delete',
             ],
+            'import_history' => [
+                'view' => 'import_history.view',
+                'delete' => 'import_history.delete',
+            ],
         ];
     }
 
@@ -104,12 +120,15 @@ class Permissions
             'employees' => 'Employees',
             'attendance' => 'Attendance',
             'payroll' => 'Payroll',
+            'advancements' => 'Cash Advancements',
+            'holidays' => 'Holidays',
             'milling_periods' => 'Milling Periods',
             'planters' => 'Planters',
             'productions' => 'Productions',
             'haciendas' => 'Haciendas',
             'weekly' => 'Weekly Data',
             'bank_reconciliation' => 'Bank Reconciliation',
+            'import_history' => 'Import History',
         ];
     }
 

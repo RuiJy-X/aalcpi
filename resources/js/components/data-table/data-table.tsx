@@ -581,7 +581,7 @@ export function DataTable<TData, TValue>({
                 )}
             </div>
             <div className="overflow-x-auto custom-scrollbar rounded-xl border border-border bg-card shadow-sm">
-                <Table style={{ width: table.getTotalSize() }}>
+                <Table className="w-full min-w-full" style={{ minWidth: '100%', width: '100%' }}>
                     <TableHeader className="bg-muted/50 text-muted-foreground uppercase text-xs tracking-wider font-semibold border-b border-border">
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
@@ -589,7 +589,7 @@ export function DataTable<TData, TValue>({
                                     return (
                                         <TableHead
                                             key={header.id}
-                                            className="relative py-3 px-4 text-xs font-semibold uppercase tracking-wider"
+                                            className="relative py-3 px-4 text-xs font-semibold uppercase tracking-wider whitespace-nowrap"
                                             style={{ width: header.getSize() }}
                                         >
                                             {header.isPlaceholder
@@ -642,7 +642,7 @@ export function DataTable<TData, TValue>({
                                                     cell,
                                                 ),
                                             }}
-                                            className="py-3 px-4 border-b border-border/60 text-xs"
+                                            className="py-3 px-4 border-b border-border/60 text-xs whitespace-nowrap"
                                         >
                                             {flexRender(
                                                 cell.column.columnDef.cell,

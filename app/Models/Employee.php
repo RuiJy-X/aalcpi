@@ -79,4 +79,31 @@ class Employee extends Model
     {
         return $this->hasMany(Advancement::class);
     }
+
+    protected static function booted(): void
+    {
+        static::updated(function (Employee $employee) {
+            self::deleteDraftsForEmployee($employee->id);
+        });
+
+        static::deleted(function (Employee $employee) {
+            self::deleteDraftsForEmployee($employee->id);
+        });
+    }
+
+    public static function deleteDraftsForEmployee(int $employeeId): void
+    {
+        $draftPayrolls = Payroll::where('employee_id', $employeeId)
+            ->where('status', 'draft')
+            ->get();
+
+        foreach ($draftPayrolls as $draft) {
+            Advancement::where('payout_payroll_id', $draft->id)
+                ->orWhere('deduction_payroll_id', $draft->id)
+                ->get()
+                ->each(fn(Advancement $adv) => $adv->releaseFromPayroll($draft->id));
+
+            $draft->delete();
+        }
+    }
 }

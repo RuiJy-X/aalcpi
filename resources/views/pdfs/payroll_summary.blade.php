@@ -16,7 +16,7 @@
 
         body {
             font-family: Arial, sans-serif;
-            font-size: 10pt;
+            font-size: 8pt;
             color: #000000;
             background: #ffffff;
             margin: 0;
@@ -36,18 +36,18 @@
         }
 
         .title {
-            font-size: 10pt;
+            font-size: 8pt;
             text-transform: uppercase;
         }
 
         .subtitle {
-            font-size: 10pt;
+            font-size: 8pt;
         }
 
         .payroll-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 10pt;
+            font-size: 8pt;
             margin-top: 5px;
         }
 
@@ -55,7 +55,7 @@
         .payroll-table td {
             border: 1px solid #000000;
             padding: 4px 3px;
-            font-size: 10pt;
+            font-size: 8pt;
             color: #000000;
             background: transparent;
         }
@@ -91,8 +91,8 @@
         <thead>
             <tr>
                 <th style="width: 3%;">#</th>
-                <th style="width: 13%;" class="text-left">Employee Name</th>
-                <th style="width: 6%;">Desig</th>
+                <th style="width: 14.5%;" class="text-left">Employee Name</th>
+                <th style="width: 5.5%;">Desig</th>
                 <th style="width: 6.5%;" class="text-right">Daily Rate</th>
                 <th style="width: 3.5%;">Days</th>
                 <th style="width: 7%;" class="text-right">Basic Pay</th>
@@ -104,14 +104,14 @@
                 <th style="width: 6%;" class="text-right">Emerg Loan</th>
                 <th style="width: 6%;" class="text-right">Tax W/H</th>
                 <th style="width: 6.5%;" class="text-right">Tot Deduct</th>
-                <th style="width: 7%;" class="text-right">Net Pay</th>
-                <th style="width: 9.5%;" class="text-center">Signature</th>
+                <th style="width: 7.5%;" class="text-right">Net Pay</th>
+                <th style="width: 3%;" class="text-center">Signature</th>
             </tr>
         </thead>
         <tbody>
             @forelse($payrolls ?? [] as $index => $p)
                 @php
-                    $empName = data_get($p, 'employee_name', data_get($p, 'employee.name', 'N/A'));
+                    $empName = data_get($p, 'name', data_get($p, 'employee.name', 'N/A'));
                     $position = data_get($p, 'position', 'Encoder');
                     $dailyRate = (float) data_get($p, 'daily_rate', 0);
                     $daysWorked = (int) data_get($p, 'days_worked', 0);
@@ -133,16 +133,16 @@
                     <td class="text-right">{{ number_format($dailyRate, 2) }}</td>
                     <td class="text-center">{{ $daysWorked }}</td>
                     <td class="text-right">{{ number_format($basicPay, 2) }}</td>
-                    <td class="text-right">{{ $advPayout > 0 ? number_format($advPayout, 2) : '—' }}</td>
-                    <td class="text-right">{{ $totalEarnings > 0 ? number_format($totalEarnings, 2) : '—' }}</td>
-                    <td class="text-right">{{ $advDeduct > 0 ? '-' . number_format($advDeduct, 2) : '—' }}</td>
+                    <td class="text-right">{{ $advPayout > 0 ? number_format($advPayout, 2) : '' }}</td>
+                    <td class="text-right">{{ $totalEarnings > 0 ? number_format($totalEarnings, 2) : '' }}</td>
+                    <td class="text-right">{{ $advDeduct > 0 ? '' . number_format($advDeduct, 2) : '' }}</td>
                     <td class="text-right">-{{ number_format($sssLoan, 2) }}</td>
                     <td class="text-right">-{{ number_format($pagibigContrib, 2) }}</td>
                     <td class="text-right">-{{ number_format($emergencyLoan, 2) }}</td>
                     <td class="text-right">-{{ number_format($withholdingTax, 2) }}</td>
                     <td class="text-right">-{{ number_format($totalDeduct, 2) }}</td>
                     <td class="text-right">{{ number_format($netAmount, 2) }}</td>
-                    <td class="text-center font-mono">__________________</td>
+                    <td class="text-center font-mono"></td>
                 </tr>
             @empty
                 <tr>

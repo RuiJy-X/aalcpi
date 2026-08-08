@@ -47,33 +47,6 @@ class DatabaseSeeder extends Seeder
             ->take(4)
             ->get();
 
-        $productions = collect();
-        foreach ($millingPeriods as $millingPeriod) {
-            for ($i = 0; $i < 10; $i++) {
-                $hacienda = $haciendas->random();
-                $productionDate = Carbon::parse($millingPeriod->start_date)
-                    ->addDays(fake()->numberBetween(0, 6));
-
-                $productions->push(
-                    Production::factory()
-                        ->forPlanterhacienda($hacienda->planter, $hacienda)
-                        ->state([
-                            'milling_period_id' => $millingPeriod->id,
-                            'production_date' => $productionDate->toDateString(),
-                            'crop_year' => sprintf(
-                                '%04d-%04d',
-                                (int) $productionDate->format('Y'),
-                                (int) $productionDate->format('Y') + 1,
-                            ),
-                        ])
-                        ->create()
-                );
-            }
-        }
-
-        foreach ($productions as $production) {
-            Certification::factory()->forProduction($production)->create();
-        }
 
         // Employees / Attendance / Payroll
         // $employees = Employee::factory()->count(5)->create();
@@ -85,6 +58,9 @@ class DatabaseSeeder extends Seeder
         $this->call([
             AdminSeeder::class,
             UserSeeder::class,
+            EmployeeSeeder::class,
+            AttendanceSeeder::class,
+
         ]);
     }
 }

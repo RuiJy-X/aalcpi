@@ -1,13 +1,8 @@
+import React, { useMemo, useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
-import StatCard from '@/components/stat-card';
-import {
-    Container,
-    ContainerHeader,
-    ContainerHeaderEnd,
-} from '@/components/container';
 import {
     Select,
     SelectContent,
@@ -16,8 +11,6 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import {
     ArrowRight,
     BookOpen,
@@ -37,39 +30,44 @@ import {
     AlertTriangle,
     Loader2,
     FileSpreadsheet,
+    Search,
+    Filter,
+    Activity,
+    TrendingUp,
+    BarChart2,
+    Sparkles,
+    Droplets,
+    Scale,
+    Building2,
+    ChevronRight,
 } from 'lucide-react';
-import { useMemo, useState, type ComponentType } from 'react';
+
 import MillingPeriodsCalendar from '@/components/milling-periods/milling-periods-calendar';
 import type { EventInput } from '@fullcalendar/core';
 import { create as millingPeriodCreate } from '@/routes/milling-periods';
 import { useCan } from '@/hooks/use-can';
 import { cn } from '@/lib/utils';
 
-const metricOptions = [
-    { key: 'gross_cw', label: 'Gross CW', decimals: 2 },
-    { key: 'net_cw', label: 'Net CW', decimals: 2 },
-    { key: 'trucks', label: 'Trucks', decimals: 0 },
-    { key: 'pshr_net_lkg', label: 'Pshr Net LKG', decimals: 2 },
-    { key: 'actual_lkg', label: 'Actual LKG', decimals: 2 },
-    { key: 'actual_mol', label: 'Actual Mol', decimals: 2 },
-    { key: 'pshr_net_mol', label: 'Pshr Net Mol', decimals: 2 },
-] as const;
-
-type MetricKey = (typeof metricOptions)[number]['key'];
-
-type ModuleSummary = {
-    key: string;
-    title: string;
-    permission: string;
-    href: string;
-    metric: number;
-    metric_label: string;
-    status: 'healthy' | 'attention' | 'busy' | 'idle' | 'empty';
-    status_label: string;
-    detail: string;
-    progress: number | null;
-    accent: string;
-};
+// Import custom Tarsi Design System components
+import {
+    DashedArcGauge,
+    SegmentedProgressBar,
+    TarsiStatusBadge,
+    VerticalBarComb,
+} from '@/components/dashboard/tarsi-components';
+import {
+    TarsiModuleCard,
+    ModuleSummaryItem,
+} from '@/components/dashboard/tarsi-module-card';
+import {
+    TarsiTrendChart,
+    MetricKey,
+    TrendItem,
+} from '@/components/dashboard/tarsi-trend-chart';
+import {
+    TarsiLeaderboard,
+    LeaderboardItem,
+} from '@/components/dashboard/tarsi-leaderboard';
 
 type StatusTracking = {
     productions: {
@@ -117,7 +115,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-const moduleIcons: Record<string, ComponentType<{ className?: string }>> = {
+const moduleIcons: Record<string, React.ElementType> = {
     planters: User,
     haciendas: LandPlot,
     productions: BookOpen,
@@ -131,33 +129,18 @@ const moduleIcons: Record<string, ComponentType<{ className?: string }>> = {
     imports: FileSpreadsheet,
 };
 
-const accentClasses: Record<string, string> = {
-    green: 'border-l-green-600 bg-green-50/40',
-    purple: 'border-l-violet-600 bg-violet-50/40',
-    amber: 'border-l-amber-600 bg-amber-50/40',
-    teal: 'border-l-teal-600 bg-teal-50/40',
-    indigo: 'border-l-indigo-600 bg-indigo-50/40',
-    blue: 'border-l-blue-600 bg-blue-50/40',
-    cyan: 'border-l-cyan-600 bg-cyan-50/40',
-    orange: 'border-l-orange-600 bg-orange-50/40',
-    lime: 'border-l-lime-600 bg-lime-50/40',
-    gray: 'border-l-gray-500 bg-gray-50/40',
-    brown: 'border-l-amber-900 bg-amber-100/40',
-};
-
-const statusBadge: Record<
-    ModuleSummary['status'],
-    { label?: string; className: string }
-> = {
-    healthy: {
-        className: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-    },
-    attention: {
-        className: 'bg-amber-100 text-amber-900 border-amber-200',
-    },
-    busy: { className: 'bg-sky-100 text-sky-900 border-sky-200' },
-    idle: { className: 'bg-slate-100 text-slate-700 border-slate-200' },
-    empty: { className: 'bg-rose-50 text-rose-800 border-rose-200' },
+const moduleCategories: Record<string, 'operations' | 'finance' | 'hr' | 'system'> = {
+    planters: 'operations',
+    haciendas: 'operations',
+    productions: 'operations',
+    weekly: 'operations',
+    milling_periods: 'finance',
+    bank_reconciliation: 'finance',
+    payroll: 'finance',
+    employees: 'hr',
+    attendance: 'hr',
+    users: 'system',
+    imports: 'system',
 };
 
 function formatCompact(value: number, decimals = 0) {
@@ -168,13 +151,9 @@ function formatCompact(value: number, decimals = 0) {
 }
 
 function formatRelative(iso: string | null) {
-    if (!iso) {
-        return '—';
-    }
+    if (!iso) return '—';
     const date = new Date(iso);
-    if (Number.isNaN(date.getTime())) {
-        return '—';
-    }
+    if (Number.isNaN(date.getTime())) return '—';
     return date.toLocaleString();
 }
 
@@ -207,28 +186,8 @@ export default function Dashboard({
         planters: number;
         haciendas: number;
     };
-    trend_data: Array<{
-        crop_year: string;
-        gross_cw: number;
-        net_cw: number;
-        trucks: number;
-        actual_lkg: number;
-        pshr_net_lkg: number;
-        actual_mol: number;
-        pshr_net_mol: number;
-    }>;
-    leaderboard: Array<{
-        planter_id: number;
-        planter_name: string;
-        hacienda_name: string;
-        gross_cw: number;
-        net_cw: number;
-        trucks: number;
-        actual_lkg: number;
-        pshr_net_lkg: number;
-        actual_mol: number;
-        pshr_net_mol: number;
-    }>;
+    trend_data: TrendItem[];
+    leaderboard: LeaderboardItem[];
     milling_periods: Array<{
         id: number;
         week_no: number;
@@ -240,16 +199,21 @@ export default function Dashboard({
         sugar_factor: number;
         mol_factor: number;
     }>;
-    module_summaries?: ModuleSummary[];
+    module_summaries?: ModuleSummaryItem[];
     status_tracking?: StatusTracking;
     recent_activity?: RecentActivityItem[];
 }) {
     const { can, canAny } = useCan();
     const selectedCropYear = filters?.crop_year ?? '';
-    const [selectedTrendKey, setSelectedTrendKey] =
-        useState<MetricKey>('gross_cw');
-    const [selectedLeaderboardKey, setSelectedLeaderboardKey] =
-        useState<MetricKey>('gross_cw');
+
+    // Quick Directory Filter & Category tab state
+    const [selectedCategory, setSelectedCategory] = useState<
+        'all' | 'operations' | 'finance' | 'hr' | 'system'
+    >('all');
+    const [searchQuery, setSearchQuery] = useState('');
+
+    // Graph state
+    const [trendMetricKey, setTrendMetricKey] = useState<MetricKey>('gross_cw');
 
     const kpi = kpi_totals ?? {
         gross_cw: 0,
@@ -259,6 +223,20 @@ export default function Dashboard({
         pshr_net_lkg: 0,
         actual_mol: 0,
         pshr_net_mol: 0,
+    };
+
+    const tracking = status_tracking ?? {
+        productions: { total: 0, completed: 0, draft: 0, percent_complete: 0 },
+        payroll: { total: 0, paid: 0, pending: 0, draft: 0, percent_paid: 0 },
+        bank_reconciliation: {
+            total: 0,
+            matched: 0,
+            outstanding: 0,
+            unrecorded: 0,
+            mismatch: 0,
+            match_rate: 0,
+        },
+        imports: { queued: 0, running: 0, done: 0, failed: 0 },
     };
 
     const applyCropYear = (cropYear: string) => {
@@ -276,7 +254,7 @@ export default function Dashboard({
     const calendarEvents = useMemo<EventInput[]>(() => {
         return milling_periods.map((period) => ({
             id: String(period.id),
-            title: `Week ${period.week_no} (${period.crop_year}) - PHP/LKG: ${Number(period.sugar_price).toFixed(2)}, PHP/MOL: ${Number(period.mol_price).toFixed(2)}`,
+            title: `Week ${period.week_no} (${period.crop_year}) - Sugar: ₱${Number(period.sugar_price).toFixed(2)}, Mol: ₱${Number(period.mol_price).toFixed(2)}`,
             start: period.start_date,
             end: period.end_date,
             allDay: true,
@@ -287,808 +265,535 @@ export default function Dashboard({
         }));
     }, [milling_periods]);
 
-    const topPlanters = useMemo(() => {
-        const metricKey = selectedLeaderboardKey;
-        return [...leaderboard]
-            .sort((a, b) => Number(b[metricKey]) - Number(a[metricKey]))
-            .slice(0, 5);
-    }, [leaderboard, selectedLeaderboardKey]);
+    // Attach category to module summaries
+    const enrichedModules = useMemo(() => {
+        return module_summaries.map((m) => ({
+            ...m,
+            category: moduleCategories[m.key] || 'operations',
+        }));
+    }, [module_summaries]);
 
-    const visibleModules = useMemo(
-        () =>
-            module_summaries.filter((module) => {
-                if (module.key === 'imports') {
-                    return canAny([
-                        'planters.import',
-                        'productions.import',
-                        'attendance.import',
-                        'weekly.create',
-                        'bank_reconciliation.create',
-                    ]);
-                }
-                return can(module.permission);
-            }),
-        [module_summaries, can, canAny],
-    );
-
-    const attentionCount = visibleModules.filter(
-        (m) => m.status === 'attention' || m.status === 'busy',
-    ).length;
-
-    const trendMetric = metricOptions.find(
-        (metric) => metric.key === selectedTrendKey,
-    );
-    const leaderboardMetric = metricOptions.find(
-        (metric) => metric.key === selectedLeaderboardKey,
-    );
-
-    const tracking = status_tracking ?? {
-        productions: {
-            total: 0,
-            completed: 0,
-            draft: 0,
-            percent_complete: 0,
-        },
-        payroll: { total: 0, paid: 0, pending: 0, draft: 0, percent_paid: 0 },
-        bank_reconciliation: {
-            total: 0,
-            matched: 0,
-            outstanding: 0,
-            unrecorded: 0,
-            mismatch: 0,
-            match_rate: 0,
-        },
-        imports: { queued: 0, running: 0, done: 0, failed: 0 },
-    };
-
-    return (
-        <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Dashboard" />
-
-            {/* Header */}
-            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                    <h1 className="text-2xl font-semibold tracking-tight">
-                        Operations Dashboard
-                    </h1>
-                    <p className="text-sm text-muted-foreground">
-                        Snapshot of every module, workflow progress, and quick
-                        actions
-                        {attentionCount > 0
-                            ? ` · ${attentionCount} area${attentionCount === 1 ? '' : 's'} need attention`
-                            : ''}
-                    </p>
-                </div>
-                <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">Crop Year</span>
-                    <Select
-                        value={selectedCropYear ?? ''}
-                        onValueChange={applyCropYear}
-                    >
-                        <SelectTrigger className="w-44 bg-white">
-                            <SelectValue placeholder="Select year" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-white">
-                            {crop_years.length === 0 ? (
-                                <SelectItem value="__no_crop_years__" disabled>
-                                    No crop years
-                                </SelectItem>
-                            ) : (
-                                crop_years.map((cropYear) => (
-                                    <SelectItem
-                                        key={cropYear}
-                                        value={cropYear}
-                                    >
-                                        {cropYear}
-                                    </SelectItem>
-                                ))
-                            )}
-                        </SelectContent>
-                    </Select>
-                </div>
-            </div>
-
-            {/* Production KPI strip */}
-            <div className="mt-2 flex grow gap-2 overflow-x-auto pb-1">
-                <StatCard
-                    title="Gross CW"
-                    value={formatCompact(Number(kpi.gross_cw), 2)}
-                    icon={BookOpen}
-                    color="amber"
-                />
-                <StatCard
-                    title="Net CW"
-                    value={formatCompact(Number(kpi.net_cw), 2)}
-                    icon={LandPlot}
-                    color="orange"
-                />
-                <StatCard
-                    title="Trucks"
-                    value={formatCompact(Number(kpi.trucks), 0)}
-                    icon={Clipboard}
-                    color="blue"
-                />
-                <StatCard
-                    title="Actual LKG"
-                    value={formatCompact(Number(kpi.actual_lkg), 2)}
-                    icon={Clipboard}
-                    color="teal"
-                />
-                <StatCard
-                    title="Pshr Net LKG"
-                    value={formatCompact(Number(kpi.pshr_net_lkg), 2)}
-                    icon={Clipboard}
-                    color="indigo"
-                />
-                <StatCard
-                    title="Actual Mol"
-                    value={formatCompact(Number(kpi.actual_mol), 2)}
-                    icon={Clipboard}
-                    color="gray"
-                />
-                <StatCard
-                    title="Pshr Net Mol"
-                    value={formatCompact(Number(kpi.pshr_net_mol), 2)}
-                    icon={Clipboard}
-                    color="brown"
-                />
-                <StatCard
-                    title="Distinct Planters"
-                    value={formatCompact(entity_counts.planters, 0)}
-                    icon={User}
-                    color="green"
-                />
-                <StatCard
-                    title="Distinct Haciendas"
-                    value={formatCompact(entity_counts.haciendas, 0)}
-                    icon={LandPlot}
-                    color="purple"
-                />
-            </div>
-
-            {/* Module quick access */}
-            <Container className="mt-4">
-                <ContainerHeader>
-                    <div>
-                        <div className="text-2xl font-semibold">
-                            Module overview
-                        </div>
-                        <p className="text-sm font-normal text-muted-foreground">
-                            Jump into any area · status reflects live counts
-                        </p>
-                    </div>
-                </ContainerHeader>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-                    {visibleModules.map((module) => {
-                        const Icon =
-                            moduleIcons[module.key] ?? LayoutGrid;
-                        const accent =
-                            accentClasses[module.accent] ??
-                            accentClasses.gray;
-                        const badge = statusBadge[module.status];
-
-                        return (
-                            <Link
-                                key={module.key}
-                                href={module.href}
-                                className={cn(
-                                    'group flex flex-col rounded-xl border border-l-4 bg-card p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md',
-                                    accent,
-                                )}
-                            >
-                                <div className="flex items-start justify-between gap-2">
-                                    <div className="flex items-center gap-2">
-                                        <span className="flex size-9 items-center justify-center rounded-lg bg-background/80 shadow-sm">
-                                            <Icon className="size-4 text-foreground" />
-                                        </span>
-                                        <div>
-                                            <div className="font-semibold leading-tight">
-                                                {module.title}
-                                            </div>
-                                            <div className="text-xs text-muted-foreground">
-                                                {module.metric_label}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <Badge
-                                        variant="outline"
-                                        className={cn(
-                                            'shrink-0 text-[10px]',
-                                            badge.className,
-                                        )}
-                                    >
-                                        {module.status === 'attention' && (
-                                            <AlertTriangle className="mr-1 size-3" />
-                                        )}
-                                        {module.status === 'busy' && (
-                                            <Loader2 className="mr-1 size-3 animate-spin" />
-                                        )}
-                                        {module.status === 'healthy' && (
-                                            <CheckCircle2 className="mr-1 size-3" />
-                                        )}
-                                        {module.status_label}
-                                    </Badge>
-                                </div>
-
-                                <div className="mt-3 text-3xl font-bold tracking-tight">
-                                    {formatCompact(module.metric, 0)}
-                                </div>
-                                <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                                    {module.detail}
-                                </p>
-
-                                {module.progress !== null &&
-                                    module.progress !== undefined && (
-                                        <div className="mt-3 space-y-1">
-                                            <div className="flex justify-between text-[11px] text-muted-foreground">
-                                                <span>Progress</span>
-                                                <span>{module.progress}%</span>
-                                            </div>
-                                            <Progress
-                                                value={Math.min(
-                                                    100,
-                                                    Math.max(
-                                                        0,
-                                                        module.progress,
-                                                    ),
-                                                )}
-                                                className="h-1.5"
-                                            />
-                                        </div>
-                                    )}
-
-                                <div className="mt-3 flex items-center text-xs font-medium text-primary opacity-80 transition group-hover:opacity-100">
-                                    Open
-                                    <ArrowRight className="ml-1 size-3.5 transition group-hover:translate-x-0.5" />
-                                </div>
-                            </Link>
-                        );
-                    })}
-                    {visibleModules.length === 0 && (
-                        <div className="col-span-full rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-                            No modules available for your permissions.
-                        </div>
-                    )}
-                </div>
-            </Container>
-
-            {/* Progress tracking */}
-            <div className="mt-2 grid grid-cols-1 gap-3 lg:grid-cols-2 2xl:grid-cols-4">
-                {can('productions.view') && (
-                    <ProgressPanel
-                        title="Production completion"
-                        href="/Productions"
-                        percent={tracking.productions.percent_complete}
-                        footer={`${tracking.productions.completed} completed · ${tracking.productions.draft} draft`}
-                        segments={[
-                            {
-                                label: 'Completed',
-                                value: tracking.productions.completed,
-                                className: 'bg-emerald-500',
-                            },
-                            {
-                                label: 'Draft',
-                                value: tracking.productions.draft,
-                                className: 'bg-amber-400',
-                            },
-                        ]}
-                    />
-                )}
-                {can('payroll.view') && (
-                    <ProgressPanel
-                        title="Payroll paid"
-                        href="/Payroll"
-                        percent={tracking.payroll.percent_paid}
-                        footer={`${tracking.payroll.paid} paid · ${tracking.payroll.pending} pending · ${tracking.payroll.draft} draft`}
-                        segments={[
-                            {
-                                label: 'Paid',
-                                value: tracking.payroll.paid,
-                                className: 'bg-emerald-500',
-                            },
-                            {
-                                label: 'Pending',
-                                value: tracking.payroll.pending,
-                                className: 'bg-sky-500',
-                            },
-                            {
-                                label: 'Draft',
-                                value: tracking.payroll.draft,
-                                className: 'bg-amber-400',
-                            },
-                        ]}
-                    />
-                )}
-                {can('bank_reconciliation.view') && (
-                    <ProgressPanel
-                        title="Bank recon match rate"
-                        href="/BankReconciliation"
-                        percent={tracking.bank_reconciliation.match_rate}
-                        footer={`${tracking.bank_reconciliation.matched} matched · ${tracking.bank_reconciliation.outstanding} outstanding · ${tracking.bank_reconciliation.unrecorded} unrecorded`}
-                        segments={[
-                            {
-                                label: 'Matched',
-                                value: tracking.bank_reconciliation.matched,
-                                className: 'bg-emerald-500',
-                            },
-                            {
-                                label: 'Outstanding',
-                                value: tracking.bank_reconciliation
-                                    .outstanding,
-                                className: 'bg-amber-400',
-                            },
-                            {
-                                label: 'Unrecorded',
-                                value: tracking.bank_reconciliation
-                                    .unrecorded,
-                                className: 'bg-rose-400',
-                            },
-                            {
-                                label: 'Mismatch',
-                                value: tracking.bank_reconciliation.mismatch,
-                                className: 'bg-orange-500',
-                            },
-                        ]}
-                    />
-                )}
-                {canAny([
+    // Filter modules based on permission, category tab, and search query
+    const visibleModules = useMemo(() => {
+        return enrichedModules.filter((module) => {
+            // Permission check
+            let allowed = false;
+            if (module.key === 'imports') {
+                allowed = canAny([
                     'planters.import',
                     'productions.import',
                     'attendance.import',
                     'weekly.create',
-                ]) && (
-                    <ProgressPanel
-                        title="Import pipeline (7d)"
-                        href="/Productions"
-                        percent={
-                            tracking.imports.done +
-                                tracking.imports.failed +
-                                tracking.imports.running +
-                                tracking.imports.queued >
-                            0
-                                ? Math.round(
-                                      (tracking.imports.done /
-                                          Math.max(
-                                              1,
-                                              tracking.imports.done +
-                                                  tracking.imports.failed +
-                                                  tracking.imports.running +
-                                                  tracking.imports.queued,
-                                          )) *
-                                          100,
-                                  )
-                                : 100
-                        }
-                        footer={`${tracking.imports.running} running · ${tracking.imports.queued} queued · ${tracking.imports.failed} failed · ${tracking.imports.done} done`}
-                        segments={[
-                            {
-                                label: 'Done',
-                                value: tracking.imports.done,
-                                className: 'bg-emerald-500',
-                            },
-                            {
-                                label: 'Running',
-                                value: tracking.imports.running,
-                                className: 'bg-sky-500',
-                            },
-                            {
-                                label: 'Queued',
-                                value: tracking.imports.queued,
-                                className: 'bg-slate-400',
-                            },
-                            {
-                                label: 'Failed',
-                                value: tracking.imports.failed,
-                                className: 'bg-rose-500',
-                            },
-                        ]}
-                    />
-                )}
-            </div>
+                    'bank_reconciliation.create',
+                ]);
+            } else {
+                allowed = can(module.permission);
+            }
+            if (!allowed) return false;
 
-            {/* Charts + activity */}
-            <div className="mt-2 grid grid-cols-1 gap-2 2xl:grid-cols-3">
-                <Container className="2xl:col-span-2">
-                    <ContainerHeader>
-                        Production Graph
-                        <ContainerHeaderEnd>
-                            <Select
-                                value={selectedTrendKey}
-                                onValueChange={(nextValue) =>
-                                    setSelectedTrendKey(nextValue as MetricKey)
-                                }
-                            >
-                                <SelectTrigger className="w-52">
-                                    <SelectValue placeholder="Select metric" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {metricOptions.map((metric) => (
-                                        <SelectItem
-                                            key={metric.key}
-                                            value={metric.key}
-                                        >
-                                            {metric.label}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </ContainerHeaderEnd>
-                    </ContainerHeader>
-                    <TrendLineChart
-                        data={trend_data}
-                        metricKey={selectedTrendKey}
-                        label={trendMetric?.label ?? 'Metric'}
-                    />
-                </Container>
+            // Category tab check
+            if (selectedCategory !== 'all' && module.category !== selectedCategory) {
+                return false;
+            }
 
-                <Container>
-                    <ContainerHeader>
-                        Recent imports
-                        <Clock3 className="size-4 text-muted-foreground" />
-                    </ContainerHeader>
-                    <div className="max-h-[320px] space-y-2 overflow-y-auto">
-                        {recent_activity.length === 0 && (
-                            <p className="py-8 text-center text-sm text-muted-foreground">
-                                No recent import activity.
-                            </p>
-                        )}
-                        {recent_activity.map((item, index) => (
-                            <div
-                                key={`${item.type}-${index}-${item.at}`}
-                                className="rounded-lg border bg-muted/20 px-3 py-2"
-                            >
-                                <div className="flex items-start justify-between gap-2">
-                                    <p className="line-clamp-2 text-sm font-medium">
-                                        {item.label}
-                                    </p>
-                                    <Badge
-                                        variant="outline"
-                                        className={cn(
-                                            'shrink-0 text-[10px] capitalize',
-                                            item.status === 'done' &&
-                                                'border-emerald-200 bg-emerald-50 text-emerald-800',
-                                            item.status === 'failed' &&
-                                                'border-rose-200 bg-rose-50 text-rose-800',
-                                            (item.status === 'running' ||
-                                                item.status === 'queued') &&
-                                                'border-sky-200 bg-sky-50 text-sky-800',
-                                        )}
-                                    >
-                                        {item.status}
-                                    </Badge>
-                                </div>
-                                <p className="mt-1 text-[11px] text-muted-foreground">
-                                    {formatRelative(item.at)}
-                                </p>
-                                {item.message && (
-                                    <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                                        {item.message}
-                                    </p>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-                </Container>
-            </div>
+            // Search query check
+            if (searchQuery.trim()) {
+                const q = searchQuery.toLowerCase();
+                return (
+                    module.title.toLowerCase().includes(q) ||
+                    module.metric_label.toLowerCase().includes(q) ||
+                    module.detail.toLowerCase().includes(q)
+                );
+            }
 
-            <div className="grid grid-cols-1 2xl:grid-cols-2">
-                <Container>
-                    <ContainerHeader>
-                        Planters Leaderboard
-                        <ContainerHeaderEnd>
-                            <Select
-                                value={selectedLeaderboardKey}
-                                onValueChange={(nextValue) =>
-                                    setSelectedLeaderboardKey(
-                                        nextValue as MetricKey,
-                                    )
-                                }
-                            >
-                                <SelectTrigger className="w-52">
-                                    <SelectValue placeholder="Select metric" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {metricOptions.map((metric) => (
-                                        <SelectItem
-                                            key={metric.key}
-                                            value={metric.key}
-                                        >
-                                            {metric.label}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </ContainerHeaderEnd>
-                    </ContainerHeader>
+            return true;
+        });
+    }, [enrichedModules, can, canAny, selectedCategory, searchQuery]);
 
-                    <div className="mt-4 overflow-hidden rounded-lg border border-border/70">
-                        <div className="grid grid-cols-[80px_1.5fr_1fr_1fr] gap-2 bg-muted/40 px-4 py-3 text-sm font-semibold text-gray-600">
-                            <div>Rank</div>
-                            <div>Planter</div>
-                            <div>Hacienda</div>
-                            <div className="text-right">
-                                {leaderboardMetric?.label ?? 'Metric'}
-                            </div>
+    const attentionCount = module_summaries.filter(
+        (m) => m.status === 'attention' || m.status === 'busy',
+    ).length;
+
+    return (
+        <AppLayout breadcrumbs={breadcrumbs}>
+            <Head title="Operations Dashboard" />
+
+            {/* Page Container wrapper with Tarsi Page Background (#F5F4F1) */}
+            <div className="space-y-6 pb-12 font-sans text-[#1B1B18]">
+                {/* 1. Header & Crop Year Control Bar */}
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between rounded-[18px] border border-[#E7E6E2] bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+                    <div>
+                        <div className="flex items-center gap-2.5">
+                            <span className="flex size-9 items-center justify-center rounded-[10px] bg-[#E7F0E5] text-[#1F4B32]">
+                                <Sparkles className="size-5" />
+                            </span>
+                            <h1 className="text-2xl font-bold text-[#1B1B18] tracking-tight">
+                                Operations & Financial Dashboard
+                            </h1>
                         </div>
-                        <div className="divide-y divide-border/70">
-                            {topPlanters.map((row, index) => (
-                                <div
-                                    key={row.planter_id}
-                                    className="grid grid-cols-[80px_1.5fr_1fr_1fr] gap-2 px-4 py-3 text-sm"
-                                >
-                                    <div className="font-semibold text-gray-800">
-                                        #{index + 1}
-                                    </div>
-                                    <div className="font-medium text-gray-900">
-                                        {row.planter_name || 'Unknown'}
-                                    </div>
-                                    <div className="text-gray-600">
-                                        {row.hacienda_name || 'Unassigned'}
-                                    </div>
-                                    <div className="text-right font-semibold text-gray-900">
-                                        {formatCompact(
-                                            Number(
-                                                row[selectedLeaderboardKey] ??
-                                                    0,
-                                            ),
-                                            metricOptions.find(
-                                                (metric) =>
-                                                    metric.key ===
-                                                    selectedLeaderboardKey,
-                                            )?.decimals ?? 2,
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
-                            {topPlanters.length === 0 && (
-                                <div className="px-4 py-6 text-center text-sm text-gray-500">
-                                    No planter data for this crop year.
-                                </div>
+                        <p className="mt-1 text-sm text-[#6E6E68]">
+                            Central management hub for sugarcane production, milling periods, payroll, and reconciliation.
+                            {attentionCount > 0 && (
+                                <span className="ml-2 font-semibold text-[#C97A2B]">
+                                    · {attentionCount} area{attentionCount === 1 ? '' : 's'} require attention
+                                </span>
                             )}
-                        </div>
+                        </p>
                     </div>
-                </Container>
 
-                <Container>
-                    <ContainerHeader>
-                        Milling Period Calendar
+                    <div className="flex flex-wrap items-center gap-3">
+                        {/* Crop Year Selector */}
+                        <div className="flex items-center gap-2 rounded-xl border border-[#E7E6E2] bg-[#F2F1EE] px-3 py-1.5">
+                            <span className="text-xs font-semibold text-[#6E6E68]">Crop Year</span>
+                            <Select
+                                value={selectedCropYear ?? ''}
+                                onValueChange={applyCropYear}
+                            >
+                                <SelectTrigger className="w-36 border-none bg-white font-bold text-[#1B1B18] shadow-xs focus:ring-0">
+                                    <SelectValue placeholder="Select year" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-white">
+                                    {crop_years.length === 0 ? (
+                                        <SelectItem value="__no_crop_years__" disabled>
+                                            No crop years
+                                        </SelectItem>
+                                    ) : (
+                                        crop_years.map((cy) => (
+                                            <SelectItem key={cy} value={cy}>
+                                                {cy}
+                                            </SelectItem>
+                                        ))
+                                    )}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* Action Buttons */}
                         {can('milling_periods.create') && (
                             <Button
-                                onClick={() =>
-                                    router.get(millingPeriodCreate().url)
-                                }
+                                onClick={() => router.get(millingPeriodCreate().url)}
+                                className="bg-[#1F4B32] hover:bg-[#153423] text-white font-semibold shadow-xs transition-colors rounded-xl"
                             >
-                                <Plus />
-                                Add Week
+                                <Plus className="mr-1.5 size-4" />
+                                Add Milling Week
                             </Button>
                         )}
-                    </ContainerHeader>
-                    <MillingPeriodsCalendar events={calendarEvents} />
-                </Container>
+                    </div>
+                </div>
+
+                {/* 2. Primary KPI Cards Grid (Hero Cards) */}
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    {/* Card 1: Gross & Net CW */}
+                    <div className="flex flex-col justify-between rounded-[18px] border border-[#E7E6E2] bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-all hover:border-[#1F4B32]/40">
+                        <div className="flex items-start justify-between gap-2">
+                            <div>
+                                <span className="text-[11px] font-semibold text-[#6E6E68] uppercase tracking-wider">
+                                    Total Cane Weight
+                                </span>
+                                <h3 className="mt-1 text-2xl font-extrabold text-[#1B1B18] tracking-tight">
+                                    {formatCompact(Number(kpi.gross_cw), 2)} <span className="text-xs font-normal text-[#6E6E68]">tons</span>
+                                </h3>
+                            </div>
+                            <div className="flex size-10 items-center justify-center rounded-[10px] bg-[#E7F0E5] text-[#1F4B32]">
+                                <BookOpen className="size-5" />
+                            </div>
+                        </div>
+
+                        <div className="mt-4 flex items-center justify-between rounded-[12px] bg-[#F2F1EE] p-3 text-xs">
+                            <span className="text-[#6E6E68]">Net CW:</span>
+                            <span className="font-bold text-[#1B1B18]">
+                                {formatCompact(Number(kpi.net_cw), 2)} tons
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Card 2: Sugar Production (LKG) */}
+                    <div className="flex flex-col justify-between rounded-[18px] border border-[#E7E6E2] bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-all hover:border-[#1F4B32]/40">
+                        <div className="flex items-start justify-between gap-2">
+                            <div>
+                                <span className="text-[11px] font-semibold text-[#6E6E68] uppercase tracking-wider">
+                                    Actual LKG Yield
+                                </span>
+                                <h3 className="mt-1 text-2xl font-extrabold text-[#1B1B18] tracking-tight">
+                                    {formatCompact(Number(kpi.actual_lkg), 2)} <span className="text-xs font-normal text-[#6E6E68]">LKG</span>
+                                </h3>
+                            </div>
+                            <div className="flex size-10 items-center justify-center rounded-[10px] bg-[#E7F0E5] text-[#1F4B32]">
+                                <Scale className="size-5" />
+                            </div>
+                        </div>
+
+                        <div className="mt-4 flex items-center justify-between rounded-[12px] bg-[#F2F1EE] p-3 text-xs">
+                            <span className="text-[#6E6E68]">Pshr Net LKG:</span>
+                            <span className="font-bold text-[#1B1B18]">
+                                {formatCompact(Number(kpi.pshr_net_lkg), 2)} LKG
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Card 3: Molasses Production (Mol) */}
+                    <div className="flex flex-col justify-between rounded-[18px] border border-[#E7E6E2] bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-all hover:border-[#1F4B32]/40">
+                        <div className="flex items-start justify-between gap-2">
+                            <div>
+                                <span className="text-[11px] font-semibold text-[#6E6E68] uppercase tracking-wider">
+                                    Molasses Production
+                                </span>
+                                <h3 className="mt-1 text-2xl font-extrabold text-[#1B1B18] tracking-tight">
+                                    {formatCompact(Number(kpi.actual_mol), 2)} <span className="text-xs font-normal text-[#6E6E68]">Mol</span>
+                                </h3>
+                            </div>
+                            <div className="flex size-10 items-center justify-center rounded-[10px] bg-[#E7F0E5] text-[#1F4B32]">
+                                <Droplets className="size-5" />
+                            </div>
+                        </div>
+
+                        <div className="mt-4 flex items-center justify-between rounded-[12px] bg-[#F2F1EE] p-3 text-xs">
+                            <span className="text-[#6E6E68]">Pshr Net Mol:</span>
+                            <span className="font-bold text-[#1B1B18]">
+                                {formatCompact(Number(kpi.pshr_net_mol), 2)} Mol
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Card 4: Entities & Trucks */}
+                    <div className="flex flex-col justify-between rounded-[18px] border border-[#E7E6E2] bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-all hover:border-[#1F4B32]/40">
+                        <div className="flex items-start justify-between gap-2">
+                            <div>
+                                <span className="text-[11px] font-semibold text-[#6E6E68] uppercase tracking-wider">
+                                    Registered Planters
+                                </span>
+                                <h3 className="mt-1 text-2xl font-extrabold text-[#1B1B18] tracking-tight">
+                                    {formatCompact(entity_counts.planters, 0)} <span className="text-xs font-normal text-[#6E6E68]">planters</span>
+                                </h3>
+                            </div>
+                            <div className="flex size-10 items-center justify-center rounded-[10px] bg-[#E7F0E5] text-[#1F4B32]">
+                                <User className="size-5" />
+                            </div>
+                        </div>
+
+                        <div className="mt-4 flex items-center justify-between rounded-[12px] bg-[#F2F1EE] p-3 text-xs">
+                            <span className="text-[#6E6E68]">Haciendas / Trucks:</span>
+                            <span className="font-bold text-[#1B1B18]">
+                                {formatCompact(entity_counts.haciendas, 0)} / {formatCompact(Number(kpi.trucks), 0)}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* 3. Section: Financial & Workflow Pulse (Signature Dashed Arc Gauges) */}
+                <div>
+                    <div className="mb-3">
+                        <h2 className="text-lg font-bold text-[#1B1B18] tracking-tight">
+                            Workflow & Financial Pulse
+                        </h2>
+                        <p className="text-xs text-[#6E6E68]">
+                            Signature discrete radial gauges tracking live operational completion
+                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        {/* Gauge 1: Production Completion */}
+                        <DashedArcGauge
+                            title="Production Status"
+                            subtitle="Caneweigh tickets completion"
+                            value={tracking.productions.percent_complete}
+                            displayValue={`${tracking.productions.percent_complete}%`}
+                            statusLabel={
+                                tracking.productions.draft > 0
+                                    ? `${tracking.productions.draft} Draft`
+                                    : 'All Complete'
+                            }
+                            statusType={
+                                tracking.productions.draft > 0
+                                    ? 'warning'
+                                    : 'positive'
+                            }
+                            minLabel="0%"
+                            maxLabel="100%"
+                        />
+
+                        {/* Gauge 2: Payroll Processing */}
+                        <DashedArcGauge
+                            title="Payroll Disbursement"
+                            subtitle="Paid salary records vs pending"
+                            value={tracking.payroll.percent_paid}
+                            displayValue={`${tracking.payroll.percent_paid}%`}
+                            statusLabel={
+                                tracking.payroll.pending > 0
+                                    ? `${tracking.payroll.pending} Pending`
+                                    : 'Fully Paid'
+                            }
+                            statusType={
+                                tracking.payroll.pending > 0
+                                    ? 'warning'
+                                    : 'positive'
+                            }
+                            minLabel="0%"
+                            maxLabel="100%"
+                        />
+
+                        {/* Gauge 3: Bank Reconciliation Match Rate */}
+                        <DashedArcGauge
+                            title="Bank Recon Match"
+                            subtitle="Matched statement & disbursement rows"
+                            value={tracking.bank_reconciliation.match_rate}
+                            displayValue={`${tracking.bank_reconciliation.match_rate}%`}
+                            statusLabel={
+                                tracking.bank_reconciliation.outstanding > 0
+                                    ? `${tracking.bank_reconciliation.outstanding} Unmatched`
+                                    : 'Balanced'
+                            }
+                            statusType={
+                                tracking.bank_reconciliation.outstanding > 0
+                                    ? 'warning'
+                                    : 'positive'
+                            }
+                            minLabel="0%"
+                            maxLabel="100%"
+                        />
+
+                        {/* Gauge 4: Import Queue Health */}
+                        <DashedArcGauge
+                            title="Import Data Health"
+                            subtitle="PDF & Excel ingestion jobs"
+                            value={
+                                tracking.imports.done + tracking.imports.failed > 0
+                                    ? Math.round(
+                                          (tracking.imports.done /
+                                              (tracking.imports.done +
+                                                  tracking.imports.failed +
+                                                  tracking.imports.running +
+                                                  tracking.imports.queued)) *
+                                              100,
+                                      )
+                                    : 100
+                            }
+                            displayValue={`${tracking.imports.done} Done`}
+                            statusLabel={
+                                tracking.imports.failed > 0
+                                    ? `${tracking.imports.failed} Failed`
+                                    : 'Queue Healthy'
+                            }
+                            statusType={
+                                tracking.imports.failed > 0
+                                    ? 'negative'
+                                    : 'positive'
+                            }
+                            minLabel="0"
+                            maxLabel="Jobs"
+                        />
+                    </div>
+                </div>
+
+                {/* 4. Section: System Page & Module Directory (Quick Access Cards) */}
+                <div className="rounded-[18px] border border-[#E7E6E2] bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between border-b border-[#E7E6E2] pb-4 mb-6">
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <LayoutGrid className="size-5 text-[#1F4B32]" />
+                                <h2 className="text-lg font-bold text-[#1B1B18] tracking-tight">
+                                    System Page Directory
+                                </h2>
+                            </div>
+                            <p className="text-xs text-[#6E6E68] mt-0.5">
+                                Description and live status of every page in the application. Click any card to navigate directly.
+                            </p>
+                        </div>
+
+                        {/* Search and Category Filter Controls */}
+                        <div className="flex flex-wrap items-center gap-3">
+                            {/* Search box */}
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#A5A49E]" />
+                                <input
+                                    type="text"
+                                    placeholder="Search modules..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-48 rounded-xl border border-[#E7E6E2] bg-[#F2F1EE] pl-9 pr-3 py-1.5 text-xs text-[#1B1B18] placeholder-[#A5A49E] focus:border-[#1F4B32] focus:bg-white focus:outline-none"
+                                />
+                            </div>
+
+                            {/* Category Filter Tabs */}
+                            <div className="flex items-center rounded-xl bg-[#F2F1EE] p-1 border border-[#E7E6E2]">
+                                <button
+                                    onClick={() => setSelectedCategory('all')}
+                                    className={cn(
+                                        'rounded-lg px-3 py-1 text-xs font-semibold transition-all',
+                                        selectedCategory === 'all'
+                                            ? 'bg-white text-[#1F4B32] shadow-xs'
+                                            : 'text-[#6E6E68] hover:text-[#1B1B18]',
+                                    )}
+                                >
+                                    All
+                                </button>
+                                <button
+                                    onClick={() => setSelectedCategory('operations')}
+                                    className={cn(
+                                        'rounded-lg px-3 py-1 text-xs font-semibold transition-all',
+                                        selectedCategory === 'operations'
+                                            ? 'bg-white text-[#1F4B32] shadow-xs'
+                                            : 'text-[#6E6E68] hover:text-[#1B1B18]',
+                                    )}
+                                >
+                                    Operations
+                                </button>
+                                <button
+                                    onClick={() => setSelectedCategory('finance')}
+                                    className={cn(
+                                        'rounded-lg px-3 py-1 text-xs font-semibold transition-all',
+                                        selectedCategory === 'finance'
+                                            ? 'bg-white text-[#1F4B32] shadow-xs'
+                                            : 'text-[#6E6E68] hover:text-[#1B1B18]',
+                                    )}
+                                >
+                                    Finance
+                                </button>
+                                <button
+                                    onClick={() => setSelectedCategory('hr')}
+                                    className={cn(
+                                        'rounded-lg px-3 py-1 text-xs font-semibold transition-all',
+                                        selectedCategory === 'hr'
+                                            ? 'bg-white text-[#1F4B32] shadow-xs'
+                                            : 'text-[#6E6E68] hover:text-[#1B1B18]',
+                                    )}
+                                >
+                                    HR & Admin
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Directory Cards Grid */}
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                        {visibleModules.map((module) => {
+                            const Icon = moduleIcons[module.key] ?? LayoutGrid;
+                            return (
+                                <TarsiModuleCard
+                                    key={module.key}
+                                    module={module}
+                                    icon={Icon}
+                                />
+                            );
+                        })}
+
+                        {visibleModules.length === 0 && (
+                            <div className="col-span-full rounded-[18px] border border-dashed border-[#E7E6E2] p-12 text-center text-sm text-[#6E6E68]">
+                                No system modules match your selected category or search filter.
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* 5. Section: Analytics & Interactive Visualizations */}
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+                    {/* Left 7 cols: Production Trend SVG Graph */}
+                    <div className="lg:col-span-7">
+                        <TarsiTrendChart
+                            data={trend_data}
+                            metricKey={trendMetricKey}
+                            metricLabel={
+                                trendMetricKey.replace('_', ' ').toUpperCase()
+                            }
+                            onMetricChange={setTrendMetricKey}
+                        />
+                    </div>
+
+                    {/* Right 5 cols: Planters Leaderboard */}
+                    <div className="lg:col-span-5">
+                        <TarsiLeaderboard
+                            leaderboard={leaderboard}
+                            selectedCropYear={selectedCropYear}
+                        />
+                    </div>
+                </div>
+
+                {/* 6. Section: Calendar & Recent Activity Feed */}
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+                    {/* Left 7 cols: Milling Schedule Calendar */}
+                    <div className="lg:col-span-7 rounded-[18px] border border-[#E7E6E2] bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+                        <div className="flex items-center justify-between border-b border-[#E7E6E2] pb-4 mb-4">
+                            <div>
+                                <h3 className="text-[17px] font-semibold text-[#1B1B18] leading-tight">
+                                    Milling Periods Calendar
+                                </h3>
+                                <p className="text-xs text-[#6E6E68]">
+                                    Weekly milling schedules, sugar factors, and molasses prices
+                                </p>
+                            </div>
+                            {can('milling_periods.create') && (
+                                <Button
+                                    size="sm"
+                                    onClick={() => router.get(millingPeriodCreate().url)}
+                                    className="bg-[#1F4B32] hover:bg-[#153423] text-white rounded-lg text-xs"
+                                >
+                                    <Plus className="mr-1 size-3.5" /> Add Week
+                                </Button>
+                            )}
+                        </div>
+                        <MillingPeriodsCalendar events={calendarEvents} />
+                    </div>
+
+                    {/* Right 5 cols: Recent Import Activity */}
+                    <div className="lg:col-span-5 rounded-[18px] border border-[#E7E6E2] bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex flex-col justify-between">
+                        <div>
+                            <div className="flex items-center justify-between border-b border-[#E7E6E2] pb-4 mb-4">
+                                <div className="flex items-center gap-2">
+                                    <Clock3 className="size-4 text-[#1F4B32]" />
+                                    <h3 className="text-[17px] font-semibold text-[#1B1B18]">
+                                        Recent Import Activity
+                                    </h3>
+                                </div>
+                                <span className="text-xs text-[#6E6E68]">
+                                    Live Ingestion Log
+                                </span>
+                            </div>
+
+                            <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1">
+                                {recent_activity.length === 0 && (
+                                    <p className="py-12 text-center text-xs text-[#6E6E68]">
+                                        No recent file import background activity recorded.
+                                    </p>
+                                )}
+                                {recent_activity.map((item, index) => (
+                                    <div
+                                        key={`${item.type}-${index}-${item.at}`}
+                                        className="rounded-[12px] border border-[#E7E6E2] bg-[#F2F1EE]/60 p-3 text-xs transition-colors hover:bg-white"
+                                    >
+                                        <div className="flex items-start justify-between gap-2">
+                                            <p className="font-semibold text-[#1B1B18] line-clamp-1">
+                                                {item.label}
+                                            </p>
+                                            <TarsiStatusBadge
+                                                label={item.status}
+                                                type={
+                                                    item.status === 'done'
+                                                        ? 'positive'
+                                                        : item.status === 'failed'
+                                                          ? 'negative'
+                                                          : 'warning'
+                                                }
+                                            />
+                                        </div>
+                                        <p className="mt-1 text-[11px] text-[#6E6E68]">
+                                            {formatRelative(item.at)}
+                                        </p>
+                                        {item.message && (
+                                            <p className="mt-1 text-[11px] text-[#6E6E68] line-clamp-2 italic">
+                                                {item.message}
+                                            </p>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="mt-4 border-t border-[#E7E6E2] pt-3 text-center text-xs text-[#6E6E68]">
+                            Automated background ingestion runs continuously.
+                        </div>
+                    </div>
+                </div>
             </div>
         </AppLayout>
     );
 }
-
-function ProgressPanel({
-    title,
-    href,
-    percent,
-    footer,
-    segments,
-}: {
-    title: string;
-    href: string;
-    percent: number;
-    footer: string;
-    segments: { label: string; value: number; className: string }[];
-}) {
-    const total = segments.reduce((sum, s) => sum + s.value, 0);
-
-    return (
-        <div className="rounded-xl border bg-card p-4 shadow-sm">
-            <div className="flex items-start justify-between gap-2">
-                <div>
-                    <p className="text-sm font-medium text-muted-foreground">
-                        {title}
-                    </p>
-                    <p className="mt-1 text-3xl font-bold tracking-tight">
-                        {Math.round(percent)}%
-                    </p>
-                </div>
-                <Button variant="ghost" size="sm" asChild>
-                    <Link href={href}>
-                        View
-                        <ArrowRight className="size-3.5" />
-                    </Link>
-                </Button>
-            </div>
-            <Progress
-                value={Math.min(100, Math.max(0, percent))}
-                className="mt-3 h-2"
-            />
-            {total > 0 && (
-                <div className="mt-3 flex h-2 overflow-hidden rounded-full bg-muted">
-                    {segments.map((segment) =>
-                        segment.value > 0 ? (
-                            <div
-                                key={segment.label}
-                                className={cn('h-full', segment.className)}
-                                style={{
-                                    width: `${(segment.value / total) * 100}%`,
-                                }}
-                                title={`${segment.label}: ${segment.value}`}
-                            />
-                        ) : null,
-                    )}
-                </div>
-            )}
-            <p className="mt-2 text-xs text-muted-foreground">{footer}</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-                {segments.map((segment) => (
-                    <span
-                        key={segment.label}
-                        className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground"
-                    >
-                        <span
-                            className={cn(
-                                'inline-block size-2 rounded-full',
-                                segment.className,
-                            )}
-                        />
-                        {segment.label} ({segment.value})
-                    </span>
-                ))}
-            </div>
-        </div>
-    );
-}
-
-type TrendLineChartProps = {
-    data: Array<{
-        crop_year: string;
-        gross_cw: number;
-        net_cw: number;
-        trucks: number;
-        actual_lkg: number;
-        pshr_net_lkg: number;
-        actual_mol: number;
-        pshr_net_mol: number;
-    }>;
-    metricKey: MetricKey;
-    label: string;
-};
-
-const TrendLineChart = ({ data, metricKey, label }: TrendLineChartProps) => {
-    const values = data.map((item) => Number(item[metricKey] ?? 0));
-    const maxValue = Math.max(...values, 0);
-    const minValue = Math.min(...values, 0);
-    const range = maxValue - minValue || 1;
-    const width = 720;
-    const height = 260;
-    const padding = { top: 24, right: 24, bottom: 48, left: 56 };
-
-    if (data.length === 0) {
-        return (
-            <div className="rounded-lg border border-border/70 bg-muted/30 p-8 text-center text-sm text-gray-500">
-                No trend data available.
-            </div>
-        );
-    }
-
-    const points = values.map((value, index) => {
-        const x =
-            padding.left +
-            (index / Math.max(values.length - 1, 1)) *
-                (width - padding.left - padding.right);
-        const y =
-            padding.top +
-            (1 - (value - minValue) / range) *
-                (height - padding.top - padding.bottom);
-        return { x, y };
-    });
-
-    const path = points
-        .map(
-            (point, index) =>
-                `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`,
-        )
-        .join(' ');
-
-    const areaPath = `${path} L ${width - padding.right} ${height - padding.bottom} L ${padding.left} ${height - padding.bottom} Z`;
-    const gridLines = 4;
-
-    return (
-        <div className="rounded-lg border border-border/70 bg-white p-4 shadow-sm">
-            <div className="mb-3 text-sm font-semibold text-gray-700">
-                {label} by Crop Year
-            </div>
-            <svg viewBox={`0 0 ${width} ${height}`} className="w-full">
-                <defs>
-                    <linearGradient
-                        id="trendFill"
-                        x1="0%"
-                        y1="0%"
-                        x2="0%"
-                        y2="100%"
-                    >
-                        <stop
-                            offset="0%"
-                            stopColor="#6FA8DC"
-                            stopOpacity="0.25"
-                        />
-                        <stop
-                            offset="100%"
-                            stopColor="#6FA8DC"
-                            stopOpacity="0"
-                        />
-                    </linearGradient>
-                </defs>
-
-                {[...Array(gridLines + 1)].map((_, index) => {
-                    const y =
-                        padding.top +
-                        (index / gridLines) *
-                            (height - padding.top - padding.bottom);
-                    return (
-                        <line
-                            key={`grid-${index}`}
-                            x1={padding.left}
-                            x2={width - padding.right}
-                            y1={y}
-                            y2={y}
-                            stroke="#E5E7EB"
-                            strokeDasharray="4 4"
-                        />
-                    );
-                })}
-
-                <path d={areaPath} fill="url(#trendFill)" />
-                <path d={path} fill="none" stroke="#2563EB" strokeWidth="2" />
-                {points.map((point, index) => (
-                    <circle
-                        key={`point-${index}`}
-                        cx={point.x}
-                        cy={point.y}
-                        r={4}
-                        fill="#2563EB"
-                    />
-                ))}
-
-                {data.map((item, index) => {
-                    const x = points[index].x;
-                    const y = height - padding.bottom + 18;
-                    return (
-                        <text
-                            key={`label-${item.crop_year}`}
-                            x={x}
-                            y={y}
-                            textAnchor="middle"
-                            fontSize="10"
-                            fill="#6B7280"
-                        >
-                            {item.crop_year}
-                        </text>
-                    );
-                })}
-
-                <text
-                    x={padding.left}
-                    y={padding.top - 8}
-                    fontSize="10"
-                    fill="#6B7280"
-                >
-                    {maxValue.toFixed(0)}
-                </text>
-                <text
-                    x={padding.left}
-                    y={height - padding.bottom + 4}
-                    fontSize="10"
-                    fill="#6B7280"
-                >
-                    {minValue.toFixed(0)}
-                </text>
-            </svg>
-        </div>
-    );
-};

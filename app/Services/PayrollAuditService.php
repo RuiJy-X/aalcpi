@@ -49,16 +49,18 @@ class PayrollAuditService
 
             $reasons = [];
 
-            // Overlapping PAID payroll safeguard
-            $existingPaidPayroll = Payroll::where('employee_id', $employee->id)
-                ->where('status', 'paid')
+            // Overlapping payroll check (Draft or Paid)
+            $existingPayroll = Payroll::where('employee_id', $employee->id)
                 ->whereDate('period_start', '<=', $periodEnd)
                 ->whereDate('period_end', '>=', $periodStart)
                 ->first();
 
-            if ($existingPaidPayroll) {
-                $pStart = Carbon::parse($existingPaidPayroll->period_start)->format('M d');
-                $pEnd = Carbon::parse($existingPaidPayroll->period_end)->format('M d');
+            $isPaid = $existingPayroll && $existingPayroll->status === 'paid';
+            $isDraft = $existingPayroll && $existingPayroll->status === 'draft';
+
+            if ($isPaid) {
+                $pStart = Carbon::parse($existingPayroll->period_start)->format('M d');
+                $pEnd = Carbon::parse($existingPayroll->period_end)->format('M d');
                 $reasons[] = "Already Paid: Finalized payroll exists for {$pStart} - {$pEnd}";
             }
 
@@ -171,9 +173,12 @@ class PayrollAuditService
                 'contact_number'            => $employee->contact_number,
                 'address'                   => $employee->address,
                 'reasons'                   => $reasons,
+                'is_draft'                  => $isDraft,
+                'draft_payroll_id'          => $isDraft ? $existingPayroll->id : null,
+                'is_paid'                   => $isPaid,
             ];
 
-            if ($hasAttendance && $hasDailyRate && !$existingPaidPayroll) {
+            if ($hasAttendance && $hasDailyRate && !$isPaid) {
                 $readyList[] = $employeeItem;
                 $totalBatchGross += $totalEarnings;
                 $totalBatchDeductions += $totalDeductions;

@@ -72,12 +72,12 @@ export const plantersImportConfig = {
         },
         {
             key: 'hacienda_code',
-            label: 'Hacienda Code',
+            label: 'Hacienda / Land Code',
             group: 'Haciendas',
         },
         {
             key: 'hacienda_name',
-            label: 'Hacienda Name',
+            label: 'Hacienda / Land Name',
             group: 'Haciendas',
         },
         {
