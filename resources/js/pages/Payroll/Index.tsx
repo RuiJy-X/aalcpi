@@ -24,23 +24,17 @@ import {
 } from '@/components/ui/select';
 import {
     Plus,
-    Calculator,
     FileText,
     Printer,
     Calendar,
     RotateCcw,
     Filter,
-    HandCoins,
-    History,
 } from 'lucide-react';
 import {
-    bulkUpdate as payrollBulkUpdate,
     show as payrollShow,
     create as payrollCreate,
 } from '@/routes/payroll';
 import { payrollBulkDelete } from '@/components/data-table/bulk-delete';
-import { TableEditToolbar } from '@/components/data-table/table-edit-toolbar';
-import { useTableEditMode } from '@/hooks/use-table-edit-mode';
 import {
     Dialog,
     DialogContent,
@@ -66,10 +60,6 @@ const Index = ({ payrolls }: { payrolls: PayrollType[] }) => {
     const [filterStartDate, setFilterStartDate] = useState<string>('');
     const [filterEndDate, setFilterEndDate] = useState<string>('');
 
-    // Advancements Modals
-    const [isGrantAdvanceOpen, setIsGrantAdvanceOpen] = useState(false);
-    const [isAdvancementLogsOpen, setIsAdvancementLogsOpen] = useState(false);
-
     // Export PDF Modal state
     const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
     const [pdfStatus, setPdfStatus] = useState<string>('all');
@@ -85,19 +75,6 @@ const Index = ({ payrolls }: { payrolls: PayrollType[] }) => {
         const month = String(now.getMonth() + 1).padStart(2, '0');
         const lastDay = new Date(year, now.getMonth() + 1, 0).getDate();
         return `${year}-${month}-${lastDay}`;
-    });
-
-    const {
-        isEditing,
-        isSaving,
-        startEditing,
-        cancelEditing,
-        saveEdits,
-        handleCellChange,
-    } = useTableEditMode({
-        rows: payrolls,
-        fields: ['status'],
-        saveUrl: payrollBulkUpdate().url,
     });
 
     // Counts for status tabs
@@ -140,12 +117,8 @@ const Index = ({ payrolls }: { payrolls: PayrollType[] }) => {
     }, [payrolls, activeTab, filterStartDate, filterEndDate]);
 
     const payrollColumns = useMemo(
-        () =>
-            createPayrollColumns({
-                isEditing,
-                onCellChange: handleCellChange,
-            }),
-        [isEditing, handleCellChange],
+        () => createPayrollColumns(),
+        [],
     );
 
     const handleClearDateFilter = () => {
@@ -164,14 +137,13 @@ const Index = ({ payrolls }: { payrolls: PayrollType[] }) => {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Payroll Summary & Batch Processing" />
+            <Head title="Payroll Summary & Management" />
 
-            <Container>
+            <Container className="space-y-6">
                 <ContainerHeader>
                     <div>
                         <div className="flex items-center gap-2">
-                            <Calculator className="h-6 w-6 text-primary" />
-                            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                            <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
                                 Payroll Summary & Batch Processing
                             </h1>
                         </div>
@@ -182,15 +154,6 @@ const Index = ({ payrolls }: { payrolls: PayrollType[] }) => {
                     </div>
                     <ContainerHeaderEnd>
                         <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:gap-3">
-                            <TableEditToolbar
-                                isEditing={isEditing}
-                                isSaving={isSaving}
-                                disabled={payrolls.length === 0}
-                                onStart={startEditing}
-                                onCancel={cancelEditing}
-                                onSave={saveEdits}
-                            />
-
                             <Button
                                 variant="outline"
                                 onClick={() => setIsPdfModalOpen(true)}
@@ -201,7 +164,6 @@ const Index = ({ payrolls }: { payrolls: PayrollType[] }) => {
                             </Button>
                             <Button
                                 asChild
-                                disabled={isEditing}
                                 className="px-4 text-xs font-bold sm:text-sm"
                             >
                                 <Link href={payrollCreate().url}>
@@ -325,12 +287,8 @@ const Index = ({ payrolls }: { payrolls: PayrollType[] }) => {
                     <DataTable
                         data={filteredPayrolls}
                         columns={payrollColumns}
-                        onRowDoubleClick={
-                            isEditing
-                                ? undefined
-                                : (row) => payrollShow(row.id).url
-                        }
-                        bulkDelete={isEditing ? undefined : payrollBulkDelete}
+                        onRowDoubleClick={(row) => payrollShow(row.id).url}
+                        bulkDelete={payrollBulkDelete}
                     />
                 </div>
             </Container>

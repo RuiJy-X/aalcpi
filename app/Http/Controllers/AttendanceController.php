@@ -69,7 +69,15 @@ class AttendanceController extends Controller
             'overtime_hours' => 'nullable|numeric|min:0|max:24',
         ]);
 
-        $attendance = Attendance::create($validated);
+        $attendance = Attendance::updateOrCreate([
+            'employee_id' => $validated['employee_id'],
+            'date'        => $validated['date'],
+        ], [
+            'status'         => $validated['status'],
+            'hours_worked'   => $validated['hours_worked'],
+            'working_time'   => $validated['hours_worked'],
+            'overtime_hours' => $validated['overtime_hours'] ?? 0,
+        ]);
 
         return response()->json([
             'message' => 'Attendance recorded successfully!',

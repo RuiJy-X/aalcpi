@@ -28,6 +28,11 @@ import {
     type ImportTarget,
 } from './import-config';
 import { ImportSummaryModal, type ImportSummaryData } from './import-summary-modal';
+import {
+    registerJobPoll,
+    markJobModalShown,
+    unregisterJobPoll,
+} from '@/lib/import-poll-tracker';
 
 type MappingPreviewResponse = {
     headers: string[];
@@ -246,6 +251,10 @@ export function ImportDialog({ config }: { config: ImportConfig }) {
     const [isSummaryOpen, setIsSummaryOpen] = useState(false);
 
     const pollSummary = (jobId: number) => {
+        if (!registerJobPoll(jobId)) {
+            return;
+        }
+
         let attempts = 0;
         const maxAttempts = 60;
 
@@ -259,16 +268,19 @@ export function ImportDialog({ config }: { config: ImportConfig }) {
                     const data: ImportSummaryData = await res.json();
                     if (data.status === 'done' || data.status === 'failed') {
                         clearInterval(interval);
+                        markJobModalShown(jobId);
                         setSummaryData(data);
                         setIsSummaryOpen(true);
                     }
                 }
             } catch (err) {
                 console.error(err);
+                unregisterJobPoll(jobId);
             }
 
             if (attempts >= maxAttempts) {
                 clearInterval(interval);
+                unregisterJobPoll(jobId);
             }
         }, 1000);
     };

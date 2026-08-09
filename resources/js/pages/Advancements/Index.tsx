@@ -131,6 +131,19 @@ export default function AdvancementsIndexPage({
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [isGrantModalOpen, setIsGrantModalOpen] = useState(false);
 
+    // Tab Counts
+    const tabCounts = useMemo(() => {
+        return {
+            all: advancements.length,
+            pending: advancements.filter((i) => i.status === 'pending_payout').length,
+            repaying: advancements.filter((i) =>
+                ['paid_out', 'partially_deducted'].includes(i.status),
+            ).length,
+            repaid: advancements.filter((i) => i.status === 'deducted').length,
+            cancelled: advancements.filter((i) => i.status === 'cancelled').length,
+        };
+    }, [advancements]);
+
     // Dynamic Filter
     const filteredAdvancements = useMemo(() => {
         return advancements.filter((item) => {
@@ -443,31 +456,61 @@ export default function AdvancementsIndexPage({
                                     value="all"
                                     className="gap-2 text-xs font-semibold sm:text-sm"
                                 >
-                                    All ({advancements.length})
+                                    All
+                                    <Badge
+                                        variant="secondary"
+                                        className="py-0.2 px-1.5 text-xs font-bold"
+                                    >
+                                        {tabCounts.all}
+                                    </Badge>
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="pending"
                                     className="gap-2 text-xs font-semibold sm:text-sm"
                                 >
                                     Pending Payout
+                                    <Badge
+                                        variant="outline"
+                                        className="py-0.2 border-amber-300 bg-amber-50 px-1.5 text-xs text-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
+                                    >
+                                        {tabCounts.pending}
+                                    </Badge>
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="repaying"
                                     className="gap-2 text-xs font-semibold sm:text-sm"
                                 >
                                     Repaying
+                                    <Badge
+                                        variant="outline"
+                                        className="py-0.2 border-blue-300 bg-blue-50 px-1.5 text-xs text-blue-800 dark:bg-blue-950/60 dark:text-blue-300"
+                                    >
+                                        {tabCounts.repaying}
+                                    </Badge>
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="repaid"
                                     className="gap-2 text-xs font-semibold sm:text-sm"
                                 >
                                     Fully Repaid
+                                    <Badge
+                                        variant="outline"
+                                        className="py-0.2 border-emerald-300 bg-emerald-50 px-1.5 text-xs text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
+                                    >
+                                        {tabCounts.repaid}
+                                    </Badge>
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="cancelled"
                                     className="gap-2 text-xs font-semibold sm:text-sm"
                                 >
                                     Cancelled
+                                    <Badge
+                                        variant="outline"
+                                        className="py-0.2 border-slate-300 bg-slate-100 px-1.5 text-xs text-slate-700 dark:bg-slate-900 dark:text-slate-400"
+                                    >
+                                        {tabCounts.cancelled}
+                                    </Badge>
                                 </TabsTrigger>
                             </TabsList>
                         </Tabs>

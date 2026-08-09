@@ -1,7 +1,16 @@
 'use client';
 
-import type { ColumnDef } from '@tanstack/react-table';
-import { ArrowUpDown, Eye, Trash2, Calendar } from 'lucide-react';
+import React, { useState } from 'react';
+import type { ColumnDef, Row } from '@tanstack/react-table';
+import {
+    ArrowUpDown,
+    Eye,
+    Trash2,
+    Calendar,
+    Check,
+    HandCoins,
+    RotateCcw,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
@@ -11,15 +20,10 @@ import {
     destroy as payrollDestroy,
     show as payrollShow,
 } from '@/routes/payroll';
-import {
-    EditableSelectCell,
-    type CellChangeHandler,
-} from '@/components/data-table/editable-cells';
+import { ConfirmPaidModal } from '@/components/ConfirmPaidModal';
+import { ConfirmDeleteModal } from '@/components/ConfirmDeleteModal';
 
-export type PayrollColumnsOptions = {
-    isEditing?: boolean;
-    onCellChange?: CellChangeHandler;
-};
+export type PayrollColumnsOptions = Record<string, never>;
 
 function formatCurrency(
     val?: string | number | null,
@@ -71,11 +75,118 @@ function SortHeader({
     );
 }
 
-export function createPayrollColumns(
-    options: PayrollColumnsOptions = {},
-): ColumnDef<PayrollType>[] {
-    const { isEditing = false, onCellChange } = options;
+function ActionCell({ row }: { row: Row<PayrollType> }) {
+    const payroll = row.original;
+    const status = payroll.status;
+    const [isPaidModalOpen, setIsPaidModalOpen] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
+    const handleStatusChange = (newStatus: 'draft' | 'pending' | 'paid') => {
+        router.patch(
+            `/Payroll/${payroll.id}/status`,
+            { status: newStatus },
+            { preserveScroll: true },
+        );
+    };
+
+    const handleConfirmPaid = () => {
+        setIsPaidModalOpen(false);
+        handleStatusChange('paid');
+    };
+
+    const handleConfirmDelete = () => {
+        setIsDeleteModalOpen(false);
+        router.delete(payrollDestroy(payroll.id).url, {
+            preserveScroll: true,
+        });
+    };
+
+    return (
+        <div
+            className="flex items-center gap-1.5 whitespace-nowrap"
+            data-no-row-open="true"
+        >
+            <Button
+                size="xs"
+                variant="outline"
+                asChild
+                className="h-7 px-2 text-xs"
+            >
+                <Link href={payrollShow(payroll.id).url}>
+                    <Eye className="mr-1 h-3 w-3 text-muted-foreground" />
+                    View
+                </Link>
+            </Button>
+
+            {status === 'draft' && (
+                <>
+                    <Button
+                        size="xs"
+                        className="h-7 bg-blue-600 px-2 text-xs font-semibold text-white shadow-xs hover:bg-blue-700"
+                        onClick={() => handleStatusChange('pending')}
+                    >
+                        <Check className="mr-1 h-3 w-3" />
+                        Approve
+                    </Button>
+                    <Button
+                        size="xs"
+                        variant="destructive"
+                        className="h-7 px-2 text-xs font-semibold shadow-xs"
+                        onClick={() => setIsDeleteModalOpen(true)}
+                    >
+                        <Trash2 className="mr-1 h-3 w-3" />
+                        Delete
+                    </Button>
+                </>
+            )}
+
+            {status === 'pending' && (
+                <>
+                    <Button
+                        size="xs"
+                        className="h-7 bg-emerald-600 px-2 text-xs font-bold text-white shadow-xs hover:bg-emerald-700"
+                        onClick={() => setIsPaidModalOpen(true)}
+                    >
+                        <HandCoins className="mr-1 h-3 w-3" />
+                        Paid
+                    </Button>
+                    <Button
+                        size="xs"
+                        variant="outline"
+                        className="h-7 border-amber-300 px-2 text-xs font-semibold text-amber-700 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-400 dark:hover:bg-amber-950/40"
+                        onClick={() => handleStatusChange('draft')}
+                    >
+                        <RotateCcw className="mr-1 h-3 w-3" />
+                        Cancel
+                    </Button>
+                </>
+            )}
+
+            {status === 'paid' && (
+                <Badge className="border-emerald-300 bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                    Paid & Finalized
+                </Badge>
+            )}
+
+            <ConfirmPaidModal
+                isOpen={isPaidModalOpen}
+                onClose={() => setIsPaidModalOpen(false)}
+                onConfirm={handleConfirmPaid}
+                employeeName={payroll.employee_name}
+                payrollId={payroll.id}
+            />
+
+            <ConfirmDeleteModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                onConfirm={handleConfirmDelete}
+                description={`Are you sure you want to delete the draft payroll record for ${payroll.employee_name || 'this employee'}? Any associated cash advance deductions will be safely reverted.`}
+            />
+        </div>
+    );
+}
+
+export function createPayrollColumns(): ColumnDef<PayrollType>[] {
     return [
         {
             id: 'select',
@@ -104,6 +215,11 @@ export function createPayrollColumns(
             enableHiding: false,
         },
         {
+            id: 'actions',
+            header: 'Actions',
+            cell: ({ row }) => <ActionCell row={row} />,
+        },
+        {
             accessorKey: 'status',
             header: 'Status',
             cell: ({ row }) => {
@@ -116,25 +232,11 @@ export function createPayrollColumns(
                           : 'bg-emerald-100 text-emerald-800 border-emerald-200';
 
                 return (
-                    <EditableSelectCell
-                        rowId={row.original.id}
-                        field="status"
-                        isEditing={isEditing}
-                        value={status}
-                        display={
-                            <span
-                                className={`rounded-full border px-2.5 py-0.5 text-xs font-bold tracking-wider uppercase ${statusClass}`}
-                            >
-                                {status}
-                            </span>
-                        }
-                        options={[
-                            { label: 'Draft', value: 'draft' },
-                            { label: 'Pending', value: 'pending' },
-                            { label: 'Paid', value: 'paid' },
-                        ]}
-                        onCellChange={onCellChange}
-                    />
+                    <span
+                        className={`rounded-full border px-2.5 py-0.5 text-xs font-bold tracking-wider uppercase ${statusClass}`}
+                    >
+                        {status}
+                    </span>
                 );
             },
             filterFn: (row, columnId, filterValue) => {
@@ -153,9 +255,7 @@ export function createPayrollColumns(
 
         {
             accessorKey: 'employee_code',
-            header: ({ column }) => (
-                <SortHeader label="Code" column={column} />
-            ),
+            header: ({ column }) => <SortHeader label="Code" column={column} />,
             cell: ({ row }) => (
                 <div className="font-mono font-semibold text-primary">
                     {row.original.employee_code ||
@@ -251,14 +351,26 @@ export function createPayrollColumns(
             ),
             cell: ({ row }) => {
                 const val = parseFloat(String(row.original.overtime_pay ?? 0));
-                const hrs = parseFloat(String(row.original.overtime_hours ?? 0));
+                const hrs = parseFloat(
+                    String(row.original.overtime_hours ?? 0),
+                );
                 if (!val || val <= 0) {
-                    return <div className="text-right text-muted-foreground/40 font-mono">—</div>;
+                    return (
+                        <div className="text-right font-mono text-muted-foreground/40">
+                            —
+                        </div>
+                    );
                 }
                 return (
                     <div className="text-right text-xs">
-                        <span className="font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(val)}</span>
-                        {hrs > 0 && <span className="block text-[10px] text-muted-foreground font-mono">({hrs} hrs)</span>}
+                        <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                            {formatCurrency(val)}
+                        </span>
+                        {hrs > 0 && (
+                            <span className="block font-mono text-[10px] text-muted-foreground">
+                                ({hrs} hrs)
+                            </span>
+                        )}
                     </div>
                 );
             },
@@ -271,15 +383,30 @@ export function createPayrollColumns(
                 </div>
             ),
             cell: ({ row }) => {
-                const val = parseFloat(String((row.original as any).holiday_pay ?? 0));
-                const holCount = parseInt(String(row.original.holidays ?? 0), 10);
+                const val = parseFloat(
+                    String((row.original as any).holiday_pay ?? 0),
+                );
+                const holCount = parseInt(
+                    String(row.original.holidays ?? 0),
+                    10,
+                );
                 if (!val || val <= 0) {
-                    return <div className="text-right text-muted-foreground/40 font-mono">—</div>;
+                    return (
+                        <div className="text-right font-mono text-muted-foreground/40">
+                            —
+                        </div>
+                    );
                 }
                 return (
                     <div className="text-right text-xs">
-                        <span className="font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(val)}</span>
-                        {holCount > 0 && <span className="block text-[10px] text-muted-foreground font-mono">({holCount} days)</span>}
+                        <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                            {formatCurrency(val)}
+                        </span>
+                        {holCount > 0 && (
+                            <span className="block font-mono text-[10px] text-muted-foreground">
+                                ({holCount} days)
+                            </span>
+                        )}
                     </div>
                 );
             },
@@ -292,9 +419,13 @@ export function createPayrollColumns(
                 </div>
             ),
             cell: ({ row }) => {
-                const val = parseFloat(String(row.original.cash_advance_payout ?? 0));
+                const val = parseFloat(
+                    String(row.original.cash_advance_payout ?? 0),
+                );
                 return (
-                    <div className={`text-right font-bold ${val > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}`}>
+                    <div
+                        className={`text-right font-bold ${val > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}`}
+                    >
                         {formatCurrency(val)}
                     </div>
                 );
@@ -308,24 +439,33 @@ export function createPayrollColumns(
                 </div>
             ),
             cell: ({ row }) => {
-                const val = parseFloat(String(row.original.cash_advance_deduction ?? 0));
+                const val = parseFloat(
+                    String(row.original.cash_advance_deduction ?? 0),
+                );
                 return (
-                    <div className={`text-right font-bold ${val > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-muted-foreground'}`}>
+                    <div
+                        className={`text-right font-bold ${val > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-muted-foreground'}`}
+                    >
                         {formatCurrency(val, true)}
                     </div>
                 );
             },
         },
         {
-            accessorKey: 'sss_loan',
+            accessorKey: 'sss_contribution',
             header: ({ column }) => (
                 <div className="text-right">
-                    <SortHeader label="SSS Loan" column={column} />
+                    <SortHeader label="SSS Contrib" column={column} />
                 </div>
             ),
             cell: ({ row }) => (
                 <div className="text-right font-medium text-rose-600 dark:text-rose-400">
-                    {formatCurrency(row.original.sss_loan, true)}
+                    {formatCurrency(
+                        (row.original as any).sss_contribution ??
+                            (row.original.employee as any)?.sss_contribution ??
+                            0,
+                        true,
+                    )}
                 </div>
             ),
         },
@@ -338,7 +478,30 @@ export function createPayrollColumns(
             ),
             cell: ({ row }) => (
                 <div className="text-right font-medium text-rose-600 dark:text-rose-400">
-                    {formatCurrency((row.original as any).pagibig_contribution ?? 200, true)}
+                    {formatCurrency(
+                        (row.original as any).pagibig_contribution ??
+                            (row.original.employee as any)?.pagibig_contribution ??
+                            0,
+                        true,
+                    )}
+                </div>
+            ),
+        },
+        {
+            accessorKey: 'philhealth_contribution',
+            header: ({ column }) => (
+                <div className="text-right">
+                    <SortHeader label="PhilHealth Contrib" column={column} />
+                </div>
+            ),
+            cell: ({ row }) => (
+                <div className="text-right font-medium text-rose-600 dark:text-rose-400">
+                    {formatCurrency(
+                        (row.original as any).philhealth_contribution ??
+                            (row.original.employee as any)?.philhealth_contribution ??
+                            0,
+                        true,
+                    )}
                 </div>
             ),
         },
@@ -351,7 +514,12 @@ export function createPayrollColumns(
             ),
             cell: ({ row }) => (
                 <div className="text-right font-medium text-rose-600 dark:text-rose-400">
-                    {formatCurrency(row.original.emergency_loan, true)}
+                    {formatCurrency(
+                        row.original.emergency_loan ??
+                            (row.original.employee as any)?.emergency_loan ??
+                            0,
+                        true,
+                    )}
                 </div>
             ),
         },
@@ -364,7 +532,12 @@ export function createPayrollColumns(
             ),
             cell: ({ row }) => (
                 <div className="text-right font-medium text-rose-600 dark:text-rose-400">
-                    {formatCurrency((row.original as any).withholding_tax ?? 0, true)}
+                    {formatCurrency(
+                        (row.original as any).withholding_tax ??
+                            (row.original.employee as any)?.withholding_tax ??
+                            0,
+                        true,
+                    )}
                 </div>
             ),
         },
@@ -391,44 +564,6 @@ export function createPayrollColumns(
             cell: ({ row }) => (
                 <div className="text-right text-sm font-extrabold text-emerald-700 dark:text-emerald-300">
                     {formatCurrency(row.original.net_pay)}
-                </div>
-            ),
-        },
-
-        {
-            id: 'actions',
-            header: 'Actions',
-            cell: ({ row }) => (
-                <div
-                    className="flex items-center justify-end gap-1.5"
-                    data-no-row-open="true"
-                >
-                    <Button size="xs" variant="outline" asChild>
-                        <Link href={payrollShow(row.original.id).url}>
-                            <Eye className="mr-1 h-3 w-3" />
-                            View
-                        </Link>
-                    </Button>
-                    <Button
-                        size="xs"
-                        variant="ghost"
-                        className="font-semibold text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:hover:bg-rose-950/40"
-                        onClick={() => {
-                            const confirmed = window.confirm(
-                                'Are you sure you want to delete this payroll record? Any associated cash advance deductions will be safely reverted.',
-                            );
-                            if (!confirmed) {
-                                return;
-                            }
-                            router.delete(payrollDestroy(row.original.id).url, {
-                                preserveScroll: true,
-                            });
-                        }}
-                        aria-label="Delete payroll"
-                    >
-                        <Trash2 className="mr-1 h-3.5 w-3.5" />
-                        Delete
-                    </Button>
                 </div>
             ),
         },

@@ -405,6 +405,12 @@ class PlanterController extends Controller
             'user_id' => $request->user()?->id,
             'type' => 'planters_excel',
             'status' => ImportJob::STATUS_QUEUED,
+            'file_name' => $validated['file']->getClientOriginalName(),
+            'context' => [
+                'file_path' => $storedPath,
+                'file_name' => $validated['file']->getClientOriginalName(),
+                'mapping_name' => $mapping->name ?? null,
+            ],
         ]);
 
         ProcessExcelImportJob::dispatch(

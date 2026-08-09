@@ -22,9 +22,11 @@ export type PayrollType = {
     gross_pay: string | number;
     cash_advance_payout?: string | number | null;
     cash_advance_deduction?: string | number | null;
-    sss_loan?: string | number | null;
-    pagibig_loan?: string | number | null;
+    sss_contribution?: string | number | null;
+    pagibig_contribution?: string | number | null;
+    philhealth_contribution?: string | number | null;
     emergency_loan?: string | number | null;
+    withholding_tax?: string | number | null;
     deductions: string | number;
     net_pay: string | number;
     status: string;
@@ -41,6 +43,11 @@ export type PayrollEmployeeSummary = {
     daily_rate?: string | number | null;
     base_salary?: string | number | null;
     cash_advance_balance?: string | number | null;
+    sss_contribution?: string | number | null;
+    pagibig_contribution?: string | number | null;
+    philhealth_contribution?: string | number | null;
+    emergency_loan?: string | number | null;
+    withholding_tax?: string | number | null;
     attendances?: AttendanceType[];
 };
 

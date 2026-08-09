@@ -15,7 +15,7 @@ export interface ImportExtraField {
     key: string;
     label: string;
     placeholder?: string;
-    type?: 'text' | 'number';
+    type?: 'text' | 'number' | string;
     step?: string;
 }
 
@@ -45,10 +45,10 @@ export const bankReconBankTargets: ImportTarget[] = [
     { key: 'currency', label: 'Currency', group: 'Bank Statement' },
 ];
 
-export const plantersImportConfig = {
+export const plantersImportConfig: ImportConfig = {
     route: planters.import.url(),
     label: 'Planter Data',
-    mappingType: 'planters' as const,
+    mappingType: 'planters',
     mappingTargets: [
         {
             key: 'planter_code',
@@ -94,11 +94,11 @@ export const plantersImportConfig = {
     ],
 };
 
-export const productionsImportConfig = {
+export const productionsImportConfig: ImportConfig = {
     route: productions.import.url(),
     label: 'Import Productions Data',
     requireCropYear: true,
-    mappingType: 'productions' as const,
+    mappingType: 'productions',
     extraFields: [
         {
             key: 'composite_sugar_price',

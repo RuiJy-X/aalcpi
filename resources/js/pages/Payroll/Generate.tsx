@@ -37,12 +37,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DataTable } from '@/components/data-table/data-table';
 import type { ColumnDef } from '@tanstack/react-table';
 import { ArrowUpDown } from 'lucide-react';
+import { ConfirmProcessModal } from '@/components/ConfirmProcessModal';
 import {
     Dialog,
     DialogContent,
+    DialogFooter,
     DialogHeader,
     DialogTitle,
-    DialogFooter,
 } from '@/components/ui/dialog';
 
 interface AuditedEmployee {
@@ -64,9 +65,10 @@ interface AuditedEmployee {
     cash_advance_payout?: number;
     cash_advance_deduction?: number;
     total_earnings: number;
-    sss_loan: number;
-    emergency_loan: number;
+    sss_contribution: number;
     pagibig_contribution: number;
+    philhealth_contribution: number;
+    emergency_loan: number;
     withholding_tax: number;
     total_deductions: number;
     net_amount: number;
@@ -121,11 +123,18 @@ export default function GenerateBatchPage({
     const [processingEmployeeId, setProcessingEmployeeId] = useState<
         number | null
     >(null);
-    const [successNotification, setSuccessNotification] = useState<string | null>(null);
+    const [successNotification, setSuccessNotification] = useState<
+        string | null
+    >(null);
+    const [errorNotification, setErrorNotification] = useState<string | null>(
+        null,
+    );
 
-    // Advancements Modal state
-    const [isGrantAdvanceOpen, setIsGrantAdvanceOpen] = useState(false);
-    const [isAdvancementLogsOpen, setIsAdvancementLogsOpen] = useState(false);
+    // Confirm Process Modals state
+    const [confirmSingleEmp, setConfirmSingleEmp] =
+        useState<AuditedEmployee | null>(null);
+    const [isBatchProcessModalOpen, setIsBatchProcessModalOpen] =
+        useState(false);
 
     // Derived counts with bulletproof fallbacks
     const readyCount =
@@ -140,18 +149,10 @@ export default function GenerateBatchPage({
         0;
 
     // Process Single Employee Payroll as Draft
-    const handleProcessSingle = async (emp: AuditedEmployee) => {
-        const isDraft = (emp as any).is_draft;
-        const confirmMsg = isDraft
-            ? `Re-process draft payroll for ${emp.name} (${emp.employee_code})?`
-            : `Are you sure you want to process draft payroll for ${emp.name} (${emp.employee_code})?`;
-
-        if (!confirm(confirmMsg)) {
-            return;
-        }
-
+    const executeProcessSingle = async (emp: AuditedEmployee) => {
         setProcessingEmployeeId(emp.employee_id);
         setSuccessNotification(null);
+        setErrorNotification(null);
         try {
             const res = await axios.post('/Payroll/process-batch', {
                 period_start: periodStart,
@@ -164,16 +165,22 @@ export default function GenerateBatchPage({
                     setBatchData(res.data.batchData);
                 }
                 setSuccessNotification(
-                    res.data.message || `Draft payroll processed for ${emp.name}!`,
+                    res.data.message ||
+                        `Draft payroll processed for ${emp.name}!`,
                 );
             }
         } catch (err: any) {
-            alert(
-                err.response?.data?.message || 'Error processing draft payroll.',
+            setErrorNotification(
+                err.response?.data?.message ||
+                    'Error processing draft payroll.',
             );
         } finally {
             setProcessingEmployeeId(null);
         }
+    };
+
+    const handleProcessSingle = (emp: AuditedEmployee) => {
+        setConfirmSingleEmp(emp);
     };
 
     function SortHeader({
@@ -220,7 +227,7 @@ export default function GenerateBatchPage({
                             <div className="flex items-center gap-1.5">
                                 <Badge
                                     variant="outline"
-                                    className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 text-[11px] font-bold py-0.5 px-2"
+                                    className="border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-300"
                                 >
                                     <CheckCircle2 className="mr-1 h-3 w-3 text-emerald-600 dark:text-emerald-400" />
                                     Draft Ready
@@ -230,7 +237,9 @@ export default function GenerateBatchPage({
                                     size="xs"
                                     className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
                                     disabled={isProcessing || isProcessingBatch}
-                                    onClick={() => handleProcessSingle(row.original)}
+                                    onClick={() =>
+                                        handleProcessSingle(row.original)
+                                    }
                                     title="Re-process draft for this employee"
                                 >
                                     {isProcessing ? (
@@ -446,15 +455,19 @@ export default function GenerateBatchPage({
                 },
             },
             {
-                accessorKey: 'sss_loan',
+                accessorKey: 'sss_contribution',
                 header: ({ column }) => (
                     <div className="text-right">
-                        <SortHeader label="SSS Loan" column={column} />
+                        <SortHeader label="SSS Deduction" column={column} />
                     </div>
                 ),
                 cell: ({ row }) => (
                     <div className="text-right text-xs text-rose-600 dark:text-rose-400">
-                        {formatCurrency(row.original.sss_loan, true)}
+                        {formatCurrency(
+                            row.original.sss_contribution ??
+                                row.original.sss_loan,
+                            true,
+                        )}
                     </div>
                 ),
             },
@@ -643,9 +656,10 @@ export default function GenerateBatchPage({
         useState<AuditedEmployee | null>(null);
     const [editForm, setEditForm] = useState({
         daily_rate: '',
-        sss_loan: '',
-        emergency_loan: '',
+        sss_contribution: '',
         pagibig_contribution: '',
+        philhealth_contribution: '',
+        emergency_loan: '',
         withholding_tax: '',
         holidays: '',
     });
@@ -731,9 +745,10 @@ export default function GenerateBatchPage({
         setActiveEditEmployee(emp);
         setEditForm({
             daily_rate: String(emp.daily_rate || '550.00'),
-            sss_loan: String(emp.sss_loan || '0.00'),
+            sss_contribution: String(emp.sss_contribution || '0.00'),
+            pagibig_contribution: String(emp.pagibig_contribution || '0.00'),
+            philhealth_contribution: String(emp.philhealth_contribution || '0.00'),
             emergency_loan: String(emp.emergency_loan || '0.00'),
-            pagibig_contribution: String(emp.pagibig_contribution || '200.00'),
             withholding_tax: String(emp.withholding_tax || '0.00'),
             holidays: String(emp.holidays || '0'),
         });
@@ -769,24 +784,10 @@ export default function GenerateBatchPage({
     };
 
     // Process Payroll Batch
-    const handleProcessBatch = async () => {
-        if (batchData.ready.length === 0) {
-            alert(
-                'No ready employees available to process for this date range.',
-            );
-            return;
-        }
-
-        if (
-            !confirm(
-                `Are you sure you want to process and generate payroll records for ${batchData.ready.length} ready employees?`,
-            )
-        ) {
-            return;
-        }
-
+    const executeProcessBatch = async () => {
         setIsProcessingBatch(true);
         setSuccessNotification(null);
+        setErrorNotification(null);
         try {
             const res = await axios.post('/Payroll/process-batch', {
                 period_start: periodStart,
@@ -798,16 +799,28 @@ export default function GenerateBatchPage({
                     setBatchData(res.data.batchData);
                 }
                 setSuccessNotification(
-                    res.data.message || 'Successfully processed payroll batch as draft!',
+                    res.data.message ||
+                        'Successfully processed payroll batch as draft!',
                 );
             }
         } catch (err: any) {
-            alert(
-                err.response?.data?.message || 'Error processing payroll batch.',
+            setErrorNotification(
+                err.response?.data?.message ||
+                    'Error processing payroll batch.',
             );
         } finally {
             setIsProcessingBatch(false);
         }
+    };
+
+    const handleProcessBatch = () => {
+        if (batchData.ready.length === 0) {
+            setErrorNotification(
+                'No ready employees available to process for this date range.',
+            );
+            return;
+        }
+        setIsBatchProcessModalOpen(true);
     };
 
     return (
@@ -869,19 +882,72 @@ export default function GenerateBatchPage({
                 {successNotification && (
                     <div className="mt-4 flex items-center justify-between rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-700 dark:text-emerald-300">
                         <div className="flex items-center gap-2">
-                            <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                            <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
                             <span>{successNotification}</span>
                         </div>
                         <Button
                             variant="ghost"
                             size="xs"
-                            className="h-6 w-6 p-0 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300"
+                            className="h-6 w-6 p-0 text-emerald-700 hover:bg-emerald-500/20 dark:text-emerald-300"
                             onClick={() => setSuccessNotification(null)}
                         >
                             <X className="h-4 w-4" />
                         </Button>
                     </div>
                 )}
+
+                {errorNotification && (
+                    <div className="mt-4 flex items-center justify-between rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm font-semibold text-rose-700 dark:text-rose-300">
+                        <div className="flex items-center gap-2">
+                            <AlertTriangle className="h-5 w-5 shrink-0 text-rose-600 dark:text-rose-400" />
+                            <span>{errorNotification}</span>
+                        </div>
+                        <Button
+                            variant="ghost"
+                            size="xs"
+                            className="h-6 w-6 p-0 text-rose-700 hover:bg-rose-500/20 dark:text-rose-300"
+                            onClick={() => setErrorNotification(null)}
+                        >
+                            <X className="h-4 w-4" />
+                        </Button>
+                    </div>
+                )}
+
+                <ConfirmProcessModal
+                    isOpen={!!confirmSingleEmp}
+                    onClose={() => setConfirmSingleEmp(null)}
+                    onConfirm={() => {
+                        if (confirmSingleEmp) {
+                            const emp = confirmSingleEmp;
+                            setConfirmSingleEmp(null);
+                            executeProcessSingle(emp);
+                        }
+                    }}
+                    title={
+                        confirmSingleEmp && (confirmSingleEmp as any).is_draft
+                            ? 'Re-process Draft Payroll'
+                            : 'Process Draft Payroll'
+                    }
+                    description={
+                        confirmSingleEmp
+                            ? (confirmSingleEmp as any).is_draft
+                                ? `Are you sure you want to re-process draft payroll for ${confirmSingleEmp.name} (${confirmSingleEmp.employee_code})?`
+                                : `Are you sure you want to process draft payroll for ${confirmSingleEmp.name} (${confirmSingleEmp.employee_code})?`
+                            : ''
+                    }
+                />
+
+                <ConfirmProcessModal
+                    isOpen={isBatchProcessModalOpen}
+                    onClose={() => setIsBatchProcessModalOpen(false)}
+                    onConfirm={() => {
+                        setIsBatchProcessModalOpen(false);
+                        executeProcessBatch();
+                    }}
+                    title="Process Batch Payroll"
+                    description={`Are you sure you want to process and generate draft payroll records for ${batchData.ready.length} ready employees?`}
+                    isProcessing={isProcessingBatch}
+                />
 
                 <div className="my-6 grid grid-cols-1 gap-4 sm:grid-cols-4">
                     <div className="space-y-1 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4">
@@ -1165,25 +1231,70 @@ export default function GenerateBatchPage({
                         <div className="grid grid-cols-3 gap-3">
                             <div className="space-y-1.5">
                                 <Label
-                                    htmlFor="quick_sss_loan"
+                                    htmlFor="quick_sss_contrib"
                                     className="text-xs font-semibold"
                                 >
-                                    SSS Loan (₱)
+                                    SSS Contrib (₱)
                                 </Label>
                                 <Input
-                                    id="quick_sss_loan"
+                                    id="quick_sss_contrib"
                                     type="number"
                                     min="0"
                                     step="0.01"
-                                    value={editForm.sss_loan}
+                                    value={editForm.sss_contribution}
                                     onChange={(e) =>
                                         setEditForm({
                                             ...editForm,
-                                            sss_loan: e.target.value,
+                                            sss_contribution: e.target.value,
                                         })
                                     }
                                 />
                             </div>
+                            <div className="space-y-1.5">
+                                <Label
+                                    htmlFor="quick_pagibig_contrib"
+                                    className="text-xs font-semibold"
+                                >
+                                    Pag-IBIG Contrib (₱)
+                                </Label>
+                                <Input
+                                    id="quick_pagibig_contrib"
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={editForm.pagibig_contribution}
+                                    onChange={(e) =>
+                                        setEditForm({
+                                            ...editForm,
+                                            pagibig_contribution: e.target.value,
+                                        })
+                                    }
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label
+                                    htmlFor="quick_philhealth_contrib"
+                                    className="text-xs font-semibold"
+                                >
+                                    PhilHealth Contrib (₱)
+                                </Label>
+                                <Input
+                                    id="quick_philhealth_contrib"
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={editForm.philhealth_contribution}
+                                    onChange={(e) =>
+                                        setEditForm({
+                                            ...editForm,
+                                            philhealth_contribution: e.target.value,
+                                        })
+                                    }
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-3">
                             <div className="space-y-1.5">
                                 <Label
                                     htmlFor="quick_emergency_loan"
@@ -1207,52 +1318,6 @@ export default function GenerateBatchPage({
                             </div>
                             <div className="space-y-1.5">
                                 <Label
-                                    htmlFor="quick_holidays"
-                                    className="text-xs font-semibold text-amber-700 dark:text-amber-400"
-                                >
-                                    Holidays (Days)
-                                </Label>
-                                <Input
-                                    id="quick_holidays"
-                                    type="number"
-                                    min="0"
-                                    step="1"
-                                    value={editForm.holidays}
-                                    onChange={(e) =>
-                                        setEditForm({
-                                            ...editForm,
-                                            holidays: e.target.value,
-                                        })
-                                    }
-                                />
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-1.5">
-                                <Label
-                                    htmlFor="quick_pagibig_contrib"
-                                    className="text-xs font-semibold"
-                                >
-                                    Pag-IBIG Contrib (₱)
-                                </Label>
-                                <Input
-                                    id="quick_pagibig_contrib"
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={editForm.pagibig_contribution}
-                                    onChange={(e) =>
-                                        setEditForm({
-                                            ...editForm,
-                                            pagibig_contribution:
-                                                e.target.value,
-                                        })
-                                    }
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <Label
                                     htmlFor="quick_tax"
                                     className="text-xs font-semibold"
                                 >
@@ -1268,6 +1333,27 @@ export default function GenerateBatchPage({
                                         setEditForm({
                                             ...editForm,
                                             withholding_tax: e.target.value,
+                                        })
+                                    }
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label
+                                    htmlFor="quick_holidays"
+                                    className="text-xs font-semibold text-amber-700 dark:text-amber-400"
+                                >
+                                    Holidays (Days)
+                                </Label>
+                                <Input
+                                    id="quick_holidays"
+                                    type="number"
+                                    min="0"
+                                    step="1"
+                                    value={editForm.holidays}
+                                    onChange={(e) =>
+                                        setEditForm({
+                                            ...editForm,
+                                            holidays: e.target.value,
                                         })
                                     }
                                 />

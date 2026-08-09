@@ -40,7 +40,14 @@ class PayrollAuditService
         foreach ($employees as $employee) {
             $empAttendance = $attendances->get($employee->id, collect());
             
-            $daysWorked = $empAttendance->count();
+            // Only count actual worked days (where working_time > 0 or punch logs exist)
+            $workedAttendance = $empAttendance->filter(function ($att) {
+                if ($att->working_time !== null) {
+                    return (float) $att->working_time > 0;
+                }
+                return !empty($att->time_in);
+            });
+            $daysWorked = $workedAttendance->count();
             $hoursWorked = $empAttendance->sum('hours_worked');
 
             $hasAttendance = $daysWorked > 0;
@@ -76,7 +83,22 @@ class PayrollAuditService
             $totalOvertimeHours = 0.00;
 
             foreach ($empAttendance as $att) {
-                $workHrs = (float) ($att->working_time ?? 8.00);
+                $workHrs = 0.00;
+                if ($att->working_time !== null) {
+                    $workHrs = (float) $att->working_time;
+                } elseif (!empty($att->time_in) && !empty($att->time_out)) {
+                    try {
+                        $in = Carbon::parse($att->time_in);
+                        $out = Carbon::parse($att->time_out);
+                        $diffInMinutes = $out->diffInMinutes($in);
+                        $workHrs = round(max(0, $diffInMinutes - 60) / 60, 2);
+                    } catch (\Exception $e) {
+                        $workHrs = 0.00;
+                    }
+                } elseif (!empty($att->time_in)) {
+                    $workHrs = 8.00;
+                }
+
                 $totalHoursWorked += $workHrs;
                 if ($workHrs > 8.00) {
                     $totalOvertimeHours += ($workHrs - 8.00);
@@ -87,7 +109,7 @@ class PayrollAuditService
 
             $hourlyRate = (float) ($employee->hourly_rate ?? 0);
             if ($hourlyRate <= 0 && $dailyRate > 0) {
-                $hourlyRate = round($dailyRate / 8.00, 2);
+                $hourlyRate = $dailyRate / 8.00;
             }
 
             // Cash Advancement Payouts (Date-matched for current cutoff)
@@ -113,13 +135,15 @@ class PayrollAuditService
             $grossEarnings = $basicPay;
             $totalEarnings = round($basicPay + $overtimePay + $holidayPay + $cashAdvancePayout, 2);
 
+            $sssContrib = (float) ($employee->sss_contribution ?? 0);
             $sssLoan = (float) ($employee->sss_loan ?? 0);
-            $pagibigContrib = (float) ($employee->pagibig_contribution ?? 200.00);
+            $pagibigContrib = (float) ($employee->pagibig_contribution ?? 0);
+            $philhealthContrib = (float) ($employee->philhealth_contribution ?? 0);
             $emergencyLoan = (float) ($employee->emergency_loan ?? 0);
             $withholdingTax = (float) ($employee->withholding_tax ?? 0);
 
             $baseDeductions = round(
-                $sssLoan + $pagibigContrib + $emergencyLoan + $withholdingTax,
+                $sssContrib + $sssLoan + $pagibigContrib + $philhealthContrib + $emergencyLoan + $withholdingTax,
                 2
             );
 
@@ -155,12 +179,11 @@ class PayrollAuditService
                 'cash_advance_payout'        => $cashAdvancePayout,
                 'cash_advance_deduction'     => $cashAdvanceDeduction,
                 'total_earnings'            => $totalEarnings,
-                'sss_loan'                  => $sssLoan,
-                'pagibig_loan'              => 0.00,
-                'emergency_loan'            => $emergencyLoan,
+                'sss_contribution'          => $sssContrib,
+                'sss_loan'                  => $sssLoan > 0 ? $sssLoan : $sssContrib,
                 'pagibig_contribution'      => $pagibigContrib,
-                'sss_contribution'          => 0.00,
-                'philhealth_contribution'    => 0.00,
+                'philhealth_contribution'    => $philhealthContrib,
+                'emergency_loan'            => $emergencyLoan,
                 'withholding_tax'           => $withholdingTax,
                 'total_deductions'          => $totalDeductions,
                 'net_amount'                => $netAmount,

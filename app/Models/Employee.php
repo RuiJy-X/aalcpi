@@ -23,26 +23,21 @@ class Employee extends Model
         'sss_no',
         'pagibig_no',
         'philhealth_no',
-        'sss_loan',
-        'pagibig_loan',
-        'emergency_loan',
-        'pagibig_contribution',
         'sss_contribution',
+        'pagibig_contribution',
         'philhealth_contribution',
+        'emergency_loan',
         'withholding_tax',
-        'holidays',
     ];
 
     protected $casts = [
         'daily_rate' => 'decimal:2',
         'base_salary' => 'decimal:2',
         'hourly_rate' => 'decimal:2',
-        'sss_loan' => 'decimal:2',
-        'pagibig_loan' => 'decimal:2',
-        'emergency_loan' => 'decimal:2',
-        'pagibig_contribution' => 'decimal:2',
         'sss_contribution' => 'decimal:2',
+        'pagibig_contribution' => 'decimal:2',
         'philhealth_contribution' => 'decimal:2',
+        'emergency_loan' => 'decimal:2',
         'withholding_tax' => 'decimal:2',
     ];
 
@@ -83,7 +78,20 @@ class Employee extends Model
     protected static function booted(): void
     {
         static::updated(function (Employee $employee) {
-            self::deleteDraftsForEmployee($employee->id);
+            $financialFields = [
+                'daily_rate',
+                'base_salary',
+                'hourly_rate',
+                'sss_contribution',
+                'pagibig_contribution',
+                'philhealth_contribution',
+                'emergency_loan',
+                'withholding_tax',
+            ];
+
+            if ($employee->wasChanged($financialFields)) {
+                self::deleteDraftsForEmployee($employee->id);
+            }
         });
 
         static::deleted(function (Employee $employee) {

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Head, router } from '@inertiajs/react';
+import axios from 'axios';
 import {
     History,
     FileSpreadsheet,
@@ -92,10 +93,25 @@ export default function ImportHistoryPage({
         filters.status || 'all',
     );
     const [deletingId, setDeletingId] = useState<number | null>(null);
+    const [processingJobId, setProcessingJobId] = useState<number | null>(null);
 
     const [selectedSummary, setSelectedSummary] =
         useState<ImportSummaryData | null>(null);
     const [isSummaryOpen, setIsSummaryOpen] = useState(false);
+
+    const handleRunNow = async (jobId: number) => {
+        setProcessingJobId(jobId);
+        try {
+            const res = await axios.post(`/Imports/history/${jobId}/run-now`);
+            if (res.data.success) {
+                router.reload();
+            }
+        } catch (err: any) {
+            alert(err.response?.data?.message || 'Failed to process import job inline.');
+        } finally {
+            setProcessingJobId(null);
+        }
+    };
 
     const handleViewSummary = (job: ImportJobItem) => {
         setSelectedSummary({
@@ -506,6 +522,23 @@ export default function ImportHistoryPage({
                                             </td>
 
                                             <td className="space-x-1 px-4 py-4 text-right whitespace-nowrap">
+                                                {(job.status === 'queued' ||
+                                                    job.status === 'running' ||
+                                                    job.status === 'failed') && (
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        disabled={processingJobId === job.id}
+                                                        onClick={() => handleRunNow(job.id)}
+                                                        className="gap-1.5 border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-300 font-bold shadow-xs"
+                                                    >
+                                                        <RefreshCw className={`h-3.5 w-3.5 ${processingJobId === job.id ? 'animate-spin' : ''}`} />
+                                                        <span className="text-xs">
+                                                            {processingJobId === job.id ? 'Processing...' : 'Run Now'}
+                                                        </span>
+                                                    </Button>
+                                                )}
+
                                                 <Button
                                                     variant="outline"
                                                     size="sm"

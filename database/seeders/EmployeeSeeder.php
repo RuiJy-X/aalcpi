@@ -63,8 +63,9 @@ class EmployeeSeeder extends Seeder
                     'sss_no'                  => sprintf('%02d-%07d-%01d', rand(10, 99), rand(1000000, 9999999), rand(0, 9)),
                     'pagibig_no'              => sprintf('%04d-%04d-%04d', rand(1000, 9999), rand(1000, 9999), rand(1000, 9999)),
                     'philhealth_no'           => sprintf('%02d-%09d-%01d', rand(10, 99), rand(100000000, 999999999), rand(0, 9)),
-                    'sss_loan'                => rand(0, 4) === 0 ? (float) rand(100, 500) : 0.00,
+                    'sss_contribution'        => rand(0, 3) === 0 ? (float) rand(100, 400) : 0.00,
                     'pagibig_contribution'    => 200.00,
+                    'philhealth_contribution' => rand(0, 3) === 0 ? (float) rand(100, 300) : 0.00,
                     'emergency_loan'          => rand(0, 5) === 0 ? (float) rand(100, 300) : 0.00,
                     'withholding_tax'         => rand(0, 4) === 0 ? (float) rand(50, 250) : 0.00,
                 ]

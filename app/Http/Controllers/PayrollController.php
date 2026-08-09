@@ -10,6 +10,7 @@ use App\Models\Payroll;
 use App\Models\Employee;
 use App\Models\Attendance;
 use App\Models\Advancement;
+use App\Models\AdvancementDeduction;
 use App\Imports\AttendanceImport;
 use App\Services\PayrollCalculationService;
 use App\Services\PayrollAuditService;
@@ -42,7 +43,7 @@ class PayrollController extends Controller
      */
     public function index()
     {
-        $payrolls = Payroll::with('employee:id,name,employee_code,position,daily_rate,sss_loan,pagibig_loan,emergency_loan')
+        $payrolls = Payroll::with('employee:id,name,employee_code,position,daily_rate,sss_contribution,pagibig_contribution,philhealth_contribution,emergency_loan,withholding_tax')
             ->latest('period_end')
             ->get()
             ->map(function (Payroll $record) {
@@ -79,7 +80,7 @@ class PayrollController extends Controller
                     'gross_pay'              => (float) $record->gross_pay,
                     'cash_advance_payout'    => $payout,
                     'cash_advance_deduction' => $deduction,
-                    'sss_loan'               => (float) ($record->sss_loan ?? $record->employee?->sss_loan ?? 0),
+                    'sss_loan'               => (float) ($record->sss_loan ?? $record->employee?->sss_contribution ?? $record->employee?->sss_loan ?? 0),
                     'pagibig_loan'           => (float) ($record->pagibig_loan ?? $record->employee?->pagibig_loan ?? 0),
                     'emergency_loan'         => (float) ($record->emergency_loan ?? $record->employee?->emergency_loan ?? 0),
                     'deductions'             => (float) $record->deductions,
@@ -170,12 +171,10 @@ class PayrollController extends Controller
         $validated = $request->validate([
             'daily_rate'              => 'required|numeric|min:0',
             'holidays'                => 'nullable|integer|min:0',
-            'sss_loan'                => 'nullable|numeric|min:0',
-            'pagibig_loan'            => 'nullable|numeric|min:0',
-            'emergency_loan'          => 'nullable|numeric|min:0',
-            'pagibig_contribution'    => 'nullable|numeric|min:0',
             'sss_contribution'        => 'nullable|numeric|min:0',
+            'pagibig_contribution'    => 'nullable|numeric|min:0',
             'philhealth_contribution' => 'nullable|numeric|min:0',
+            'emergency_loan'          => 'nullable|numeric|min:0',
             'withholding_tax'         => 'nullable|numeric|min:0',
             'period_start'            => 'required|date',
             'period_end'              => 'required|date|after_or_equal:period_start',
@@ -277,7 +276,7 @@ class PayrollController extends Controller
                 'gross_pay'              => $empData['total_earnings'],
                 'cash_advance_payout'    => $empData['cash_advance_payout'] ?? 0.00,
                 'cash_advance_deduction' => $empData['cash_advance_deduction'] ?? 0.00,
-                'sss_loan'               => $empData['sss_loan'] ?? 0.00,
+                'sss_loan'               => $empData['sss_contribution'] ?? $empData['sss_loan'] ?? 0.00,
                 'pagibig_loan'           => $empData['pagibig_loan'] ?? 0.00,
                 'emergency_loan'         => $empData['emergency_loan'] ?? 0.00,
                 'deductions'             => $empData['total_deductions'],
@@ -345,11 +344,11 @@ class PayrollController extends Controller
             'cash_advance_deduction' => $cashAdvanceDeduction,
             'overtime_pay'           => max(0, (float) $payrollRecord->gross_pay - (float) $payrollRecord->basic_pay - $cashAdvancePayout),
             'gross_pay'              => (float) $payrollRecord->gross_pay,
-            'sss_loan'               => (float) ($payrollRecord->sss_loan ?? $employee?->sss_loan ?? 0),
+            'sss_loan'               => (float) ($payrollRecord->sss_loan ?? $employee?->sss_contribution ?? $employee?->sss_loan ?? 0),
             'pagibig_loan'           => (float) ($payrollRecord->pagibig_loan ?? $employee?->pagibig_loan ?? 0),
             'emergency_loan'         => (float) ($payrollRecord->emergency_loan ?? $employee?->emergency_loan ?? 0),
             'pagibig_contribution'   => (float) ($employee?->pagibig_contribution ?? 200.00),
-            'sss_contribution'       => (float) ($employee?->sss_contribution ?? 0),
+            'sss_contribution'       => (float) ($payrollRecord->sss_loan ?? $employee?->sss_contribution ?? 0),
             'philhealth_contribution' => (float) ($employee?->philhealth_contribution ?? 0),
             'withholding_tax'        => (float) ($employee?->withholding_tax ?? 0),
             'deductions'             => (float) $payrollRecord->deductions,
@@ -400,10 +399,10 @@ class PayrollController extends Controller
                     'total_earnings'            => (float) $p->gross_pay,
                     'cash_advance_deduction'     => (float) (($p->cash_advance_deduction ?? 0) > 0 ? $p->cash_advance_deduction : Advancement::where('deduction_payroll_id', $p->id)->sum('amount')),
                     'pagibig_contribution'      => (float) ($emp?->pagibig_contribution ?? 200),
-                    'sss_contribution'          => (float) ($emp?->sss_contribution ?? 0),
+                    'sss_contribution'          => (float) (($p->sss_loan > 0 ? $p->sss_loan : null) ?? $emp?->sss_contribution ?? 0),
                     'philhealth_contribution'    => (float) ($emp?->philhealth_contribution ?? 0),
                     'withholding_tax'           => (float) ($emp?->withholding_tax ?? 0),
-                    'sss_loan'                  => (float) ($p->sss_loan ?? $emp?->sss_loan ?? 0),
+                    'sss_loan'                  => (float) ($p->sss_loan ?? $emp?->sss_contribution ?? $emp?->sss_loan ?? 0),
                     'pagibig_loan'              => (float) ($p->pagibig_loan ?? $emp?->pagibig_loan ?? 0),
                     'emergency_loan'            => (float) ($p->emergency_loan ?? $emp?->emergency_loan ?? 0),
                     'total_deductions'          => (float) $p->deductions,
@@ -560,6 +559,12 @@ class PayrollController extends Controller
         $oldStatus = $payroll->status;
         $newStatus = $validated['status'];
 
+        if ($oldStatus === 'paid' && $newStatus !== 'paid') {
+            throw ValidationException::withMessages([
+                'status' => 'Finalized "paid" payroll records cannot be reverted back to draft or pending status to protect financial audit integrity.',
+            ]);
+        }
+
         $payroll->update([
             'status' => $newStatus,
         ]);
@@ -625,7 +630,7 @@ class PayrollController extends Controller
 
     public function show($id)
     {
-        $payroll = Payroll::with('employee:id,name,employee_code,position,daily_rate,hourly_rate,base_salary,sss_loan,pagibig_loan,emergency_loan,tin,sss_no,pagibig_no,philhealth_no,contact_number,address')->findOrFail($id);
+        $payroll = Payroll::with('employee:id,name,employee_code,position,daily_rate,hourly_rate,base_salary,sss_contribution,pagibig_contribution,philhealth_contribution,emergency_loan,withholding_tax,tin,sss_no,pagibig_no,philhealth_no,contact_number,address')->findOrFail($id);
 
         $attendanceRecords = [];
         if ($payroll->employee && $payroll->period_start && $payroll->period_end) {
@@ -665,10 +670,11 @@ class PayrollController extends Controller
                     'position'                => $payroll->employee->position,
                     'daily_rate'              => (float) ($payroll->employee->daily_rate ?? 0),
                     'hourly_rate'             => (float) ($payroll->hourly_rate ?? 0),
-                    'base_salary'             => (float) ($payroll->employee->base_salary ?? 0),
-                    'sss_loan'                => (float) ($payroll->sss_loan ?? $payroll->employee->sss_loan ?? 0),
-                    'pagibig_loan'            => (float) ($payroll->pagibig_loan ?? $payroll->employee->pagibig_loan ?? 0),
-                    'emergency_loan'          => (float) ($payroll->emergency_loan ?? $payroll->employee->emergency_loan ?? 0),
+                    'sss_contribution'        => (float) ($payroll->employee->sss_contribution ?? 0),
+                    'pagibig_contribution'    => (float) ($payroll->employee->pagibig_contribution ?? 0),
+                    'philhealth_contribution' => (float) ($payroll->employee->philhealth_contribution ?? 0),
+                    'emergency_loan'          => (float) ($payroll->employee->emergency_loan ?? 0),
+                    'withholding_tax'         => (float) ($payroll->employee->withholding_tax ?? 0),
                     'attendances'             => $attendanceRecords,
                 ] : null,
                 'period_start'           => $payroll->period_start?->toDateString(),
@@ -734,6 +740,13 @@ class PayrollController extends Controller
                 if (isset($payload['status'])) {
                     $oldStatus = $payroll->status;
                     $newStatus = $payload['status'];
+
+                    if ($oldStatus === 'paid' && $newStatus !== 'paid') {
+                        throw ValidationException::withMessages([
+                            'status' => "Payroll #{$payroll->id} is already finalized ('paid') and cannot be reverted back to '{$newStatus}'.",
+                        ]);
+                    }
+
                     $this->syncAdvancementStatusForPayroll($payroll, $oldStatus, $newStatus);
                 }
                 return $payload;
@@ -812,20 +825,50 @@ class PayrollController extends Controller
                         'status' => $newRem <= 0 ? 'deducted' : 'partially_deducted',
                         'deduction_payroll_id' => $payroll->id,
                     ]);
+
+                    // Record exact deduction amount in ledger table
+                    AdvancementDeduction::updateOrCreate([
+                        'advancement_id' => $adv->id,
+                        'payroll_id' => $payroll->id,
+                    ], [
+                        'amount_deducted' => $deductNow,
+                    ]);
                 }
             }
         }
 
-        // When moving from 'paid' back to 'draft' or 'pending' -> revert committed deduction balance
+        // When moving from 'paid' back to 'draft' or 'pending' -> revert exact committed deduction balance
         if ($oldStatus === 'paid' && in_array($newStatus, ['draft', 'pending'], true)) {
-            Advancement::where('deduction_payroll_id', $payroll->id)->get()->each(function (Advancement $adv) use ($payroll) {
-                $revertedBal = round((float) $adv->remaining_balance + (float) ($payroll->cash_advance_deduction ?? 0), 2);
-                $adv->update([
-                    'remaining_balance' => min((float) $adv->amount, $revertedBal),
-                    'status' => !empty($adv->payout_payroll_id) ? 'paid_out' : 'pending_payout',
-                    'deduction_payroll_id' => null,
-                ]);
-            });
+            $deductionRecords = AdvancementDeduction::where('payroll_id', $payroll->id)->get();
+
+            if ($deductionRecords->isNotEmpty()) {
+                foreach ($deductionRecords as $record) {
+                    $adv = Advancement::find($record->advancement_id);
+                    if ($adv) {
+                        $deductedAmount = (float) $record->amount_deducted;
+                        $revertedBal = min((float) $adv->amount, round((float) $adv->remaining_balance + $deductedAmount, 2));
+
+                        $adv->update([
+                            'remaining_balance' => $revertedBal,
+                            'status' => $revertedBal >= (float) $adv->amount
+                                ? (!empty($adv->payout_payroll_id) ? 'paid_out' : 'pending_payout')
+                                : 'partially_deducted',
+                            'deduction_payroll_id' => null,
+                        ]);
+                    }
+                    $record->delete();
+                }
+            } else {
+                // Fallback for historic records prior to ledger migration
+                Advancement::where('deduction_payroll_id', $payroll->id)->get()->each(function (Advancement $adv) use ($payroll) {
+                    $revertedBal = round((float) $adv->remaining_balance + (float) ($payroll->cash_advance_deduction ?? 0), 2);
+                    $adv->update([
+                        'remaining_balance' => min((float) $adv->amount, $revertedBal),
+                        'status' => !empty($adv->payout_payroll_id) ? 'paid_out' : 'pending_payout',
+                        'deduction_payroll_id' => null,
+                    ]);
+                });
+            }
         }
     }
 }

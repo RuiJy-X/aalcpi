@@ -14,6 +14,7 @@ use App\Http\Controllers\ImportMappingController;
 use App\Http\Controllers\MillingPeriodsController;
 use App\Http\Controllers\PayrollController;
 use App\Http\Controllers\AdvancementController;
+use App\Http\Controllers\HealthCheckController;
 use App\Http\Controllers\HolidayController;
 use App\Http\Controllers\PlanterController;
 use App\Http\Controllers\ProductionController;
@@ -271,6 +272,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/Imports/history/{importJob}', [ImportHistoryController::class, 'destroy'])
         ->middleware('permission:planters.delete|productions.delete|attendance.delete|weekly.delete|bank_reconciliation.delete')
         ->name('imports.history.destroy');
+    Route::post('/Imports/history/{importJob}/run-now', [ImportHistoryController::class, 'runNow'])
+        ->middleware('auth')
+        ->name('imports.history.run-now');
+    Route::get('/system/health-check', [HealthCheckController::class, 'check'])
+        ->middleware('auth')
+        ->name('system.health');
 
     // --- Planters ---
     Route::prefix('Planters')->name('planters.')->group(function () {

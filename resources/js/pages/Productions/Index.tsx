@@ -319,7 +319,7 @@ export default function Index({
 
         router.patch(
             productionsBulkUpdate().url,
-            { rows },
+            { rows: rows as any },
             {
                 preserveScroll: true,
                 // Keep table UI state (current page, filters) after save.

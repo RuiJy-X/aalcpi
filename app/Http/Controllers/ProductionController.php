@@ -340,6 +340,7 @@ class ProductionController extends Controller
             'status' => ImportJob::STATUS_QUEUED,
             'file_name' => $file->getClientOriginalName(),
             'context' => [
+                'file_path' => $storedPath,
                 'crop_year' => $cropYear,
                 'file_name' => $file->getClientOriginalName(),
                 'composite_sugar_price' => $compositeSugarPrice,

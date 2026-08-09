@@ -99,10 +99,11 @@
                 <th style="width: 6.5%;" class="text-right">Adv Payout</th>
                 <th style="width: 7%;" class="text-right">Total Earn</th>
                 <th style="width: 6.5%;" class="text-right">Adv Deduct</th>
-                <th style="width: 6%;" class="text-right">SSS Loan</th>
-                <th style="width: 6%;" class="text-right">Pag-IBIG</th>
-                <th style="width: 6%;" class="text-right">Emerg Loan</th>
-                <th style="width: 6%;" class="text-right">Tax W/H</th>
+                <th style="width: 5%;" class="text-right">SSS</th>
+                <th style="width: 5%;" class="text-right">Pag-IBIG</th>
+                <th style="width: 5%;" class="text-right">PhilHealth</th>
+                <th style="width: 5%;" class="text-right">Emerg Loan</th>
+                <th style="width: 5%;" class="text-right">Tax W/H</th>
                 <th style="width: 6.5%;" class="text-right">Tot Deduct</th>
                 <th style="width: 7.5%;" class="text-right">Net Pay</th>
                 <th style="width: 3%;" class="text-center">Signature</th>
@@ -111,7 +112,7 @@
         <tbody>
             @forelse($payrolls ?? [] as $index => $p)
                 @php
-                    $empName = data_get($p, 'name', data_get($p, 'employee.name', 'N/A'));
+                    $empName = data_get($p, 'name', data_get($p, 'employee_name', 'N/A'));
                     $position = data_get($p, 'position', 'Encoder');
                     $dailyRate = (float) data_get($p, 'daily_rate', 0);
                     $daysWorked = (int) data_get($p, 'days_worked', 0);
@@ -119,8 +120,9 @@
                     $advPayout = (float) data_get($p, 'cash_advance_payout', 0);
                     $advDeduct = (float) data_get($p, 'cash_advance_deduction', 0);
                     $totalEarnings = (float) data_get($p, 'total_earnings', data_get($p, 'gross_pay', 0));
-                    $sssLoan = (float) data_get($p, 'sss_loan', 0);
-                    $pagibigContrib = (float) data_get($p, 'pagibig_contribution', 200.00);
+                    $sssContrib = (float) data_get($p, 'sss_contribution', data_get($p, 'sss_loan', 0));
+                    $pagibigContrib = (float) data_get($p, 'pagibig_contribution', 0);
+                    $philhealthContrib = (float) data_get($p, 'philhealth_contribution', 0);
                     $emergencyLoan = (float) data_get($p, 'emergency_loan', 0);
                     $withholdingTax = (float) data_get($p, 'withholding_tax', 0);
                     $totalDeduct = (float) data_get($p, 'total_deductions', data_get($p, 'deductions', 0));
@@ -136,8 +138,9 @@
                     <td class="text-right">{{ $advPayout > 0 ? number_format($advPayout, 2) : '' }}</td>
                     <td class="text-right">{{ $totalEarnings > 0 ? number_format($totalEarnings, 2) : '' }}</td>
                     <td class="text-right">{{ $advDeduct > 0 ? '' . number_format($advDeduct, 2) : '' }}</td>
-                    <td class="text-right">-{{ number_format($sssLoan, 2) }}</td>
+                    <td class="text-right">-{{ number_format($sssContrib, 2) }}</td>
                     <td class="text-right">-{{ number_format($pagibigContrib, 2) }}</td>
+                    <td class="text-right">-{{ number_format($philhealthContrib, 2) }}</td>
                     <td class="text-right">-{{ number_format($emergencyLoan, 2) }}</td>
                     <td class="text-right">-{{ number_format($withholdingTax, 2) }}</td>
                     <td class="text-right">-{{ number_format($totalDeduct, 2) }}</td>
@@ -146,7 +149,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="16" class="text-center" style="padding: 10px;">
+                    <td colspan="17" class="text-center" style="padding: 10px;">
                         No payroll records found for the selected pay period.
                     </td>
                 </tr>
@@ -162,8 +165,9 @@
                 <td class="text-right">{{ number_format((float)array_sum(array_column($payrolls, 'cash_advance_payout')), 2) }}</td>
                 <td class="text-right">{{ number_format((float)data_get($totals, 'total_gross', 0), 2) }}</td>
                 <td class="text-right">-{{ number_format((float)array_sum(array_column($payrolls, 'cash_advance_deduction')), 2) }}</td>
-                <td class="text-right">-{{ number_format((float)data_get($totals, 'total_sss_loan', 0), 2) }}</td>
+                <td class="text-right">-{{ number_format((float)data_get($totals, 'total_sss_contrib', 0), 2) }}</td>
                 <td class="text-right">-{{ number_format((float)data_get($totals, 'total_pagibig_contrib', 0), 2) }}</td>
+                <td class="text-right">-{{ number_format((float)data_get($totals, 'total_philhealth_contrib', 0), 2) }}</td>
                 <td class="text-right">-{{ number_format((float)data_get($totals, 'total_emergency_loan', 0), 2) }}</td>
                 <td class="text-right">-{{ number_format((float)data_get($totals, 'total_tax', 0), 2) }}</td>
                 <td class="text-right">-{{ number_format((float)data_get($totals, 'total_deductions', 0), 2) }}</td>

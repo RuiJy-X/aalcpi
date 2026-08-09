@@ -28,6 +28,11 @@ import {
     type ImportTarget,
 } from '@/components/import/import-config';
 import { ImportSummaryModal, type ImportSummaryData } from '@/components/import/import-summary-modal';
+import {
+    registerJobPoll,
+    markJobModalShown,
+    unregisterJobPoll,
+} from '@/lib/import-poll-tracker';
 
 
 type MappingPreviewResponse = {
@@ -250,6 +255,10 @@ export function BankReconImportDialog() {
     const [isSummaryOpen, setIsSummaryOpen] = useState(false);
 
     const pollSummary = (jobId: number) => {
+        if (!registerJobPoll(jobId)) {
+            return;
+        }
+
         let attempts = 0;
         const maxAttempts = 60;
 
@@ -263,16 +272,19 @@ export function BankReconImportDialog() {
                     const data: ImportSummaryData = await res.json();
                     if (data.status === 'done' || data.status === 'failed') {
                         clearInterval(interval);
+                        markJobModalShown(jobId);
                         setSummaryData(data);
                         setIsSummaryOpen(true);
                     }
                 }
             } catch (err) {
                 console.error(err);
+                unregisterJobPoll(jobId);
             }
 
             if (attempts >= maxAttempts) {
                 clearInterval(interval);
+                unregisterJobPoll(jobId);
             }
         }, 1000);
     };

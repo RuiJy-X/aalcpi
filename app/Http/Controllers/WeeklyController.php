@@ -403,7 +403,10 @@ class WeeklyController extends Controller
             'user_id' => $request->user()?->id,
             'type' => 'weekly_pdf',
             'status' => ImportJob::STATUS_QUEUED,
+            'file_name' => $uploadedFile->getClientOriginalName(),
             'context' => [
+                'file_path' => $temporaryPath,
+                'file_name' => $uploadedFile->getClientOriginalName(),
                 'week' => $week,
                 'crop_year' => $cropYear,
             ],

@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\ProcessBankReconImportJob;
+use App\Jobs\ProcessExcelImportJob;
+use App\Jobs\ProcessWeeklyImportJob;
 use App\Models\BankStatement;
 use App\Models\ImportJob;
 use App\Models\InternalDisbursements;
@@ -179,5 +182,71 @@ class ImportHistoryController extends Controller
         return response()->json([
             'message' => 'Import batch and associated records deleted successfully.',
         ]);
+    }
+
+    public function runNow(Request $request, ImportJob $importJob): JsonResponse
+    {
+        $context = $importJob->context ?? [];
+        $filePath = $context['file_path'] ?? null;
+
+        if (!$filePath || !Storage::disk('local')->exists($filePath)) {
+            if ($importJob->status === ImportJob::STATUS_DONE) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Import job is already completed.',
+                ]);
+            }
+            return response()->json([
+                'success' => false,
+                'message' => 'Uploaded import file is no longer available on server storage.',
+            ], 422);
+        }
+
+        try {
+            if (in_array($importJob->type, ['bank_recon_internal', 'bank_recon_bank', 'internal', 'bank'], true)) {
+                $targetType = $context['target_type'] ?? (str_contains($importJob->type, 'bank') ? 'bank' : 'internal');
+                ProcessBankReconImportJob::dispatchSync(
+                    $importJob->id,
+                    $targetType,
+                    $filePath,
+                    $context['date_issued'] ?? null,
+                    isset($context['disbursement_week']) ? (int) $context['disbursement_week'] : null,
+                    $context['bank_date'] ?? null,
+                    $context['mapping'] ?? []
+                );
+            } elseif (in_array($importJob->type, ['weekly', 'weekly_pdf'], true)) {
+                ProcessWeeklyImportJob::dispatchSync(
+                    $filePath,
+                    (string) ($context['week'] ?? ''),
+                    (string) ($context['crop_year'] ?? ''),
+                    $importJob->id
+                );
+            } else {
+                ProcessExcelImportJob::dispatchSync(
+                    $importJob->id,
+                    $importJob->type,
+                    $filePath,
+                    $context
+                );
+            }
+
+            $importJob->refresh();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Import processed successfully!',
+                'job' => [
+                    'id' => $importJob->id,
+                    'status' => $importJob->status,
+                    'message' => $importJob->message,
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            $importJob->markFailed($e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Import execution failed: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 }

@@ -339,9 +339,9 @@ export default function Show({
                                     isDeduction={advanceBalanceVal > 0}
                                 />
                                 <DetailRow
-                                    label="SSS Loan"
+                                    label="SSS Contribution"
                                     value={formatCurrency(
-                                        employee.sss_loan,
+                                        employee.sss_contribution,
                                         true,
                                     )}
                                     isDeduction
@@ -350,6 +350,14 @@ export default function Show({
                                     label="Pag-IBIG Contribution"
                                     value={formatCurrency(
                                         employee.pagibig_contribution,
+                                        true,
+                                    )}
+                                    isDeduction
+                                />
+                                <DetailRow
+                                    label="PhilHealth Contribution"
+                                    value={formatCurrency(
+                                        employee.philhealth_contribution,
                                         true,
                                     )}
                                     isDeduction

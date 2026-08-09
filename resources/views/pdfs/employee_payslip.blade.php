@@ -135,13 +135,11 @@
         $cashAdvancePayout = (float) data_get($payroll, 'cash_advance_payout', 0);
         $cashAdvanceDeduction = (float) data_get($payroll, 'cash_advance_deduction', 0);
         $grossPay = (float) data_get($payroll, 'gross_pay', 0);
-        $sssLoan = (float) data_get($payroll, 'sss_loan', 0);
-        $pagibigLoan = (float) data_get($payroll, 'pagibig_loan', 0);
-        $emergencyLoan = (float) data_get($payroll, 'emergency_loan', 0);
-        $pagibigContrib = (float) data_get($payroll, 'pagibig_contribution', 0);
-        $sssContrib = (float) data_get($payroll, 'sss_contribution', 0);
-        $philhealthContrib = (float) data_get($payroll, 'philhealth_contribution', 0);
-        $tax = (float) data_get($payroll, 'withholding_tax', 0);
+        $sssContrib = (float) data_get($payroll, 'sss_contribution', data_get($payroll, 'sss_loan', data_get($payroll, 'employee.sss_contribution', 0)));
+        $pagibigContrib = (float) data_get($payroll, 'pagibig_contribution', data_get($payroll, 'employee.pagibig_contribution', 0));
+        $philhealthContrib = (float) data_get($payroll, 'philhealth_contribution', data_get($payroll, 'employee.philhealth_contribution', 0));
+        $emergencyLoan = (float) data_get($payroll, 'emergency_loan', data_get($payroll, 'employee.emergency_loan', 0));
+        $tax = (float) data_get($payroll, 'withholding_tax', data_get($payroll, 'employee.withholding_tax', 0));
         $deductions = (float) data_get($payroll, 'deductions', 0);
         $netPay = (float) data_get($payroll, 'net_pay', 0);
     @endphp
@@ -180,23 +178,23 @@
                 <td class="info-label">Designation</td>
                 <td class="info-value">{{ $position }}</td>
                 <td class="info-label">Daily Rate</td>
-                <td class="info-value emerald-text font-bold">₱{{ number_format($dailyRate, 2) }}</td>
+                <td class="info-value font-bold">₱{{ number_format($dailyRate, 2) }}</td>
             </tr>
         </table>
 
-        <table class="breakdown-table">
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px;">
             <thead>
                 <tr>
-                    <th class="text-left" style="width: 50%;">EARNINGS BREAKDOWN</th>
-                    <th class="text-left" style="width: 50%;">DEDUCTIONS BREAKDOWN</th>
+                    <th class="table-header-left" style="width: 50%;">GROSS EARNINGS</th>
+                    <th class="table-header-left" style="width: 50%;">PAYROLL DEDUCTIONS</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
-                    <td style="vertical-align: top; padding: 0;">
+                    <td style="vertical-align: top; padding: 0; border-right: 1px solid #e2e8f0;">
                         <table style="width: 100%; border-collapse: collapse; font-size: 8.5px;">
                             <tr>
-                                <td style="border: none; padding: 3px 6px;">Basic Pay ({{ $daysWorked }} Days)</td>
+                                <td style="border: none; padding: 3px 6px;">Basic Salary Pay</td>
                                 <td style="border: none; padding: 3px 6px;" class="text-right">₱{{ number_format($basicPay, 2) }}</td>
                             </tr>
                             <tr>
@@ -225,12 +223,16 @@
                             </tr>
                             @endif
                             <tr>
-                                <td style="border: none; padding: 2px 6px;">SSS Loan Deduction</td>
-                                <td style="border: none; padding: 2px 6px;" class="text-right rose-text">-₱{{ number_format($sssLoan, 2) }}</td>
+                                <td style="border: none; padding: 2px 6px;">SSS Contribution</td>
+                                <td style="border: none; padding: 2px 6px;" class="text-right rose-text">-₱{{ number_format($sssContrib, 2) }}</td>
                             </tr>
                             <tr>
                                 <td style="border: none; padding: 2px 6px;">Pag-IBIG Contribution</td>
-                                <td style="border: none; padding: 2px 6px;" class="text-right rose-text">-₱{{ number_format($pagibigContrib > 0 ? $pagibigContrib : (float)data_get($payroll, 'employee.pagibig_contribution', 200), 2) }}</td>
+                                <td style="border: none; padding: 2px 6px;" class="text-right rose-text">-₱{{ number_format($pagibigContrib, 2) }}</td>
+                            </tr>
+                            <tr>
+                                <td style="border: none; padding: 2px 6px;">PhilHealth Contribution</td>
+                                <td style="border: none; padding: 2px 6px;" class="text-right rose-text">-₱{{ number_format($philhealthContrib, 2) }}</td>
                             </tr>
                             <tr>
                                 <td style="border: none; padding: 2px 6px;">Emergency Loan Deduction</td>
@@ -238,7 +240,7 @@
                             </tr>
                             <tr>
                                 <td style="border: none; padding: 2px 6px;">Tax W/Held Payable</td>
-                                <td style="border: none; padding: 2px 6px;" class="text-right rose-text">-₱{{ number_format($tax > 0 ? $tax : (float)data_get($payroll, 'employee.withholding_tax', 0), 2) }}</td>
+                                <td style="border: none; padding: 2px 6px;" class="text-right rose-text">-₱{{ number_format($tax, 2) }}</td>
                             </tr>
                             <tr style="border-top: 1px solid #cbd5e1; font-weight: bold;">
                                 <td style="border: none; padding: 4px 6px;" class="rose-text">TOTAL DEDUCTIONS</td>
