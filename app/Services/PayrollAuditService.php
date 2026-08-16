@@ -153,9 +153,16 @@ class PayrollAuditService
                 ->where('remaining_balance', '>', 0)
                 ->get();
 
-            $totalUnpaidAdvancement = (float) $repayableAdvancements->sum('remaining_balance');
+            $totalTargetDeduction = (float) $repayableAdvancements->sum(function ($adv) {
+                $rem = (float) $adv->remaining_balance;
+                $installment = ($adv->installment_amount && (float) $adv->installment_amount > 0)
+                    ? (float) $adv->installment_amount
+                    : $rem;
+                return min($rem, $installment);
+            });
+
             $maxDeductibleCapacity = max(0.00, round($totalEarnings - $baseDeductions, 2));
-            $cashAdvanceDeduction = min($totalUnpaidAdvancement, $maxDeductibleCapacity);
+            $cashAdvanceDeduction = min($totalTargetDeduction, $maxDeductibleCapacity);
 
             $totalDeductions = round($baseDeductions + $cashAdvanceDeduction, 2);
             $netAmount = max(0.00, round($totalEarnings - $totalDeductions, 2));

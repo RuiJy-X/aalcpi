@@ -71,6 +71,10 @@ class ApplicationSmokeAndRegressionTest extends TestCase
 
         $showResponse = $this->actingAs($this->adminUser)->get("/Employees/{$this->testEmployee->id}");
         $showResponse->assertStatus(200);
+        $showResponse->assertInertia(fn ($page) => $page
+            ->component('Employees/Show')
+            ->has('payrolls')
+        );
     }
 
     public function test_employee_crud_and_validation_with_exact_17_fields(): void

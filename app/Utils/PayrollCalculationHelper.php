@@ -13,7 +13,7 @@ class PayrollCalculationHelper
      * @param int $workingDaysPerMonth
      * @return float
      */
-    public static function calculateDailyRate(float $monthlySalary, int $workingDaysPerMonth = 26): float
+    public static function calculateDailyRate(float $monthlySalary, int $workingDaysPerMonth = 30): float
     {
         if ($workingDaysPerMonth <= 0) {
             return 0;
@@ -32,7 +32,7 @@ class PayrollCalculationHelper
      */
     public static function calculateHourlyRate(
         float $monthlySalary,
-        int $workingDaysPerMonth = 26,
+        int $workingDaysPerMonth = 30,
         int $hoursPerDay = 8
     ): float {
         if ($workingDaysPerMonth <= 0 || $hoursPerDay <= 0) {
@@ -56,7 +56,7 @@ class PayrollCalculationHelper
         float $monthlySalary,
         Carbon $periodStart,
         Carbon $periodEnd,
-        int $workingDaysPerMonth = 26
+        int $workingDaysPerMonth = 30
     ): float {
         $workingDaysInPeriod = self::countWorkingDays($periodStart, $periodEnd);
         $dailyRate = self::calculateDailyRate($monthlySalary, $workingDaysPerMonth);
@@ -102,6 +102,22 @@ class PayrollCalculationHelper
         float $overtimeMultiplier = 1.5
     ): float {
         return round($hourlyRate * $overtimeHours * $overtimeMultiplier, 2);
+    }
+
+    /**
+     * Calculate Pag-IBIG contribution (2% of monthly salary)
+     *
+     * @param float $monthlySalary
+     * @param float $rate
+     * @return float
+     */
+    public static function calculatePagibigContribution(float $monthlySalary, float $rate = 0.02): float
+    {
+        if ($monthlySalary <= 0) {
+            return 0.00;
+        }
+
+        return round($monthlySalary * $rate, 2);
     }
 
     /**

@@ -101,9 +101,9 @@ class PayrollController extends Controller
      */
     public function create()
     {
-        // Default range: 1st - 15th of current month
-        $start = Carbon::now()->startOfMonth();
-        $end = Carbon::now()->startOfMonth()->addDays(14);
+        // Default range: 10th - 25th of current month (1st cutoff)
+        $start = Carbon::now()->setDate(Carbon::now()->year, Carbon::now()->month, 10);
+        $end = Carbon::now()->setDate(Carbon::now()->year, Carbon::now()->month, 25);
 
         $initialBatchData = $this->auditService->auditBatch($start, $end);
 
@@ -181,7 +181,7 @@ class PayrollController extends Controller
         ]);
 
         $hoursPerDay = 8;
-        $daysPerMonth = 24;
+        $daysPerMonth = 30;
 
         $dailyRate = (float) $validated['daily_rate'];
         $validated['hourly_rate'] = number_format($dailyRate / $hoursPerDay, 2, '.', '');
@@ -358,6 +358,69 @@ class PayrollController extends Controller
         $pdf = Pdf::loadView('pdfs.employee_payslip', compact('payroll'))->setPaper('a5', 'portrait');
 
         return $pdf->stream("payslip_{$payrollRecord->employee_id}_{$payroll['period_start']}.pdf");
+    }
+
+    /**
+     * Stream formal monochrome Statement of Account PDF for a payroll record
+     */
+    public function downloadStatementOfAccountPdf($id)
+    {
+        $payrollRecord = Payroll::with('employee')->findOrFail($id);
+        $employee = $payrollRecord->employee;
+
+        $advancements = Advancement::where('employee_id', $payrollRecord->employee_id)
+            ->whereIn('status', ['pending_payout', 'paid_out', 'partially_deducted'])
+            ->whereNotIn('status', ['cancelled', 'deducted', 'fully_repaid'])
+            ->latest('advancement_date')
+            ->get();
+
+        $cashAdvancePayout = (float) (($payrollRecord->cash_advance_payout ?? 0) > 0 ? $payrollRecord->cash_advance_payout : Advancement::where('payout_payroll_id', $payrollRecord->id)->sum('amount'));
+        $cashAdvanceDeduction = (float) (($payrollRecord->cash_advance_deduction ?? 0) > 0 ? $payrollRecord->cash_advance_deduction : Advancement::where('deduction_payroll_id', $payrollRecord->id)->sum('amount'));
+
+        $soaNumber = 'SOA-' . ($employee?->employee_code ?? ('EMP-' . str_pad((string) $payrollRecord->employee_id, 3, '0', STR_PAD_LEFT))) . '-' . now()->format('Ymd');
+        $dateIssued = now()->format('F d, Y');
+
+        $data = [
+            'soa_number'             => $soaNumber,
+            'date_issued'            => $dateIssued,
+            'payroll_id'             => $payrollRecord->id,
+            'employee_code'          => $employee?->employee_code ?? ('EMP-' . str_pad((string) $payrollRecord->employee_id, 3, '0', STR_PAD_LEFT)),
+            'employee_name'          => $employee?->name ?? 'N/A',
+            'position'               => $employee?->position ?? 'N/A',
+            'address'                => $employee?->address ?? 'N/A',
+            'contact_number'         => $employee?->contact_number ?? 'N/A',
+            'tin'                    => $employee?->tin ?? 'N/A',
+            'sss_no'                 => $employee?->sss_no ?? 'N/A',
+            'pagibig_no'             => $employee?->pagibig_no ?? 'N/A',
+            'philhealth_no'          => $employee?->philhealth_no ?? 'N/A',
+            'daily_rate'             => (float) ($employee?->daily_rate ?? ($payrollRecord->hourly_rate * 8)),
+            'period_start'           => $payrollRecord->period_start?->toDateString(),
+            'period_end'             => $payrollRecord->period_end?->toDateString(),
+            'days_worked'            => $payrollRecord->days_worked ?? 0,
+            'total_hours'            => $payrollRecord->total_hours ?? 0,
+            'basic_pay'              => (float) $payrollRecord->basic_pay,
+            'overtime_hours'         => (float) ($payrollRecord->overtime_hours ?? 0),
+            'overtime_pay'           => max(0, (float) $payrollRecord->gross_pay - (float) $payrollRecord->basic_pay - $cashAdvancePayout),
+            'holidays'               => (int) ($payrollRecord->holidays ?? 0),
+            'holiday_pay'            => (float) ($payrollRecord->holiday_pay ?? 0),
+            'cash_advance_payout'    => $cashAdvancePayout,
+            'gross_pay'              => (float) $payrollRecord->gross_pay,
+            'sss_contribution'       => (float) ($employee?->sss_contribution ?? 0),
+            'sss_loan'               => (float) ($payrollRecord->sss_loan ?? $employee?->sss_loan ?? 0),
+            'pagibig_contribution'   => (float) ($employee?->pagibig_contribution ?? 200.00),
+            'pagibig_loan'           => (float) ($payrollRecord->pagibig_loan ?? $employee?->pagibig_loan ?? 0),
+            'philhealth_contribution' => (float) ($employee?->philhealth_contribution ?? 0),
+            'emergency_loan'         => (float) ($payrollRecord->emergency_loan ?? $employee?->emergency_loan ?? 0),
+            'withholding_tax'        => (float) ($employee?->withholding_tax ?? 0),
+            'cash_advance_deduction' => $cashAdvanceDeduction,
+            'deductions'             => (float) $payrollRecord->deductions,
+            'net_pay'                => (float) $payrollRecord->net_pay,
+            'advancements'           => $advancements,
+        ];
+
+        $pdf = Pdf::loadView('pdfs.statement_of_account', $data)->setPaper('a4', 'portrait');
+
+        return $pdf->stream("statement_of_account_{$payrollRecord->employee_id}_{$payrollRecord->period_start?->format('Ymd')}.pdf");
     }
 
     /**
@@ -816,7 +879,11 @@ class PayrollController extends Controller
                 foreach ($repayables as $adv) {
                     if ($deductionPool <= 0) break;
                     $rem = (float) $adv->remaining_balance;
-                    $deductNow = min($rem, $deductionPool);
+                    $installmentCap = ($adv->installment_amount && (float) $adv->installment_amount > 0)
+                        ? (float) $adv->installment_amount
+                        : $rem;
+                    $maxForThisAdv = min($rem, $installmentCap);
+                    $deductNow = min($maxForThisAdv, $deductionPool);
                     $newRem = round($rem - $deductNow, 2);
                     $deductionPool = round($deductionPool - $deductNow, 2);
 

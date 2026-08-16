@@ -32,6 +32,9 @@ class AdvancementController extends Controller
                 'status' => $adv->status,
                 'payout_payroll_id' => $adv->payout_payroll_id,
                 'deduction_payroll_id' => $adv->deduction_payroll_id,
+                'repayment_term_type' => $adv->repayment_term_type ?? 'full',
+                'repayment_terms' => $adv->repayment_terms ? (int) $adv->repayment_terms : null,
+                'installment_amount' => $adv->installment_amount !== null ? (float) $adv->installment_amount : (float) $adv->amount,
                 'notes' => $adv->notes,
                 'created_at' => $adv->created_at?->toDateTimeString(),
             ];
@@ -72,6 +75,9 @@ class AdvancementController extends Controller
                     'status' => $adv->status,
                     'payout_payroll_id' => $adv->payout_payroll_id,
                     'deduction_payroll_id' => $adv->deduction_payroll_id,
+                    'repayment_term_type' => $adv->repayment_term_type ?? 'full',
+                    'repayment_terms' => $adv->repayment_terms ? (int) $adv->repayment_terms : null,
+                    'installment_amount' => $adv->installment_amount !== null ? (float) $adv->installment_amount : (float) $adv->amount,
                     'notes' => $adv->notes,
                     'created_at' => $adv->created_at?->toDateTimeString(),
                 ];
@@ -89,10 +95,30 @@ class AdvancementController extends Controller
             'employee_id' => 'required|exists:employees,id',
             'amount' => 'required|numeric|min:1',
             'advancement_date' => 'required|date',
+            'repayment_term_type' => 'nullable|string|in:full,months,payrolls,fixed_amount',
+            'repayment_terms' => 'nullable|integer|min:1',
+            'installment_amount' => 'nullable|numeric|min:0.01',
             'notes' => 'nullable|string|max:500',
         ]);
 
         $amount = (float) $validated['amount'];
+        $repaymentTermType = $validated['repayment_term_type'] ?? 'full';
+        $repaymentTerms = isset($validated['repayment_terms']) ? (int) $validated['repayment_terms'] : null;
+        $installmentAmount = null;
+
+        if ($repaymentTermType === 'months') {
+            // Semi-monthly payroll: 2 cutoffs per month. E.g. 5 months = 10 cutoffs
+            $cutoffs = max(1, ($repaymentTerms ?? 1) * 2);
+            $installmentAmount = round($amount / $cutoffs, 2);
+        } elseif ($repaymentTermType === 'payrolls') {
+            $cutoffs = max(1, $repaymentTerms ?? 1);
+            $installmentAmount = round($amount / $cutoffs, 2);
+        } elseif ($repaymentTermType === 'fixed_amount') {
+            $installmentAmount = isset($validated['installment_amount']) ? (float) $validated['installment_amount'] : $amount;
+        } else {
+            $repaymentTermType = 'full';
+            $installmentAmount = $amount;
+        }
 
         $advancement = Advancement::create([
             'employee_id' => $validated['employee_id'],
@@ -100,6 +126,9 @@ class AdvancementController extends Controller
             'remaining_balance' => $amount,
             'advancement_date' => Carbon::parse($validated['advancement_date']),
             'status' => 'pending_payout',
+            'repayment_term_type' => $repaymentTermType,
+            'repayment_terms' => $repaymentTerms,
+            'installment_amount' => $installmentAmount,
             'notes' => $validated['notes'] ?? null,
         ]);
 

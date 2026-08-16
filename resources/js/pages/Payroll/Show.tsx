@@ -31,6 +31,8 @@ import {
     HandCoins,
     RotateCcw,
     Trash2,
+    Download,
+    FileText,
 } from 'lucide-react';
 import { ConfirmDeleteModal } from '@/components/ConfirmDeleteModal';
 
@@ -186,6 +188,10 @@ export default function Show({ payroll }: { payroll: PayrollDetailType }) {
         window.open(`/Payroll/${payroll.id}/pdf`, '_blank');
     };
 
+    const handleExportStatementOfAccountPdf = () => {
+        window.open(`/Payroll/${payroll.id}/statement-of-account-pdf`, '_blank');
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Payroll Voucher - ${employee?.name ?? 'Employee'}`} />
@@ -272,6 +278,16 @@ export default function Show({ payroll }: { payroll: PayrollDetailType }) {
                             >
                                 <Printer className="mr-1.5 h-4 w-4" />
                                 Print Payslip PDF
+                            </Button>
+
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={handleExportStatementOfAccountPdf}
+                                className="h-9 px-3 font-semibold border-slate-300 dark:border-slate-700"
+                            >
+                                <FileText className="mr-1.5 h-4 w-4" />
+                                Statement of Account (PDF)
                             </Button>
 
                             <Button variant="outline" size="sm" asChild>

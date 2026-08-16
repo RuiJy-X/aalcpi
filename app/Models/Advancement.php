@@ -19,6 +19,9 @@ class Advancement extends Model
         'status',
         'payout_payroll_id',
         'deduction_payroll_id',
+        'repayment_term_type',
+        'repayment_terms',
+        'installment_amount',
         'notes',
     ];
 
@@ -26,6 +29,8 @@ class Advancement extends Model
         'amount' => 'decimal:2',
         'remaining_balance' => 'decimal:2',
         'advancement_date' => 'date',
+        'repayment_terms' => 'integer',
+        'installment_amount' => 'decimal:2',
     ];
 
     public function employee(): BelongsTo

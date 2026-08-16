@@ -95,6 +95,7 @@ class UserController extends Controller
 
         $this->assertCanAssignRoles($request->user(), $validated['roles'] ?? []);
         $this->assertNotStrippingLastSuperAdmin($user, $validated['roles'] ?? []);
+        $this->assertNotStrippingOwnRoles($request->user(), $user, $validated['roles'] ?? []);
 
         $payload = [
             'name' => $validated['name'],
@@ -215,6 +216,40 @@ class UserController extends Controller
 
         if ($otherSuperAdmins === 0) {
             abort(422, 'Cannot remove the super admin role from the last super admin.');
+        }
+    }
+
+    /**
+     * Prevent users from removing administrative roles from their own account.
+     *
+     * @param  list<string>  $newRoles
+     */
+    private function assertNotStrippingOwnRoles(User $actor, User $targetUser, array $newRoles): void
+    {
+        if ($actor->id !== $targetUser->id) {
+            return;
+        }
+
+        $currentRoles = $targetUser->roles->pluck('name')->all();
+        $removedRoles = array_diff($currentRoles, $newRoles);
+
+        if (empty($removedRoles)) {
+            return;
+        }
+
+        if (in_array(Permissions::SUPER_ADMIN_ROLE, $removedRoles, true)) {
+            abort(422, 'You cannot remove the super admin role from your own account.');
+        }
+
+        $adminRoles = [Permissions::SUPER_ADMIN_ROLE, 'manager', 'admin'];
+        foreach ($removedRoles as $removedRole) {
+            if (in_array($removedRole, $adminRoles, true)) {
+                abort(422, "You cannot remove the '{$removedRole}' role from your own account.");
+            }
+        }
+
+        if (empty($newRoles)) {
+            abort(422, 'You cannot remove all roles from your own account.');
         }
     }
 }

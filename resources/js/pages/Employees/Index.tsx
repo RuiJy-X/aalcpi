@@ -44,7 +44,7 @@ export default function Dashboard({
     };
 }) {
     const { data, setData, patch, processing, errors } = useForm({
-        days_per_month: String(hourlyRateSettings.days_per_month ?? 24),
+        days_per_month: String(hourlyRateSettings.days_per_month ?? 30),
         hours_per_day: String(hourlyRateSettings.hours_per_day ?? 8),
     });
 

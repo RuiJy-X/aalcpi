@@ -20,7 +20,7 @@ class EmployeeFactory extends Factory
             'employment_type' => fake()->randomElement(['Regular', 'Seasonal']),
             'department' => fake()->randomElement(['Operations', 'Admin', 'Field']),
             'base_salary' => $baseSalary,
-            'hourly_rate' => round($baseSalary / (24 * 8), 2),
+            'hourly_rate' => round($baseSalary / (30 * 8), 2),
             'address' => fake()->address(),
             'tin' => fake()->numerify('###-###-###-###'),
             'contact_number' => fake()->numerify('09#########'),

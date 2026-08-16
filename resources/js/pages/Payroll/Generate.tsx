@@ -669,19 +669,30 @@ export default function GenerateBatchPage({
     const applyPreset = (type: 'first_cutoff' | 'second_cutoff') => {
         const now = new Date();
         const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const month = now.getMonth();
 
-        let start = '';
-        let end = '';
+        let startDate: Date;
+        let endDate: Date;
 
         if (type === 'first_cutoff') {
-            start = `${year}-${month}-01`;
-            end = `${year}-${month}-15`;
+            // 1st Cutoff: 10th to 25th of current month (e.g. Jan 10 - Jan 25)
+            startDate = new Date(year, month, 10);
+            endDate = new Date(year, month, 25);
         } else {
-            const lastDay = new Date(year, now.getMonth() + 1, 0).getDate();
-            start = `${year}-${month}-16`;
-            end = `${year}-${month}-${lastDay}`;
+            // 2nd Cutoff: 25th of current month to 10th of next month (e.g. Jan 25 - Feb 10)
+            startDate = new Date(year, month, 25);
+            endDate = new Date(year, month + 1, 10);
         }
+
+        const formatDateStr = (d: Date) => {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+        };
+
+        const start = formatDateStr(startDate);
+        const end = formatDateStr(endDate);
 
         setPeriodStart(start);
         setPeriodEnd(end);
@@ -1004,14 +1015,14 @@ export default function GenerateBatchPage({
                                 size="sm"
                                 onClick={() => applyPreset('first_cutoff')}
                             >
-                                1st Cutoff (1st - 15th)
+                                1st Cutoff (10th - 25th)
                             </Button>
                             <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => applyPreset('second_cutoff')}
                             >
-                                2nd Cutoff (16th - End)
+                                2nd Cutoff (25th - 10th)
                             </Button>
                         </div>
                     </div>

@@ -60,7 +60,7 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             EmployeeSeeder::class,
             AttendanceSeeder::class,
-
+            JanToAug2026Seeder::class,
         ]);
     }
 }

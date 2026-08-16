@@ -11,13 +11,13 @@ return new class extends Migration
     {
         Schema::create('payroll_calculation_settings', function (Blueprint $table) {
             $table->id();
-            $table->unsignedInteger('days_per_month')->default(24);
+            $table->unsignedInteger('days_per_month')->default(30);
             $table->decimal('hours_per_day', 5, 2)->default(8);
             $table->timestamps();
         });
 
         DB::table('payroll_calculation_settings')->insert([
-            'days_per_month' => 24,
+            'days_per_month' => 30,
             'hours_per_day' => 8,
             'created_at' => now(),
             'updated_at' => now(),

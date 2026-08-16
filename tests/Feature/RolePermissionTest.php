@@ -139,3 +139,36 @@ test('user with only view permission cannot create users', function () {
         ])
         ->assertForbidden();
 });
+
+test('user cannot remove administrative role from their own account', function () {
+    $admin = makeUserWithRole(Permissions::SUPER_ADMIN_ROLE);
+
+    $this->actingAs($admin)
+        ->patch(route('users.update', $admin->id), [
+            'name' => $admin->name,
+            'email' => $admin->email,
+            'username' => $admin->username,
+            'roles' => [],
+            'permissions' => [],
+        ])
+        ->assertStatus(422);
+
+    expect($admin->fresh()->hasRole(Permissions::SUPER_ADMIN_ROLE))->toBeTrue();
+});
+
+test('admin can remove role from another user', function () {
+    $admin = makeUserWithRole(Permissions::SUPER_ADMIN_ROLE);
+    $otherUser = makeUserWithRole('employee');
+
+    $this->actingAs($admin)
+        ->patch(route('users.update', $otherUser->id), [
+            'name' => $otherUser->name,
+            'email' => $otherUser->email,
+            'username' => $otherUser->username,
+            'roles' => [],
+            'permissions' => [],
+        ])
+        ->assertRedirect();
+
+    expect($otherUser->fresh()->roles)->toBeEmpty();
+});

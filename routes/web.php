@@ -190,6 +190,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/Payroll/{payroll}/pdf', [PayrollController::class, 'downloadPayslipPdf'])
         ->middleware('permission:payroll.view')
         ->name('payroll.payslip-pdf');
+    Route::get('/Payroll/{payroll}/statement-of-account-pdf', [PayrollController::class, 'downloadStatementOfAccountPdf'])
+        ->middleware('permission:payroll.view')
+        ->name('payroll.statement-of-account-pdf');
+    Route::get('/Employees/{employee}/statement-of-account-pdf', [EmployeeController::class, 'downloadStatementOfAccountPdf'])
+        ->middleware('permission:employees.view')
+        ->name('employees.statement-of-account-pdf');
     Route::get('/Payroll/summary-pdf', [PayrollController::class, 'downloadSummaryPdf'])
         ->middleware('permission:payroll.view')
         ->name('payroll.summary-pdf');

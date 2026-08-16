@@ -268,11 +268,11 @@ Reusable calculation utilities.
 
 **Calculations:**
 
-- Daily rate = 20,000 / 26 = ₱769.23
-- Basic pay = 769.23 × 20 = ₱15,384.62
-- Overtime: 2 days × 8 hours × ₱96.15 × 1.5 = ₱2,307.60
-- Gross pay = 15,384.62 + 2,307.60 = ₱17,692.22
-- Net pay = 17,692.22 - 2,000 = **₱15,692.22**
+- Daily rate = 20,000 / 30 = ₱666.67
+- Basic pay = 666.67 × 20 = ₱13,333.40
+- Overtime: 2 days × 8 hours × ₱83.33 × 1.5 = ₱1,999.92
+- Gross pay = 13,333.40 + 1,999.92 = ₱15,333.32
+- Net pay = 15,333.32 - 2,000 = **₱13,333.32**
 
 ## Customization Guide
 
@@ -289,7 +289,7 @@ return PayrollCalculationHelper::calculateOvertimePay($hourlyRate, intval($total
 Edit `PayrollCalculationHelper.php`:
 
 ```php
-public static function calculateDailyRate(float $monthlySalary, int $workingDaysPerMonth = 22): float
+public static function calculateDailyRate(float $monthlySalary, int $workingDaysPerMonth = 30): float
 ```
 
 ### Adding Additional Fields

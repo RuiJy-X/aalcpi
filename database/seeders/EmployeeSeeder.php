@@ -37,8 +37,8 @@ class EmployeeSeeder extends Seeder
             'Kabankalan City, Negros Occidental', 'La Carlota City, Negros Occidental'
         ];
 
-        $startDate = Carbon::parse('2026-07-01');
-        $endDate = Carbon::parse('2026-08-30');
+        $startDate = Carbon::parse('2026-01-01');
+        $endDate = Carbon::parse('2026-08-31');
 
         $employees = [];
 

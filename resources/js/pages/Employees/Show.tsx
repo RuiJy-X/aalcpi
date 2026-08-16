@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import type { ColumnDef } from '@tanstack/react-table';
 import { Head, Link } from '@inertiajs/react';
 import type { EmployeeType } from './employeeTypes';
 import AppLayout from '@/layouts/app-layout';
@@ -34,6 +35,7 @@ import {
     HandCoins,
     Clock,
     PlusCircle,
+    FileText,
 } from 'lucide-react';
 import { RecordAdvancementModal } from '@/components/RecordAdvancementModal';
 
@@ -156,6 +158,80 @@ export default function Show({
         { title: employee.name, href: employeeHref },
     ];
 
+    const advancementColumns = useMemo<ColumnDef<AdvancementRecord>[]>(
+        () => [
+            {
+                accessorKey: 'advancement_date',
+                header: 'Advancement Date',
+                cell: ({ row }) => (
+                    <div className="font-medium whitespace-nowrap">
+                        {row.original.advancement_date}
+                    </div>
+                ),
+            },
+            {
+                accessorKey: 'amount',
+                header: () => <div className="text-right">Original Advance (+)</div>,
+                cell: ({ row }) => {
+                    const amount =
+                        typeof row.original.amount === 'number'
+                            ? row.original.amount
+                            : parseFloat(String(row.original.amount || 0));
+                    return (
+                        <div className="text-right font-bold whitespace-nowrap text-emerald-600 dark:text-emerald-400">
+                            ₱{amount.toFixed(2)}
+                        </div>
+                    );
+                },
+            },
+            {
+                accessorKey: 'remaining_balance',
+                header: () => <div className="text-right">Remaining Unpaid (-)</div>,
+                cell: ({ row }) => {
+                    const balance =
+                        typeof row.original.remaining_balance === 'number'
+                            ? row.original.remaining_balance
+                            : parseFloat(String(row.original.remaining_balance || 0));
+                    return (
+                        <div className="text-right font-bold whitespace-nowrap text-rose-600 dark:text-rose-400">
+                            ₱{balance.toFixed(2)}
+                        </div>
+                    );
+                },
+            },
+            {
+                accessorKey: 'status',
+                header: () => <div className="text-center">Status</div>,
+                cell: ({ row }) => {
+                    const badge = statusBadges[row.original.status] || {
+                        label: row.original.status,
+                        class: '',
+                    };
+                    return (
+                        <div className="text-center whitespace-nowrap">
+                            <Badge
+                                variant="outline"
+                                className={`text-[10px] font-bold tracking-wider uppercase ${badge.class}`}
+                            >
+                                {badge.label}
+                            </Badge>
+                        </div>
+                    );
+                },
+            },
+            {
+                accessorKey: 'notes',
+                header: 'Notes / Purpose',
+                cell: ({ row }) => (
+                    <div className="text-muted-foreground">
+                        {row.original.notes || '—'}
+                    </div>
+                ),
+            },
+        ],
+        [],
+    );
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`${employee.name} | Employee Profile`} />
@@ -181,6 +257,21 @@ export default function Show({
                             >
                                 <HandCoins className="mr-1.5 h-4 w-4" />+ Grant
                                 Cash Advance
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                asChild
+                                className="border-border text-xs font-semibold sm:text-sm"
+                            >
+                                <a
+                                    href={`/Employees/${employee.id}/statement-of-account-pdf`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                >
+                                    <FileText className="mr-1.5 h-4 w-4" />
+                                    Statement of Account (PDF)
+                                </a>
                             </Button>
                             <Button variant="outline" size="sm" asChild>
                                 <Link href={employeeIndex().url}>
@@ -447,79 +538,10 @@ export default function Show({
                     </div>
 
                     <TabsContent value="advancements" className="mt-4">
-                        <div className="overflow-hidden rounded-xl border border-border bg-card shadow-xs">
-                            <table className="w-full text-left text-xs">
-                                <thead className="border-b border-border bg-muted/50 font-semibold tracking-wider text-muted-foreground uppercase">
-                                    <tr>
-                                        <th className="p-3">
-                                            Advancement Date
-                                        </th>
-                                        <th className="p-3 text-right">
-                                            Original Advance (+)
-                                        </th>
-                                        <th className="p-3 text-right">
-                                            Remaining Unpaid (-)
-                                        </th>
-                                        <th className="p-3 text-center">
-                                            Status
-                                        </th>
-                                        <th className="p-3">Notes / Purpose</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-border/60">
-                                    {advancements.length === 0 ? (
-                                        <tr>
-                                            <td
-                                                colSpan={5}
-                                                className="p-8 text-center text-muted-foreground"
-                                            >
-                                                No cash advancements recorded
-                                                for this employee.
-                                            </td>
-                                        </tr>
-                                    ) : (
-                                        advancements.map((adv) => {
-                                            const badge = statusBadges[
-                                                adv.status
-                                            ] || {
-                                                label: adv.status,
-                                                class: '',
-                                            };
-                                            return (
-                                                <tr
-                                                    key={adv.id}
-                                                    className="hover:bg-muted/30"
-                                                >
-                                                    <td className="p-3 font-medium whitespace-nowrap">
-                                                        {adv.advancement_date}
-                                                    </td>
-                                                    <td className="p-3 text-right font-bold whitespace-nowrap text-emerald-600 dark:text-emerald-400">
-                                                        ₱{adv.amount.toFixed(2)}
-                                                    </td>
-                                                    <td className="p-3 text-right font-bold whitespace-nowrap text-rose-600 dark:text-rose-400">
-                                                        ₱
-                                                        {adv.remaining_balance.toFixed(
-                                                            2,
-                                                        )}
-                                                    </td>
-                                                    <td className="p-3 text-center whitespace-nowrap">
-                                                        <Badge
-                                                            variant="outline"
-                                                            className={`text-[10px] font-bold tracking-wider uppercase ${badge.class}`}
-                                                        >
-                                                            {badge.label}
-                                                        </Badge>
-                                                    </td>
-                                                    <td className="p-3 text-muted-foreground">
-                                                        {adv.notes || '—'}
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
+                        <DataTable
+                            data={advancements}
+                            columns={advancementColumns}
+                        />
                     </TabsContent>
 
                     <TabsContent value="attendance" className="mt-4">

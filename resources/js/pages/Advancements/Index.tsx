@@ -51,6 +51,9 @@ interface AdvancementItem {
         | 'partially_deducted'
         | 'deducted'
         | 'cancelled';
+    repayment_term_type?: 'full' | 'months' | 'payrolls' | 'fixed_amount';
+    repayment_terms?: number | null;
+    installment_amount?: number | null;
     notes?: string;
 }
 
@@ -262,6 +265,39 @@ export default function AdvancementsIndexPage({
                         })}
                     </div>
                 ),
+            },
+            {
+                accessorKey: 'installment_amount',
+                header: ({ column }) => (
+                    <div className="text-right">
+                        <SortHeader label="Plan / Deduction Rate" column={column} />
+                    </div>
+                ),
+                cell: ({ row }) => {
+                    const inst = row.original.installment_amount ?? row.original.amount;
+                    const planType = row.original.repayment_term_type ?? 'full';
+                    const terms = row.original.repayment_terms;
+
+                    let planBadge = 'Next Payroll';
+                    if (planType === 'months' && terms) {
+                        planBadge = `${terms} Mos (${terms * 2} Cutoffs)`;
+                    } else if (planType === 'payrolls' && terms) {
+                        planBadge = `${terms} Cutoffs`;
+                    } else if (planType === 'fixed_amount') {
+                        planBadge = 'Fixed Rate';
+                    }
+
+                    return (
+                        <div className="text-right text-xs whitespace-nowrap">
+                            <div className="font-bold text-foreground">
+                                ₱{inst.toLocaleString('en-PH', { minimumFractionDigits: 2 })} / cutoff
+                            </div>
+                            <div className="text-[10px] text-muted-foreground font-medium">
+                                {planBadge}
+                            </div>
+                        </div>
+                    );
+                },
             },
             {
                 accessorKey: 'remaining_balance',

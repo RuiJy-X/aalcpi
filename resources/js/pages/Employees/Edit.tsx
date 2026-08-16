@@ -1,5 +1,5 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { ArrowLeft, Save, PlusCircle, MinusCircle, Wallet, FileText, BadgeCheck } from 'lucide-react';
+import { ArrowLeft, Save, PlusCircle, MinusCircle, Wallet, FileText, BadgeCheck, Calculator } from 'lucide-react';
 import type { FormEventHandler } from 'react';
 import AppLayout from '@/layouts/app-layout';
 import { index as employeeIndex, show as employeeShow, update as employeeUpdate } from '@/routes/employees';
@@ -56,7 +56,7 @@ export default function EditEmployeePage({
 
     const handleDailyRateChange = (rateStr: string) => {
         const rate = parseFloat(rateStr) || 0;
-        const daysPerMonth = 24;
+        const daysPerMonth = 30;
         const hoursPerDay = 8;
         const hourly = rate / hoursPerDay;
         const monthly = rate * daysPerMonth;
@@ -71,7 +71,7 @@ export default function EditEmployeePage({
 
     const handleBaseSalaryChange = (salaryStr: string) => {
         const monthly = parseFloat(salaryStr) || 0;
-        const daysPerMonth = 24;
+        const daysPerMonth = 30;
         const hoursPerDay = 8;
         const daily = monthly / daysPerMonth;
         const hourly = daily / hoursPerDay;
@@ -82,6 +82,15 @@ export default function EditEmployeePage({
             daily_rate: monthly > 0 ? daily.toFixed(2) : data.daily_rate,
             hourly_rate: monthly > 0 ? hourly.toFixed(2) : data.hourly_rate,
         });
+    };
+
+    const handleAutoCalculatePagibig = () => {
+        const monthly = parseFloat(String(data.base_salary)) || 0;
+        const daily = parseFloat(String(data.daily_rate)) || 0;
+        const daysPerMonth = 30;
+        const effectiveMonthly = monthly > 0 ? monthly : daily * daysPerMonth;
+        const pagibig = (effectiveMonthly * 0.02).toFixed(2);
+        setData('pagibig_contribution', pagibig);
     };
 
     const handleSubmit: FormEventHandler = (e) => {
@@ -377,16 +386,31 @@ export default function EditEmployeePage({
                                             <Label htmlFor="pagibig_contribution" className="text-xs font-semibold text-foreground">
                                                 Pag-IBIG Contribution (₱)
                                             </Label>
-                                            <Input
-                                                id="pagibig_contribution"
-                                                type="number"
-                                                min="0"
-                                                step="0.01"
-                                                placeholder="0.00"
-                                                value={data.pagibig_contribution ?? '0.00'}
-                                                onChange={(e) => setData('pagibig_contribution', e.target.value)}
-                                                disabled={processing}
-                                            />
+                                            <div className="flex gap-2">
+                                                <Input
+                                                    id="pagibig_contribution"
+                                                    type="number"
+                                                    min="0"
+                                                    step="0.01"
+                                                    placeholder="0.00"
+                                                    value={data.pagibig_contribution ?? '0.00'}
+                                                    onChange={(e) => setData('pagibig_contribution', e.target.value)}
+                                                    disabled={processing}
+                                                    className="flex-1"
+                                                />
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="default"
+                                                    onClick={handleAutoCalculatePagibig}
+                                                    disabled={processing}
+                                                    className="shrink-0 border-emerald-600/40 bg-emerald-50/50 font-semibold text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-950/30 dark:text-emerald-300 dark:hover:bg-emerald-900/60 transition-all shadow-xs"
+                                                    title="Auto-calculate Pag-IBIG contribution (2% of monthly salary)"
+                                                >
+                                                    <Calculator className="h-4 w-4" />
+                                                    <span>Auto Calculate (2%)</span>
+                                                </Button>
+                                            </div>
                                         </div>
 
                                         <div className="space-y-1">
