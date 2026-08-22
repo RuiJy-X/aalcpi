@@ -154,6 +154,7 @@ class BankReconciliationController extends Controller
             ->pluck('disbursement_week');
 
         $kpiStats = $this->buildKpiStats($periodFrom, $periodTo);
+        $fileAuditStats = $this->buildFileAuditStats($periodFrom, $periodTo, $filters);
 
         if ($showAll) {
             $allWorkspaces = $baseQuery->get();
@@ -181,11 +182,12 @@ class BankReconciliationController extends Controller
                 'statuses' => $statusOptions,
                 'weekOptions' => $weekOptions,
                 'kpiStats' => $kpiStats,
+                'fileAuditStats' => $fileAuditStats,
             ]);
         }
 
         // Single aggregate query for total count and sum totals
-        $summary = (clone $baseQuery)->selectRaw("
+        $summary = (clone $baseQuery)->reorder()->selectRaw("
             COUNT(*) as total_count,
             COALESCE(SUM(internal_amount), 0) as internal_total,
             COALESCE(SUM(bank_amount), 0) as bank_total
@@ -225,7 +227,148 @@ class BankReconciliationController extends Controller
             'weekOptions' => $weekOptions,
             'summaryStats' => $summaryStats,
             'kpiStats' => $kpiStats,
+            'fileAuditStats' => $fileAuditStats,
         ]);
+    }
+
+    /**
+     * Build file audit stats for bank reconciliation.
+     * Business rule: 1 Monthly Bank Statement file + 4 Weekly Summary Ledgers per month (Weeks 1 to 4).
+     */
+    private function buildFileAuditStats(string $periodFrom, string $periodTo, array $filters = []): array
+    {
+        $hasDateFilter = $periodFrom !== '';
+        $referenceDate = $hasDateFilter ? \Illuminate\Support\Carbon::parse($periodFrom) : \Illuminate\Support\Carbon::now();
+        $targetMonthStr = $referenceDate->format('Y-m');
+        $monthStart = $referenceDate->copy()->startOfMonth()->toDateString();
+        $monthEnd = $referenceDate->copy()->endOfMonth()->toDateString();
+        $periodToResolved = $periodTo !== '' ? $periodTo : ($hasDateFilter ? $periodFrom : $monthEnd);
+
+        $periodLabel = $hasDateFilter
+            ? ($periodFrom === $monthStart && ($periodTo === '' || $periodTo === $monthEnd)
+                ? $referenceDate->format('F Y')
+                : $referenceDate->format('M d, Y') . ($periodTo !== '' && $periodTo !== $periodFrom ? ' – ' . \Illuminate\Support\Carbon::parse($periodTo)->format('M d, Y') : ''))
+            : 'All Dates (Showing ' . $referenceDate->format('F Y') . ' Cycle)';
+
+        // 1. Audit Bank Statement (1 file expected per month)
+        $bankJobQuery = DB::table('bank_statements')
+            ->leftJoin('import_jobs', 'import_jobs.id', '=', 'bank_statements.import_job_id')
+            ->where(function ($q) use ($monthStart, $monthEnd, $periodFrom, $periodToResolved, $hasDateFilter) {
+                if ($hasDateFilter) {
+                    $q->whereBetween('bank_statements.bank_date', [$monthStart, $monthEnd])
+                      ->orWhereBetween('bank_statements.tdate', [$periodFrom, $periodToResolved]);
+                } else {
+                    $q->whereBetween('bank_statements.bank_date', [$monthStart, $monthEnd]);
+                }
+            })
+            ->select([
+                DB::raw('COALESCE(import_jobs.file_name, \'Bank Statement\') as file_name'),
+                'import_jobs.id as import_job_id',
+                'import_jobs.created_at as uploaded_at',
+                DB::raw('COUNT(bank_statements.id) as record_count'),
+                DB::raw('COALESCE(SUM(bank_statements.debit), 0) as total_debit'),
+            ])
+            ->groupBy('import_jobs.id', 'import_jobs.file_name', 'import_jobs.created_at')
+            ->first();
+
+        $bankFileStatus = [
+            'status'       => $bankJobQuery && (int) $bankJobQuery->record_count > 0 ? 'imported' : 'missing',
+            'month'        => $referenceDate->format('F Y'),
+            'month_key'    => $targetMonthStr,
+            'file_name'    => $bankJobQuery->file_name ?? null,
+            'import_job_id'=> $bankJobQuery->import_job_id ?? null,
+            'record_count' => (int) ($bankJobQuery->record_count ?? 0),
+            'total_debit'  => (float) ($bankJobQuery->total_debit ?? 0),
+            'uploaded_at'  => !empty($bankJobQuery->uploaded_at) ? \Illuminate\Support\Carbon::parse($bankJobQuery->uploaded_at)->format('M d, Y h:i A') : null,
+        ];
+
+        // 2. Audit Weekly Summary Ledgers (4 files expected per month: Weeks 1, 2, 3, 4)
+        $weeklyLedgersQuery = DB::table('internal_disbursements')
+            ->leftJoin('import_jobs', 'import_jobs.id', '=', 'internal_disbursements.import_job_id')
+            ->whereNotNull('internal_disbursements.disbursement_week')
+            ->where(function ($q) use ($monthStart, $monthEnd, $periodFrom, $periodToResolved, $hasDateFilter) {
+                if ($hasDateFilter) {
+                    $q->whereBetween('internal_disbursements.date_issued', [$periodFrom, $periodToResolved]);
+                } else {
+                    $q->whereBetween('internal_disbursements.date_issued', [$monthStart, $monthEnd]);
+                }
+            })
+            ->select([
+                'internal_disbursements.disbursement_week as week',
+                DB::raw('COALESCE(import_jobs.file_name, \'Summary Ledger\') as file_name'),
+                'import_jobs.id as import_job_id',
+                'import_jobs.created_at as uploaded_at',
+                DB::raw('MIN(internal_disbursements.date_issued) as date_issued'),
+                DB::raw('COUNT(internal_disbursements.id) as record_count'),
+                DB::raw('COALESCE(SUM(internal_disbursements.check_amount), 0) as total_amount'),
+            ])
+            ->groupBy('internal_disbursements.disbursement_week', 'import_jobs.id', 'import_jobs.file_name', 'import_jobs.created_at')
+            ->get()
+            ->keyBy('week');
+
+        $expectedWeeks = [1, 2, 3, 4];
+        $detectedWeeks = $weeklyLedgersQuery->keys()->map(fn($w) => (int) $w)->all();
+        foreach ($detectedWeeks as $w) {
+            if ($w >= 5 && !in_array($w, $expectedWeeks, true)) {
+                $expectedWeeks[] = $w;
+            }
+        }
+        sort($expectedWeeks);
+
+        $weeklyLedgers = [];
+        $importedWeeksCount = 0;
+        $missingWeeks = [];
+
+        foreach ($expectedWeeks as $week) {
+            $ledger = $weeklyLedgersQuery->get($week);
+            if ($ledger && (int) $ledger->record_count > 0) {
+                $importedWeeksCount++;
+                $weeklyLedgers[] = [
+                    'week'         => $week,
+                    'status'       => 'imported',
+                    'file_name'    => $ledger->file_name,
+                    'import_job_id'=> $ledger->import_job_id,
+                    'date_issued'  => $ledger->date_issued ? \Illuminate\Support\Carbon::parse($ledger->date_issued)->format('M d, Y') : null,
+                    'record_count' => (int) $ledger->record_count,
+                    'total_amount' => (float) $ledger->total_amount,
+                    'uploaded_at'  => !empty($ledger->uploaded_at) ? \Illuminate\Support\Carbon::parse($ledger->uploaded_at)->format('M d, Y h:i A') : null,
+                ];
+            } else {
+                $missingWeeks[] = $week;
+                $weeklyLedgers[] = [
+                    'week'         => $week,
+                    'status'       => 'missing',
+                    'file_name'    => null,
+                    'import_job_id'=> null,
+                    'date_issued'  => null,
+                    'record_count' => 0,
+                    'total_amount' => 0.0,
+                    'uploaded_at'  => null,
+                ];
+            }
+        }
+
+        $totalExpected = 1 + count($expectedWeeks);
+        $totalImported = ($bankFileStatus['status'] === 'imported' ? 1 : 0) + $importedWeeksCount;
+        $missingFilesCount = max(0, $totalExpected - $totalImported);
+
+        return [
+            'has_date_filter'      => $hasDateFilter,
+            'target_month'         => $targetMonthStr,
+            'month_label'          => $referenceDate->format('F Y'),
+            'period_label'         => $periodLabel,
+            'period_from'          => $hasDateFilter ? $periodFrom : $monthStart,
+            'period_to'            => $hasDateFilter ? $periodToResolved : $monthEnd,
+            'bank_file'            => $bankFileStatus,
+            'weekly_ledgers'       => $weeklyLedgers,
+            'expected_weeks'       => $expectedWeeks,
+            'missing_weeks'        => $missingWeeks,
+            'imported_weeks_count' => $importedWeeksCount,
+            'total_expected_files' => $totalExpected,
+            'total_imported_files' => $totalImported,
+            'missing_files_count'  => $missingFilesCount,
+            'is_complete'          => $missingFilesCount === 0,
+        ];
     }
 
     /**
@@ -242,12 +385,12 @@ class BankReconciliationController extends Controller
                     ->orWhereBetween('reconciliation_workspace.transaction_date', [$periodFrom, $periodToResolved]);
             });
 
-            $stats = $query->selectRaw("
+            $stats = $query->reorder()->selectRaw("
                 COUNT(CASE WHEN status = 'Matched' THEN 1 END) as matched,
                 COUNT(CASE WHEN status = 'Outstanding' THEN 1 END) as outstanding,
                 COUNT(CASE WHEN status = 'Amount Mismatch' THEN 1 END) as mismatched,
                 COUNT(CASE WHEN status = 'Unrecorded Bank Entry' THEN 1 END) as unrecorded,
-                COUNT(CASE WHEN is_duplicate = 1 THEN 1 END) as duplicates
+                COUNT(CASE WHEN is_duplicate THEN 1 END) as duplicates
             ")->first();
 
             return [
@@ -279,9 +422,9 @@ class BankReconciliationController extends Controller
             })
             ->count();
 
-        $internalDuplicates = DB::table('internal_disbursements')->where('is_duplicate', 1)->count();
+        $internalDuplicates = DB::table('internal_disbursements')->where('is_duplicate', true)->count();
         $bankDuplicates = DB::table('bank_statements')
-            ->where('is_duplicate', 1)
+            ->where('is_duplicate', true)
             ->whereNotIn('id', function ($q) {
                 $q->select('bank_statement_id')->from('internal_disbursements')->whereNotNull('bank_statement_id');
             })

@@ -423,32 +423,71 @@ class WeeklyController extends Controller
 
     public function clear(): RedirectResponse
     {
-        Weekly::query()->delete();
+        DB::transaction(function () {
+            $importJobs = ImportJob::whereIn('type', ['weekly', 'weekly_pdf'])->get();
+            foreach ($importJobs as $job) {
+                if (! empty($job->context['file_path']) && Storage::disk('local')->exists($job->context['file_path'])) {
+                    Storage::disk('local')->delete($job->context['file_path']);
+                }
+                $job->delete();
+            }
+
+            Weekly::query()->delete();
+        });
 
         Storage::disk('public')->deleteDirectory('weekly-pdfs');
         Storage::disk('local')->deleteDirectory('weekly-imports');
+        Storage::disk('local')->deleteDirectory('temp-pdf-cache');
 
         return redirect()->back()->with('success', 'Weekly data cleared successfully.');
     }
 
-        public function destroyByCropYearWeek(Request $request): RedirectResponse
-        {
-            $validated = $request->validate([
-                'crop_year' => ['required', 'string', 'max:50'],
-                'week' => ['required', 'string', 'max:50'],
-            ]);
+    public function destroyByCropYearWeek(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'crop_year' => ['required', 'string', 'max:50'],
+            'week' => ['required', 'string', 'max:50'],
+        ]);
 
-            $cropYear = trim((string) $validated['crop_year']);
-            $week = trim((string) $validated['week']);
+        $cropYear = trim((string) $validated['crop_year']);
+        $week = trim((string) $validated['week']);
 
+        $deleted = DB::transaction(function () use ($cropYear, $week) {
             $weeklies = Weekly::query()
                 ->where('crop_year', $cropYear)
                 ->where('week', $week)
-                ->get(['file_location']);
+                ->get(['id', 'file_location', 'import_job_id']);
+
+            $importJobIds = $weeklies
+                ->pluck('import_job_id')
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+
+            $matchingJobs = ImportJob::whereIn('type', ['weekly', 'weekly_pdf'])
+                ->where(function ($query) use ($importJobIds, $cropYear, $week) {
+                    if (! empty($importJobIds)) {
+                        $query->whereIn('id', $importJobIds);
+                    }
+                    $query->orWhere(function ($sub) use ($cropYear, $week) {
+                        $sub->where('context->crop_year', $cropYear)
+                            ->where('context->week', $week);
+                    });
+                })
+                ->get();
+
+            foreach ($matchingJobs as $job) {
+                if (! empty($job->context['file_path']) && Storage::disk('local')->exists($job->context['file_path'])) {
+                    Storage::disk('local')->delete($job->context['file_path']);
+                }
+                $job->delete();
+            }
 
             $fileLocations = $weeklies
                 ->pluck('file_location')
                 ->filter()
+                ->unique()
                 ->values()
                 ->all();
 
@@ -456,32 +495,90 @@ class WeeklyController extends Controller
                 Storage::disk('public')->delete($fileLocations);
             }
 
-            $deleted = Weekly::query()
+            return Weekly::query()
                 ->where('crop_year', $cropYear)
                 ->where('week', $week)
                 ->delete();
+        });
 
-            $relativeOutputDirectory = 'weekly-pdfs/' . Str::slug($cropYear) . '/week-' . Str::slug($week);
-            Storage::disk('public')->deleteDirectory($relativeOutputDirectory);
+        $relativeOutputDirectory = 'weekly-pdfs/' . Str::slug($cropYear) . '/week-' . Str::slug($week);
+        Storage::disk('public')->deleteDirectory($relativeOutputDirectory);
+        Storage::disk('local')->deleteDirectory('temp-pdf-cache/' . Str::slug($cropYear) . '/week-' . Str::slug($week));
 
-            return redirect()
-                ->back()
-                ->with('success', "Deleted {$deleted} weekly records for crop year {$cropYear} week {$week}.");
-        }
+        return redirect()
+            ->back()
+            ->with('success', "Deleted {$deleted} weekly records for crop year {$cropYear} week {$week}.");
+    }
+
     public function show(Weekly $weekly)
     {
-        abort_unless(Storage::disk('public')->exists($weekly->file_location), 404);
+        $filePath = $this->resolveSinglePagePdf($weekly);
 
-        return response()->file(Storage::disk('public')->path($weekly->file_location));
+        return response()->file($filePath, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . $this->buildPlanterPdfFilename($weekly) . '"',
+        ]);
     }
 
     public function download(Weekly $weekly)
     {
-        abort_unless(Storage::disk('public')->exists($weekly->file_location), 404);
+        $filePath = $this->resolveSinglePagePdf($weekly);
 
         return response()->download(
-            Storage::disk('public')->path($weekly->file_location),
-            basename($weekly->file_location),
+            $filePath,
+            $this->buildPlanterPdfFilename($weekly),
         );
+    }
+
+    /**
+     * Resolve the single-page PDF for preview or download.
+     * If the record references a shared master PDF, extract that page on demand and cache it.
+     */
+    private function resolveSinglePagePdf(Weekly $weekly): string
+    {
+        abort_unless(Storage::disk('public')->exists($weekly->file_location), 404);
+
+        $fullPath = Storage::disk('public')->path($weekly->file_location);
+
+        // If it's a legacy single-planter PDF, return directly
+        if (! str_ends_with($weekly->file_location, 'master.pdf') && ! str_contains($weekly->file_location, 'master')) {
+            return $fullPath;
+        }
+
+        $page = (int) ($weekly->page ?: 1);
+        $cropYearSlug = Str::slug($weekly->crop_year ?: 'unknown');
+        $weekSlug = Str::slug($weekly->week ?: 'unknown');
+        $planterSlug = Str::slug($weekly->planter_name ?: 'planter');
+
+        $cacheDir = storage_path("app/temp-pdf-cache/{$cropYearSlug}/week-{$weekSlug}");
+        if (! is_dir($cacheDir)) {
+            mkdir($cacheDir, 0755, true);
+        }
+
+        $cachedFilePath = "{$cacheDir}/{$planterSlug}_p{$page}.pdf";
+
+        if (! file_exists($cachedFilePath)) {
+            $cmd = \App\Services\PdfSplitterService::buildExtractCommand(
+                $fullPath,
+                $page,
+                $cachedFilePath,
+            );
+
+            $process = \Illuminate\Support\Facades\Process::run($cmd);
+            if (! $process->successful() || ! file_exists($cachedFilePath)) {
+                return $fullPath;
+            }
+        }
+
+        return $cachedFilePath;
+    }
+
+    private function buildPlanterPdfFilename(Weekly $weekly): string
+    {
+        $name = Str::slug($weekly->planter_name ?: 'Planter', '_');
+        $week = $weekly->week ?: '1';
+        $cropYear = $weekly->crop_year ?: 'CY';
+
+        return "{$name}_W{$week}_CY{$cropYear}.pdf";
     }
 }

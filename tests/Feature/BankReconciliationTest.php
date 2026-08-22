@@ -53,6 +53,33 @@ test('authorized user can view bank reconciliation index', function () {
         ->assertOk();
 });
 
+test('authorized user can view bank reconciliation index with sort and pagination without grouping error', function () {
+    $user = User::factory()->create();
+    $user->assignRole(Permissions::SUPER_ADMIN_ROLE);
+
+    BankStatement::query()->create([
+        'tdate' => now()->toDateString(),
+        'checkno' => 'CHK-001',
+        'branch_description' => 'Test branch',
+        'partic' => 'Test partic',
+        'debit' => 100.00,
+        'credit' => null,
+        'currency' => 'PHP',
+        'running_balance' => 1000.000000,
+        'bank_date' => now()->startOfMonth()->toDateString(),
+        'is_duplicate' => false,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('bank_reconciliation.index', [
+            'sort' => 'transaction_date',
+            'direction' => 'desc',
+            'page' => 1,
+            'per_page' => 10,
+        ]))
+        ->assertOk();
+});
+
 test('bank reconciliation kpiStats metrics accurately match all categories', function () {
     $user = User::factory()->create();
     $user->assignRole(Permissions::SUPER_ADMIN_ROLE);
@@ -206,7 +233,7 @@ test('authorized user can fetch outstanding checks grouped by month', function (
 
     $data = $response->json();
     expect($data['total_count'])->toBe(3);
-    expect($data['grand_total'])->toBe(6000.0);
+    expect($data['grand_total'])->toEqual(6000);
     expect(count($data['months']))->toBe(2);
 
     // Jan month check (item no resets per month)
@@ -216,7 +243,7 @@ test('authorized user can fetch outstanding checks grouped by month', function (
     expect($janMonth['items'][0]['no'])->toBe(1);
     expect($janMonth['items'][1]['no'])->toBe(2);
     expect($janMonth['items'][0]['date_cleared'])->toBe('');
-    expect($janMonth['subtotal'])->toBe(3000.0);
+    expect($janMonth['subtotal'])->toEqual(3000);
 
     // Feb month check (item no resets to 1)
     $febMonth = $data['months'][1];
@@ -224,7 +251,7 @@ test('authorized user can fetch outstanding checks grouped by month', function (
     expect(count($febMonth['items']))->toBe(1);
     expect($febMonth['items'][0]['no'])->toBe(1);
     expect($febMonth['items'][0]['date_cleared'])->toBe('');
-    expect($febMonth['subtotal'])->toBe(3000.0);
+    expect($febMonth['subtotal'])->toEqual(3000);
 });
 
 test('authorized user can stream outstanding checks pdf report', function () {
@@ -263,3 +290,91 @@ test('authorized user can view outstanding checks html print report', function (
     $response->assertOk()
         ->assertViewIs('pdfs.outstanding_checks');
 });
+
+test('bank reconciliation fileAuditStats accurately tracks 1 monthly bank statement and 4 weekly ledgers', function () {
+    $user = User::factory()->create();
+    $user->assignRole(Permissions::SUPER_ADMIN_ROLE);
+
+    $bankJob = \App\Models\ImportJob::create([
+        'user_id' => $user->id,
+        'type' => 'bank_recon_bank',
+        'status' => 'done',
+        'file_name' => 'Bank_Statement_Aug2026.xlsx',
+    ]);
+
+    BankStatement::query()->create([
+        'import_job_id' => $bankJob->id,
+        'tdate' => '2026-08-15',
+        'checkno' => 'CHK-991',
+        'debit' => 1500.00,
+        'running_balance' => 50000.00,
+        'bank_date' => '2026-08-01',
+        'is_duplicate' => false,
+    ]);
+
+    $week1Job = \App\Models\ImportJob::create([
+        'user_id' => $user->id,
+        'type' => 'bank_recon_internal',
+        'status' => 'done',
+        'file_name' => 'Disbursements_W1.xlsx',
+    ]);
+
+    InternalDisbursements::query()->create([
+        'import_job_id' => $week1Job->id,
+        'payee_name' => 'Payee W1',
+        'check_no' => 'CHK-W1-01',
+        'check_amount' => 500.00,
+        'date_issued' => '2026-08-05',
+        'disbursement_week' => 1,
+        'is_duplicate' => false,
+    ]);
+
+    $week2Job = \App\Models\ImportJob::create([
+        'user_id' => $user->id,
+        'type' => 'bank_recon_internal',
+        'status' => 'done',
+        'file_name' => 'Disbursements_W2.xlsx',
+    ]);
+
+    InternalDisbursements::query()->create([
+        'import_job_id' => $week2Job->id,
+        'payee_name' => 'Payee W2',
+        'check_no' => 'CHK-W2-01',
+        'check_amount' => 700.00,
+        'date_issued' => '2026-08-12',
+        'disbursement_week' => 2,
+        'is_duplicate' => false,
+    ]);
+
+    $response = $this->actingAs($user)
+        ->get(route('bank_reconciliation.index', [
+            'period_from' => '2026-08-01',
+            'period_to' => '2026-08-31',
+        ]));
+
+    $response->assertOk();
+
+    /** @var array $fileAuditStats */
+    $fileAuditStats = $response->viewData('page')['props']['fileAuditStats'];
+
+    expect($fileAuditStats['has_date_filter'])->toBeTrue();
+    expect($fileAuditStats['bank_file']['status'])->toBe('imported');
+    expect($fileAuditStats['bank_file']['file_name'])->toBe('Bank_Statement_Aug2026.xlsx');
+    expect($fileAuditStats['bank_file']['record_count'])->toBe(1);
+
+    // 4 expected weeks (W1, W2, W3, W4)
+    expect($fileAuditStats['expected_weeks'])->toBe([1, 2, 3, 4]);
+    expect($fileAuditStats['weekly_ledgers'][0]['status'])->toBe('imported');
+    expect($fileAuditStats['weekly_ledgers'][0]['file_name'])->toBe('Disbursements_W1.xlsx');
+    expect($fileAuditStats['weekly_ledgers'][1]['status'])->toBe('imported');
+    expect($fileAuditStats['weekly_ledgers'][1]['file_name'])->toBe('Disbursements_W2.xlsx');
+    expect($fileAuditStats['weekly_ledgers'][2]['status'])->toBe('missing');
+    expect($fileAuditStats['weekly_ledgers'][3]['status'])->toBe('missing');
+
+    expect($fileAuditStats['missing_weeks'])->toBe([3, 4]);
+    expect($fileAuditStats['total_expected_files'])->toBe(5);
+    expect($fileAuditStats['total_imported_files'])->toBe(3);
+    expect($fileAuditStats['missing_files_count'])->toBe(2);
+    expect($fileAuditStats['is_complete'])->toBeFalse();
+});
+

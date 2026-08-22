@@ -63,9 +63,12 @@ class ProcessWeeklyImportJob implements ShouldQueue
             throw new RuntimeException('Weekly import PDF could not be staged for processing.');
         }
 
-        $processCommand = PHP_OS_FAMILY === 'Windows'
-            ? ['python', base_path('pdftoexcel.py'), $inputPath, $week, $cropYear, $outputPath]
-            : ['python3', base_path('pdftoexcel.py'), $inputPath, $week, $cropYear, $outputPath];
+        $processCommand = \App\Services\PdfSplitterService::buildProcessCommand(
+            $inputPath,
+            $week,
+            $cropYear,
+            $outputPath,
+        );
 
         $importedCount = 0;
         $skippedCount = 0;
@@ -102,14 +105,15 @@ class ProcessWeeklyImportJob implements ShouldQueue
                     $warnings[] = "Replaced {$deletedPriorCount} existing weekly record(s) for Crop Year {$cropYear}, Week {$week}.";
                 }
 
-                $publicRoot = Str::of(realpath(storage_path('app/public')) ?: storage_path('app/public'))
+                $normalizedPublicRoot = Str::of(realpath(storage_path('app/public')) ?: storage_path('app/public'))
                     ->replace('\\', '/')
-                    ->trim('/');
+                    ->rtrim('/')
+                    ->toString();
 
                 $files->each(function (array $file, int $index) use (
                     $cropYear,
                     $week,
-                    $publicRoot,
+                    $normalizedPublicRoot,
                     &$importedCount,
                     &$skippedCount,
                     &$warnings,
@@ -118,19 +122,25 @@ class ProcessWeeklyImportJob implements ShouldQueue
                 ): void {
                     $outputFile = Str::of((string) ($file['output_file'] ?? ''))
                         ->replace('\\', '/')
-                        ->trim();
+                        ->trim()
+                        ->toString();
 
-                    if ($outputFile->isEmpty()) {
+                    if ($outputFile === '') {
                         $skippedCount++;
                         $warnings[] = "File entry #" . ($index + 1) . ": Output PDF file path was empty.";
                         return;
                     }
 
-                    $relativePath = $outputFile->startsWith($publicRoot . '/')
-                        ? $outputFile->after($publicRoot . '/')
-                        : $outputFile->after('storage/app/public/');
+                    $relativePath = '';
+                    if (str_starts_with(strtolower($outputFile), strtolower($normalizedPublicRoot . '/'))) {
+                        $relativePath = substr($outputFile, strlen($normalizedPublicRoot . '/'));
+                    } elseif (stripos($outputFile, 'storage/app/public/') !== false) {
+                        $relativePath = substr($outputFile, stripos($outputFile, 'storage/app/public/') + strlen('storage/app/public/'));
+                    } else {
+                        $relativePath = ltrim($outputFile, '/\\');
+                    }
 
-                    $relativePath = $relativePath->toString();
+                    $relativePath = trim(str_replace('\\', '/', $relativePath), '/');
 
                     if ($relativePath === '') {
                         $skippedCount++;

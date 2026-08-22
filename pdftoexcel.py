@@ -1,5 +1,6 @@
 import argparse
 import json
+import multiprocessing
 import os
 import re
 import sys
@@ -174,70 +175,34 @@ def _build_combined_planter_name(planter_infos: list[PlanterInfo]) -> str:
 def _process_page_range(
     page_indices: list[int],
     input_pdf_path: str,
-    week_number: str,
-    crop_year: str,
-    output_dir: str,
+    master_pdf_path: str,
 ) -> list[dict]:
     """
     Process a batch of pages in a single worker invocation.
-    Opens pdfplumber and PdfReader ONCE per batch instead of once per page,
-    dramatically reducing I/O overhead on large PDFs.
-    split_mode is hardcoded to 'none'.
+    Extracts planter metadata from pages without writing hundreds of physical split PDF files.
     """
-    out = Path(output_dir)
     records: list[dict] = []
 
     with pdfplumber.open(input_pdf_path) as plumber_pdf:
-        pypdf_reader = PdfReader(input_pdf_path)
-
         for page_index in page_indices:
             try:
-                page      = plumber_pdf.pages[page_index]
-                pypdf_page = pypdf_reader.pages[page_index]
-
-                w, h = page.width, page.height
-                bbox = (0.0, 0.0, w, h)
-
-                text         = page.extract_text() or ""
+                page = plumber_pdf.pages[page_index]
+                text = page.extract_text() or ""
                 planter_infos = _parse_planter_infos(text)
 
                 if not planter_infos:
                     continue
 
-                if len(planter_infos) > 1:
-                    combined_name = _build_combined_planter_name(planter_infos)
-                    output_path   = _build_output_path(
-                        out, combined_name, week_number, crop_year,
-                        page_index + 1, "full",
-                    )
-                    _write_segment_pdf(pypdf_page, bbox, output_path)
-                    for info in planter_infos:
-                        records.append(asdict(OutputRecord(
-                            source_page=page_index + 1,
-                            segment="full",
-                            planter_code=info.planter_code,
-                            planter_name=info.planter_name,
-                            hacienda_code=info.hacienda_code,
-                            hacienda_address=info.hacienda_address,
-                            output_file=str(output_path),
-                        )))
-                    continue
-
-                info        = planter_infos[0]
-                output_path = _build_output_path(
-                    out, info.planter_name, week_number, crop_year,
-                    page_index + 1, "full",
-                )
-                _write_segment_pdf(pypdf_page, bbox, output_path)
-                records.append(asdict(OutputRecord(
-                    source_page=page_index + 1,
-                    segment="full",
-                    planter_code=info.planter_code,
-                    planter_name=info.planter_name,
-                    hacienda_code=info.hacienda_code,
-                    hacienda_address=info.hacienda_address,
-                    output_file=str(output_path),
-                )))
+                for info in planter_infos:
+                    records.append(asdict(OutputRecord(
+                        source_page=page_index + 1,
+                        segment="full",
+                        planter_code=info.planter_code,
+                        planter_name=info.planter_name,
+                        hacienda_code=info.hacienda_code,
+                        hacienda_address=info.hacienda_address,
+                        output_file=master_pdf_path,
+                    )))
 
             except Exception as exc:
                 sys.stderr.write(f"Warning: page {page_index + 1} failed: {exc}\n")
@@ -251,6 +216,21 @@ def _process_page_range(
 
 def _chunk(lst: list, size: int) -> list[list]:
     return [lst[i:i + size] for i in range(0, len(lst), size)]
+
+
+def extract_single_page(input_pdf_path: Path, page_number: int, output_pdf_path: Path) -> None:
+    """
+    Extract a single page from a master PDF and write it to an output file.
+    page_number is 1-indexed.
+    """
+    reader = PdfReader(str(input_pdf_path))
+    writer = PdfWriter()
+    target_idx = max(0, min(page_number - 1, len(reader.pages) - 1))
+    writer.add_page(reader.pages[target_idx])
+
+    output_pdf_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_pdf_path.open("wb") as fh:
+        writer.write(fh)
 
 
 # ---------------------------------------------------------------------------
@@ -271,34 +251,65 @@ def process_pdf(
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    # Save exactly 1 master PDF file for this week/crop-year
+    master_pdf_path = output_dir / "master.pdf"
+    import shutil
+    shutil.copy2(str(input_pdf_path), str(master_pdf_path))
+
     resolved_workers = workers if workers > 0 else max(1, (os.cpu_count() or 1))
 
-    total_pages  = len(PdfReader(str(input_pdf_path)).pages)
+    total_pages = len(PdfReader(str(input_pdf_path)).pages)
     page_indices = list(range(min(total_pages, max_pages) if max_pages else total_pages))
-    batches      = _chunk(page_indices, chunk_size)
+    batches = _chunk(page_indices, chunk_size)
 
     all_record_dicts: list[dict] = []
 
-    with ProcessPoolExecutor(max_workers=resolved_workers) as executor:
-        futures = {
-            executor.submit(
-                _process_page_range,
-                batch,
-                str(input_pdf_path),
-                week_number,
-                crop_year,
-                str(output_dir),
-            ): batch
-            for batch in batches
-        }
+    # Fast path: single batch or single worker -> run directly in-process
+    if len(batches) <= 1 or resolved_workers <= 1:
+        for batch in batches:
+            all_record_dicts.extend(
+                _process_page_range(batch, str(input_pdf_path), str(master_pdf_path))
+            )
+    else:
+        # Multi-batch parallel processing with in-process fallback
+        failed_batches: list[list[int]] = []
+        try:
+            with ProcessPoolExecutor(max_workers=min(resolved_workers, len(batches))) as executor:
+                futures = {
+                    executor.submit(
+                        _process_page_range,
+                        batch,
+                        str(input_pdf_path),
+                        str(master_pdf_path),
+                    ): batch
+                    for batch in batches
+                }
 
-        for future in as_completed(futures):
+                for future in as_completed(futures):
+                    batch = futures[future]
+                    try:
+                        all_record_dicts.extend(future.result())
+                    except Exception as exc:
+                        sys.stderr.write(
+                            f"Warning: batch pages {batch[0]+1}–{batch[-1]+1} failed in worker pool: {exc}. Retrying in-process...\n"
+                        )
+                        failed_batches.append(batch)
+        except Exception as pool_exc:
+            sys.stderr.write(f"Warning: Process pool encountered error: {pool_exc}. Retrying remaining batches in-process...\n")
+            # If the entire pool failed, process all batches that haven't completed
+            processed_pages = {d.get("source_page", 0) - 1 for d in all_record_dicts}
+            for batch in batches:
+                if any(p not in processed_pages for p in batch):
+                    failed_batches.append(batch)
+
+        for batch in failed_batches:
             try:
-                all_record_dicts.extend(future.result())
-            except Exception as exc:
-                batch = futures[future]
+                all_record_dicts.extend(
+                    _process_page_range(batch, str(input_pdf_path), str(master_pdf_path))
+                )
+            except Exception as batch_exc:
                 sys.stderr.write(
-                    f"Warning: batch pages {batch[0]+1}–{batch[-1]+1} failed: {exc}\n"
+                    f"Error: in-process retry for pages {batch[0]+1}–{batch[-1]+1} failed: {batch_exc}\n"
                 )
 
     records = [OutputRecord(**d) for d in all_record_dicts]
@@ -310,17 +321,32 @@ def process_pdf(
 # CLI
 # ---------------------------------------------------------------------------
 
-def _build_cli_parser() -> argparse.ArgumentParser:
+def main() -> int:
+    # Check for extract subcommand
+    if len(sys.argv) >= 4 and sys.argv[1] == "extract":
+        input_pdf = Path(sys.argv[2])
+        try:
+            page_num = int(sys.argv[3])
+        except ValueError:
+            sys.stderr.write("Invalid page number\n")
+            return 1
+        output_pdf = Path(sys.argv[4]) if len(sys.argv) >= 5 else input_pdf.parent / f"page_{page_num}.pdf"
+        try:
+            extract_single_page(input_pdf, page_num, output_pdf)
+            return 0
+        except Exception as exc:
+            sys.stderr.write(f"Extract failed: {exc}\n")
+            return 1
+
     parser = argparse.ArgumentParser(
         description=(
-            "Split a weekly planters PDF into one planter per output PDF and "
-            "rename files using planter name, week number, and crop year."
+            "Index a weekly planters PDF and save a master copy with page mapping."
         )
     )
     parser.add_argument("pdf_path",      help="Path to the source PDF file")
-    parser.add_argument("week_number",   help="Week number used in output file naming")
-    parser.add_argument("crop_year",     help="Crop year used in output file naming (e.g. 2025-2026)")
-    parser.add_argument("output_folder", help="Folder where split PDFs will be saved")
+    parser.add_argument("week_number",   help="Week number used in metadata")
+    parser.add_argument("crop_year",     help="Crop year used in metadata (e.g. 2025-2026)")
+    parser.add_argument("output_folder", help="Folder where master PDF will be saved")
     parser.add_argument("--max-pages",  type=int, default=None)
     parser.add_argument(
         "--workers",
@@ -334,11 +360,8 @@ def _build_cli_parser() -> argparse.ArgumentParser:
         default=50,
         help="Pages per worker batch (default: 50)",
     )
-    return parser
 
-
-def main() -> int:
-    args = _build_cli_parser().parse_args()
+    args = parser.parse_args()
 
     try:
         results = process_pdf(
@@ -367,4 +390,5 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    multiprocessing.freeze_support()
     raise SystemExit(main())

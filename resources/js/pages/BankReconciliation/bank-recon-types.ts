@@ -31,4 +31,43 @@ export type ReconciliationWorkspaceType = {
     is_duplicate: boolean;
     status: ReconciliationStatus;
 };
-    
+
+export type BankFileAuditType = {
+    status: 'imported' | 'missing';
+    month: string;
+    month_key: string;
+    file_name: string | null;
+    import_job_id: number | null;
+    record_count: number;
+    total_debit: number;
+    uploaded_at: string | null;
+};
+
+export type WeeklyLedgerAuditType = {
+    week: number;
+    status: 'imported' | 'missing';
+    file_name: string | null;
+    import_job_id: number | null;
+    date_issued: string | null;
+    record_count: number;
+    total_amount: number;
+    uploaded_at: string | null;
+};
+
+export type FileAuditStatsType = {
+    has_date_filter: boolean;
+    target_month: string;
+    month_label: string;
+    period_label: string;
+    period_from: string;
+    period_to: string;
+    bank_file: BankFileAuditType;
+    weekly_ledgers: WeeklyLedgerAuditType[];
+    expected_weeks: number[];
+    missing_weeks: number[];
+    imported_weeks_count: number;
+    total_expected_files: number;
+    total_imported_files: number;
+    missing_files_count: number;
+    is_complete: boolean;
+};

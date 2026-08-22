@@ -120,8 +120,27 @@ const postJson = async <T,>(
     return data as T;
 };
 
-export function BankReconImportDialog() {
-    const [isOpen, setIsOpen] = useState(false);
+export function BankReconImportDialog({
+    open: controlledOpen,
+    onOpenChange: controlledOnOpenChange,
+    initialType,
+    initialWeek,
+    initialBankMonth,
+    initialDateIssued,
+    trigger,
+}: {
+    open?: boolean;
+    onOpenChange?: (open: boolean) => void;
+    initialType?: 'internal' | 'bank';
+    initialWeek?: number | string;
+    initialBankMonth?: string;
+    initialDateIssued?: string;
+    trigger?: React.ReactNode;
+} = {}) {
+    const [internalOpen, setInternalOpen] = useState(false);
+    const isOpen = controlledOpen !== undefined ? controlledOpen : internalOpen;
+    const setIsOpen = controlledOnOpenChange || setInternalOpen;
+
     const [step, setStep] = useState<1 | 2 | 3 | 'mapping'>(1);
     const [isImporting, setIsImporting] = useState(false);
     const [isPreviewing, setIsPreviewing] = useState(false);
@@ -132,11 +151,35 @@ export function BankReconImportDialog() {
     const currentMonthStr = String(currentDate.getMonth() + 1).padStart(2, '0');
 
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
-    const [importType, setImportType] = useState<'internal' | 'bank'>('internal');
-    const [dateIssued, setDateIssued] = useState<string>('');
-    const [disbursementWeek, setDisbursementWeek] = useState<string>('');
-    const [bankMonth, setBankMonth] = useState<string>(`${currentYearStr}-${currentMonthStr}`);
+    const [importType, setImportType] = useState<'internal' | 'bank'>(initialType || 'internal');
+    const [dateIssued, setDateIssued] = useState<string>(initialDateIssued || '');
+    const [disbursementWeek, setDisbursementWeek] = useState<string>(
+        initialWeek !== undefined ? String(initialWeek) : '',
+    );
+    const [bankMonth, setBankMonth] = useState<string>(
+        initialBankMonth || `${currentYearStr}-${currentMonthStr}`,
+    );
     const [error, setError] = useState<string | null>(null);
+
+    React.useEffect(() => {
+        if (isOpen) {
+            if (initialType) {
+                setImportType(initialType);
+            }
+            if (initialWeek !== undefined) {
+                setDisbursementWeek(String(initialWeek));
+            }
+            if (initialDateIssued) {
+                setDateIssued(initialDateIssued);
+            }
+            if (initialBankMonth) {
+                setBankMonth(initialBankMonth);
+            }
+            if (initialType || initialWeek !== undefined || initialBankMonth) {
+                setStep(2);
+            }
+        }
+    }, [isOpen, initialType, initialWeek, initialDateIssued, initialBankMonth]);
 
     const [headers, setHeaders] = useState<string[]>([]);
     const [signature, setSignature] = useState<string>('');
@@ -162,12 +205,12 @@ export function BankReconImportDialog() {
 
     const resetDialog = () => {
         setSelectedFile(null);
-        setImportType('internal');
-        setDateIssued('');
-        setDisbursementWeek('');
-        setBankMonth(`${currentYearStr}-${currentMonthStr}`);
+        setImportType(initialType || 'internal');
+        setDateIssued(initialDateIssued || '');
+        setDisbursementWeek(initialWeek !== undefined ? String(initialWeek) : '');
+        setBankMonth(initialBankMonth || `${currentYearStr}-${currentMonthStr}`);
         setError(null);
-        setStep(1);
+        setStep(initialType || initialWeek !== undefined || initialBankMonth ? 2 : 1);
         setHeaders([]);
         setSignature('');
         setMapping({});
@@ -412,12 +455,16 @@ export function BankReconImportDialog() {
                 if (!open) resetDialog();
             }}
         >
-            <DialogTrigger asChild>
-                <Button className="gap-2">
-                    <Import className="h-4 w-4" />
-                    Import Datasets
-                </Button>
-            </DialogTrigger>
+            {trigger !== null && (
+                <DialogTrigger asChild>
+                    {trigger || (
+                        <Button className="gap-2">
+                            <Import className="h-4 w-4" />
+                            Import Datasets
+                        </Button>
+                    )}
+                </DialogTrigger>
+            )}
 
             <DialogContent className="bg-card sm:max-w-md max-h-[85vh] overflow-y-auto">
                 <DialogHeader>

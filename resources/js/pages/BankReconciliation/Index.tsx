@@ -7,7 +7,7 @@ import type {
 import * as React from 'react';
 import { format } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
-import { History } from 'lucide-react';
+import { Calendar, History } from 'lucide-react';
 
 import AppLayout from '@/layouts/app-layout';
 import {
@@ -48,10 +48,15 @@ import {
     CircleCheck,
     Clock,
     Copy,
+    FileText,
     Filter,
-    TriangleAlert,
+    FolderSearch,
     X,
 } from 'lucide-react';
+
+import { DateFilterStatusBanner } from './components/DateFilterStatusBanner';
+import { ImportedFilesModal } from './components/ImportedFilesModal';
+import type { FileAuditStatsType } from './bank-recon-types';
 
 type DataTableQueryState = {
     sorting: SortingState;
@@ -83,6 +88,7 @@ export default function Index({
         unrecorded: 0,
         duplicates: 0,
     },
+    fileAuditStats,
 }: {
     reconciliationWorkspaces: ReconciliationWorkspaceType[];
     statuses: string[];
@@ -120,18 +126,28 @@ export default function Index({
         unrecorded: number;
         duplicates: number;
     };
+    fileAuditStats?: FileAuditStatsType;
 }) {
     const [isClearOpen, setClearOpen] = React.useState(false);
     const [isClearing, setIsClearing] = React.useState(false);
+    const [isFilesModalOpen, setIsFilesModalOpen] = React.useState(false);
+    const [importModalConfig, setImportModalConfig] = React.useState<{
+        open: boolean;
+        type?: 'internal' | 'bank';
+        week?: number;
+        bankMonth?: string;
+        dateIssued?: string;
+    }>({ open: false });
 
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('en-PH', {
-            style: 'currency',
-            currency: 'PHP',
-        }).format(amount);
+    const handleImportMissing = (type: 'internal' | 'bank', week?: number) => {
+        setImportModalConfig({
+            open: true,
+            type,
+            week,
+            bankMonth: fileAuditStats?.target_month,
+            dateIssued: fileAuditStats?.period_from,
+        });
     };
-
-    const variance = summaryStats.internal_total - summaryStats.bank_total;
 
     const [periodRange, setPeriodRange] = React.useState<DateRange | undefined>(
         table_state?.period_from
@@ -203,7 +219,7 @@ export default function Index({
     const initialShowDuplicates = React.useMemo(() => {
         const dupFilter = table_state?.filters?.is_duplicate;
         const value = Array.isArray(dupFilter) ? dupFilter[0] : dupFilter;
-        return value === '1' || value === 1 || value === true;
+        return value === '1' || value === 'true';
     }, [table_state?.filters?.is_duplicate]);
 
     const [showDuplicates, setShowDuplicates] = React.useState(
@@ -442,8 +458,35 @@ export default function Index({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Bank Reconciliation" />
-            <div className="mx-2 mb-6 flex items-center gap-3">
+            <div className="mx-2 mb-4 flex flex-wrap items-center gap-3">
                 <Filter className="flex items-center text-gray-500" />
+
+                {/* Month Quick Select */}
+                <div className="flex items-center gap-1.5 rounded-md border bg-white px-2.5 py-1 text-xs shadow-xs">
+                    <Calendar className="size-3.5 text-muted-foreground" />
+                    <span className="font-medium text-muted-foreground">
+                        Month:
+                    </span>
+                    <input
+                        type="month"
+                        value={fileAuditStats?.target_month || ''}
+                        onChange={(e) => {
+                            if (!e.target.value) {
+                                applyPeriodFilter(undefined);
+                                return;
+                            }
+                            const [y, m] = e.target.value
+                                .split('-')
+                                .map(Number);
+                            const from = new Date(y, m - 1, 1);
+                            const to = new Date(y, m, 0);
+                            applyPeriodFilter({ from, to });
+                        }}
+                        className="cursor-pointer bg-transparent text-xs font-medium focus:outline-hidden"
+                        title="Filter by month"
+                    />
+                </div>
+
                 <Select
                     value={selectedWeek}
                     onValueChange={(nextWeek) => applyWeekFilter(nextWeek)}
@@ -460,11 +503,13 @@ export default function Index({
                         ))}
                     </SelectContent>
                 </Select>
+
                 <DatePickerWithRange
                     className="w-64 bg-white"
                     value={periodRange}
                     onChange={(nextRange) => applyPeriodFilter(nextRange)}
                 />
+
                 <Select
                     value={selectedStatus}
                     onValueChange={(nextStatus) =>
@@ -483,12 +528,14 @@ export default function Index({
                         ))}
                     </SelectContent>
                 </Select>
+
                 <Button
                     variant={showDuplicates ? 'default' : 'outline'}
                     onClick={toggleDuplicateFilter}
                 >
                     {showDuplicates ? 'Showing Duplicates' : 'Show Duplicates'}
                 </Button>
+
                 {hasActiveFilters && (
                     <Button
                         variant="ghost"
@@ -502,24 +549,25 @@ export default function Index({
                 )}
             </div>
 
-            <div className="mx-2 mb-2 flex items-center justify-between">
-                <p className="text-sm font-medium text-muted-foreground">
-                    Overview
-                    {periodRange?.from
-                        ? ` — ${format(periodRange.from, 'MMM d, yyyy')}${periodRange.to ? ` to ${format(periodRange.to, 'MMM d, yyyy')}` : ''}`
-                        : ' — all dates'}
-                </p>
-            </div>
+            {/* Date & File Status Tracker Banner */}
+            <DateFilterStatusBanner
+                fileAuditStats={fileAuditStats}
+                selectedWeek={selectedWeek}
+                selectedStatus={selectedStatus}
+                showDuplicates={showDuplicates}
+                onOpenFilesModal={() => setIsFilesModalOpen(true)}
+            />
+
             <div className="mx-2 mb-2 grid grid-cols-2 gap-4 md:grid-cols-4">
                 <div className="rounded-xl border bg-card p-4 shadow-sm">
                     <div className="flex items-center gap-2">
-                        <CircleCheck className="size-4 text-emerald-600" />
+                        <FileText className="size-4 text-slate-600" />
                         <p className="text-sm font-medium text-muted-foreground">
-                            Matched
+                            Total Records
                         </p>
                     </div>
-                    <p className="mt-1 truncate text-2xl font-bold text-emerald-600">
-                        {kpiStats.matched}
+                    <p className="mt-1 truncate text-2xl font-bold text-foreground">
+                        {summaryStats.total_count}
                     </p>
                 </div>
 
@@ -549,62 +597,52 @@ export default function Index({
 
                 <div className="rounded-xl border bg-card p-4 shadow-sm">
                     <div className="flex items-center gap-2">
-                        <TriangleAlert className="size-4 text-red-600" />
+                        <CircleCheck className="size-4 text-emerald-600" />
                         <p className="text-sm font-medium text-muted-foreground">
-                            Unrecorded
+                            Matched
                         </p>
                     </div>
-                    <p className="mt-1 truncate text-2xl font-bold text-red-600">
-                        {kpiStats.unrecorded}
+                    <p className="mt-1 truncate text-2xl font-bold text-emerald-600">
+                        {kpiStats.matched}
                     </p>
                 </div>
             </div>
 
-            <div className="mx-2 mb-2 grid grid-cols-1 gap-4 md:grid-cols-4">
-                <div className="rounded-xl border bg-card p-4 shadow-sm">
-                    <p className="text-sm font-medium text-muted-foreground">
-                        Filtered Records
-                    </p>
-                    <p className="mt-1 truncate text-2xl font-bold">
-                        {summaryStats.total_count}
-                    </p>
-                </div>
+            {/* Imported & Missing Files Modal */}
+            <ImportedFilesModal
+                open={isFilesModalOpen}
+                onOpenChange={setIsFilesModalOpen}
+                fileAuditStats={fileAuditStats}
+                onImportMissing={handleImportMissing}
+            />
 
-                <div className="rounded-xl border bg-card p-4 shadow-sm">
-                    <p className="text-sm font-medium text-muted-foreground">
-                        Internal Total
-                    </p>
-                    <p className="mt-1 truncate text-2xl font-bold text-blue-600">
-                        {formatCurrency(summaryStats.internal_total)}
-                    </p>
-                </div>
+            {/* Controlled Import Dialog for direct missing item actions */}
+            <BankReconImportDialog
+                open={importModalConfig.open}
+                onOpenChange={(open) =>
+                    setImportModalConfig((prev) => ({ ...prev, open }))
+                }
+                initialType={importModalConfig.type}
+                initialWeek={importModalConfig.week}
+                initialBankMonth={importModalConfig.bankMonth}
+                initialDateIssued={importModalConfig.dateIssued}
+                trigger={null}
+            />
 
-                <div className="rounded-xl border bg-card p-4 shadow-sm">
-                    <p className="text-sm font-medium text-muted-foreground">
-                        Bank Total
-                    </p>
-                    <p className="mt-1 truncate text-2xl font-bold text-amber-600">
-                        {formatCurrency(summaryStats.bank_total)}
-                    </p>
-                </div>
-
-                <div
-                    className={`rounded-xl border p-4 shadow-sm ${variance === 0 ? 'border-emerald-200 bg-emerald-50/50' : 'border-destructive/20 bg-destructive/5'}`}
-                >
-                    <p className="text-sm font-medium text-muted-foreground">
-                        Net Variance
-                    </p>
-                    <p
-                        className={`text-md mt-1 truncate font-bold md:text-2xl ${variance === 0 ? 'text-emerald-600' : 'text-destructive'}`}
-                    >
-                        {formatCurrency(variance)}
-                    </p>
-                </div>
-            </div>
             <Container>
                 <ContainerHeader>
                     Bank Reconciliation
                     <ContainerHeaderEnd>
+                        <Button
+                            variant="outline"
+                            onClick={() => setIsFilesModalOpen(true)}
+                            className="gap-2"
+                        >
+                            <FolderSearch className="h-4 w-4 text-primary" />
+                            File Status (
+                            {fileAuditStats?.total_imported_files ?? 0}/
+                            {fileAuditStats?.total_expected_files ?? 5})
+                        </Button>
                         <Button variant="outline" asChild className="gap-2">
                             <Link href="/Imports/history?type=bank_recon">
                                 <History className="h-4 w-4" />

@@ -6,7 +6,7 @@ return [
      * It is used to determine if the app needs to be updated.
      * Increment this value every time you release a new version of your app.
      */
-    'version' => env('NATIVEPHP_APP_VERSION', '1.3.4'),
+    'version' => env('NATIVEPHP_APP_VERSION', '1.4.1'),
 
     /**
      * The ID of your application. This should be a unique identifier
@@ -180,6 +180,7 @@ return [
         // Windows + Unix safe: ignore missing hot file.
         'php -r "if (is_file(\'public/hot\')) { unlink(\'public/hot\'); }"',
         'npm run build',
+        'php artisan app:build-binary --force',
     ],
 
     'postbuild' => [

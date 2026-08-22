@@ -15,6 +15,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 class ImportHistoryController extends Controller
@@ -161,10 +162,13 @@ class ImportHistoryController extends Controller
                     Production::where('crop_year', $importJob->context['crop_year'])->delete();
                 }
             } elseif (in_array($importJob->type, ['weekly', 'weekly_pdf'], true)) {
+                $cropYear = $importJob->context['crop_year'] ?? null;
+                $week = $importJob->context['week'] ?? null;
+
                 $weeklies = Weekly::where('import_job_id', $importJob->id)->get();
-                if ($weeklies->isEmpty() && ! empty($importJob->context['crop_year']) && ! empty($importJob->context['week'])) {
-                    $weeklies = Weekly::where('crop_year', $importJob->context['crop_year'])
-                        ->where('week', $importJob->context['week'])
+                if ($weeklies->isEmpty() && ! empty($cropYear) && ! empty($week)) {
+                    $weeklies = Weekly::where('crop_year', $cropYear)
+                        ->where('week', $week)
                         ->get();
                 }
 
@@ -173,6 +177,12 @@ class ImportHistoryController extends Controller
                         Storage::disk('public')->delete($weekly->file_location);
                     }
                     $weekly->delete();
+                }
+
+                if (! empty($cropYear) && ! empty($week)) {
+                    $relativeOutputDirectory = 'weekly-pdfs/' . Str::slug((string) $cropYear) . '/week-' . Str::slug((string) $week);
+                    Storage::disk('public')->deleteDirectory($relativeOutputDirectory);
+                    Storage::disk('local')->deleteDirectory('temp-pdf-cache/' . Str::slug((string) $cropYear) . '/week-' . Str::slug((string) $week));
                 }
             }
 
