@@ -1,9 +1,11 @@
 <?php
 
+use App\Models\ImportJob;
 use App\Models\User;
 use App\Models\Weekly;
 use App\Support\Permissions;
 use Database\Seeders\RolePermissionSeeder;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
@@ -152,8 +154,8 @@ test('weekly show and download serve single planter pdfs', function () {
     $user = User::factory()->create();
     $user->assignRole(Permissions::SUPER_ADMIN_ROLE);
 
-    \Illuminate\Support\Facades\Storage::fake('public');
-    \Illuminate\Support\Facades\Storage::disk('public')->put('weekly-pdfs/2025-2026/week-1/legacy.pdf', '%PDF-1.4 legacy test pdf content');
+    Storage::fake('public');
+    Storage::disk('public')->put('weekly-pdfs/2025-2026/week-1/legacy.pdf', '%PDF-1.4 legacy test pdf content');
 
     $weekly = Weekly::query()->create([
         'crop_year' => '2025-2026',
@@ -177,12 +179,12 @@ test('destroyByCropYearWeek deletes weekly records, import jobs, and storage dir
     $user = User::factory()->create();
     $user->assignRole(Permissions::SUPER_ADMIN_ROLE);
 
-    \Illuminate\Support\Facades\Storage::fake('public');
-    \Illuminate\Support\Facades\Storage::disk('public')->put('weekly-pdfs/2025-2026/week-5/master.pdf', 'fake master content');
+    Storage::fake('public');
+    Storage::disk('public')->put('weekly-pdfs/2025-2026/week-5/master.pdf', 'fake master content');
 
-    $importJob = \App\Models\ImportJob::create([
+    $importJob = ImportJob::create([
         'type' => 'weekly_pdf',
-        'status' => \App\Models\ImportJob::STATUS_DONE,
+        'status' => ImportJob::STATUS_DONE,
         'context' => ['crop_year' => '2025-2026', 'week' => '5'],
     ]);
 
@@ -204,16 +206,16 @@ test('destroyByCropYearWeek deletes weekly records, import jobs, and storage dir
 
     $response->assertRedirect();
     expect(Weekly::query()->where('crop_year', '2025-2026')->where('week', '5')->count())->toBe(0)
-        ->and(\App\Models\ImportJob::find($importJob->id))->toBeNull();
+        ->and(ImportJob::find($importJob->id))->toBeNull();
 });
 
 test('clear deletes all weekly records and all weekly import jobs', function () {
     $user = User::factory()->create();
     $user->assignRole(Permissions::SUPER_ADMIN_ROLE);
 
-    $job1 = \App\Models\ImportJob::create([
+    $job1 = ImportJob::create([
         'type' => 'weekly_pdf',
-        'status' => \App\Models\ImportJob::STATUS_DONE,
+        'status' => ImportJob::STATUS_DONE,
         'context' => ['crop_year' => '2025-2026', 'week' => '1'],
     ]);
 
@@ -232,7 +234,5 @@ test('clear deletes all weekly records and all weekly import jobs', function () 
     $response->assertRedirect();
 
     expect(Weekly::query()->count())->toBe(0)
-        ->and(\App\Models\ImportJob::whereIn('type', ['weekly', 'weekly_pdf'])->count())->toBe(0);
+        ->and(ImportJob::whereIn('type', ['weekly', 'weekly_pdf'])->count())->toBe(0);
 });
-
-

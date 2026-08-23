@@ -551,13 +551,13 @@ export default function AdvancementsIndexPage({
                                 </TabsTrigger>
                             </TabsList>
                         </Tabs>
-                        <DataTableSearch
-                            value={searchQuery}
-                            onChange={setSearchQuery}
-                            placeholder="Search advances..."
-                            className="w-full sm:w-72"
-                        />
                     </div>
+                    <DataTableSearch
+                        value={searchQuery}
+                        onChange={setSearchQuery}
+                        placeholder="Search advances..."
+                        className="w-full sm:w-72"
+                    />
 
                     {/* Advancements Master DataTable */}
                     <div className="rounded-xl bg-card shadow-xs">

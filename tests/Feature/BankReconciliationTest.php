@@ -1,12 +1,14 @@
 <?php
 
 use App\Models\BankStatement;
+use App\Models\ImportJob;
 use App\Models\InternalDisbursements;
 use App\Models\ReconciliationWorkspace;
 use App\Models\User;
 use App\Support\Permissions;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Support\Facades\Schema;
+use PhpOffice\PhpSpreadsheet\Reader\Xlsx;
 
 beforeEach(function () {
     $this->seed(RolePermissionSeeder::class);
@@ -295,7 +297,7 @@ test('bank reconciliation fileAuditStats accurately tracks 1 monthly bank statem
     $user = User::factory()->create();
     $user->assignRole(Permissions::SUPER_ADMIN_ROLE);
 
-    $bankJob = \App\Models\ImportJob::create([
+    $bankJob = ImportJob::create([
         'user_id' => $user->id,
         'type' => 'bank_recon_bank',
         'status' => 'done',
@@ -312,7 +314,7 @@ test('bank reconciliation fileAuditStats accurately tracks 1 monthly bank statem
         'is_duplicate' => false,
     ]);
 
-    $week1Job = \App\Models\ImportJob::create([
+    $week1Job = ImportJob::create([
         'user_id' => $user->id,
         'type' => 'bank_recon_internal',
         'status' => 'done',
@@ -329,7 +331,7 @@ test('bank reconciliation fileAuditStats accurately tracks 1 monthly bank statem
         'is_duplicate' => false,
     ]);
 
-    $week2Job = \App\Models\ImportJob::create([
+    $week2Job = ImportJob::create([
         'user_id' => $user->id,
         'type' => 'bank_recon_internal',
         'status' => 'done',
@@ -378,3 +380,72 @@ test('bank reconciliation fileAuditStats accurately tracks 1 monthly bank statem
     expect($fileAuditStats['is_complete'])->toBeFalse();
 });
 
+test('authorized user can export multi-sheet bank reconciliation excel', function () {
+    $user = User::factory()->create();
+    $user->assignRole(Permissions::SUPER_ADMIN_ROLE);
+
+    // Create a bank statement and an internal disbursement
+    BankStatement::query()->create([
+        'tdate' => '2026-08-15',
+        'checkno' => 'CHK-EXP-001',
+        'debit' => 2500.00,
+        'running_balance' => 45000.00,
+        'bank_date' => '2026-08-01',
+        'is_duplicate' => false,
+    ]);
+
+    InternalDisbursements::query()->create([
+        'payee_name' => 'Export Payee',
+        'check_no' => 'CHK-EXP-002',
+        'check_amount' => 1200.00,
+        'date_issued' => '2026-08-10',
+        'disbursement_week' => 2,
+        'is_duplicate' => false,
+    ]);
+
+    $response = $this->actingAs($user)
+        ->get(route('bank_reconciliation.export', [
+            'period_from' => '2026-08-01',
+            'period_to' => '2026-08-31',
+        ]));
+
+    $response->assertOk()
+        ->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+
+    $filePath = $response->getFile()->getPathname();
+    $reader = new Xlsx;
+    $spreadsheet = $reader->load($filePath);
+    $sheetNames = $spreadsheet->getSheetNames();
+
+    expect($sheetNames)->toBe(['All', 'Outstanding', 'Unrecorded', 'Matched', 'Mismatch', 'Duplicates']);
+
+    $sheet = $spreadsheet->getSheetByName('All');
+    expect($sheet)->not->toBeNull();
+
+    // Check table headers row
+    $headerRow = null;
+    for ($r = 1; $r <= 20; $r++) {
+        if ($sheet->getCell("A{$r}")->getValue() === 'Status') {
+            $headerRow = $r;
+            break;
+        }
+    }
+
+    expect($headerRow)->not->toBeNull();
+    expect($sheet->getCell("B{$headerRow}")->getValue())->toBe('Check No');
+    expect($sheet->getCell("C{$headerRow}")->getValue())->toBe('Duplicate Check?');
+    expect($sheet->getCell("D{$headerRow}")->getValue())->toBe('Payee / Description');
+    expect($sheet->getCell("E{$headerRow}")->getValue())->toBe('Internal Source');
+    expect($sheet->getCell("F{$headerRow}")->getValue())->toBe('Internal Date Issued');
+    expect($sheet->getCell("G{$headerRow}")->getValue())->toBe('Disbursement Week');
+    expect($sheet->getCell("H{$headerRow}")->getValue())->toBe('Internal Amount');
+    expect($sheet->getCell("I{$headerRow}")->getValue())->toBe('Bank Source');
+    expect($sheet->getCell("J{$headerRow}")->getValue())->toBe('Bank Date');
+    expect($sheet->getCell("K{$headerRow}")->getValue())->toBe('Transaction Date');
+    expect($sheet->getCell("L{$headerRow}")->getValue())->toBe('Bank Amount');
+    expect($sheet->getCell("M{$headerRow}")->getValue())->toBe('Variance');
+    expect($sheet->getCell("N{$headerRow}")->getValue())->toBe('Days Outstanding');
+
+    // Verify font is not bold
+    expect($sheet->getStyle("A{$headerRow}")->getFont()->getBold())->toBeFalse();
+});

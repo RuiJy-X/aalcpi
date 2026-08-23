@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Employee extends Model
@@ -109,7 +109,7 @@ class Employee extends Model
             Advancement::where('payout_payroll_id', $draft->id)
                 ->orWhere('deduction_payroll_id', $draft->id)
                 ->get()
-                ->each(fn(Advancement $adv) => $adv->releaseFromPayroll($draft->id));
+                ->each(fn (Advancement $adv) => $adv->releaseFromPayroll($draft->id));
 
             $draft->delete();
         }

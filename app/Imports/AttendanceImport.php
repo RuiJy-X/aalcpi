@@ -8,9 +8,10 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
 use Maatwebsite\Excel\Concerns\ToCollection;
-use Maatwebsite\Excel\Concerns\WithStartRow;
 use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Concerns\WithStartRow;
 use Maatwebsite\Excel\Events\BeforeImport;
+use PhpOffice\PhpSpreadsheet\Shared\Date;
 
 /**
  * Columns (0-indexed), starting at row 7:
@@ -19,19 +20,28 @@ use Maatwebsite\Excel\Events\BeforeImport;
  *   H (7) – Punch count
  *   J (9) – Working hours
  */
-class AttendanceImport implements ToCollection, WithStartRow, SkipsEmptyRows, WithEvents
+class AttendanceImport implements SkipsEmptyRows, ToCollection, WithEvents, WithStartRow
 {
-    const COL_DATE        = 0;
-    const COL_TIME_RANGE  = 2;
+    const COL_DATE = 0;
+
+    const COL_TIME_RANGE = 2;
+
     const COL_PUNCH_COUNT = 7;
+
     const COL_WORKING_HRS = 9;
 
     public int $importedCount = 0;
+
     public int $totalDays = 0;
+
     public float $totalHours = 0.0;
+
     public string $employeeCode = '';
+
     public string $employeeName = '';
+
     public ?CarbonImmutable $periodStart = null;
+
     public ?CarbonImmutable $periodEnd = null;
 
     /** @var array<int, array{date: string, time_in: string|null, time_out: string|null, working_time: float}> */
@@ -42,8 +52,8 @@ class AttendanceImport implements ToCollection, WithStartRow, SkipsEmptyRows, Wi
     public function __construct(
         private readonly bool $persist = true,
         private readonly ?array $employeeData = null,
-    ) {
-    }
+    ) {}
+
     public function registerEvents(): array
     {
         return [
@@ -140,7 +150,7 @@ class AttendanceImport implements ToCollection, WithStartRow, SkipsEmptyRows, Wi
 
         if (is_numeric($value)) {
             return CarbonImmutable::instance(
-                \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($value),
+                Date::excelToDateTimeObject($value),
             );
         }
 

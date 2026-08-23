@@ -8,19 +8,23 @@ use App\Models\InternalDisbursements;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Concerns\ToModel;
-use Maatwebsite\Excel\Concerns\WithHeadingRow;
-use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
+use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Events\AfterImport;
 use Maatwebsite\Excel\Events\ImportFailed;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
 
-class BankStatementsImport implements ToModel, WithHeadingRow, WithEvents, WithChunkReading
+class BankStatementsImport implements ToModel, WithChunkReading, WithEvents, WithHeadingRow
 {
     protected int $rowsRead = 0;
+
     protected int $rowsSaved = 0;
+
     protected int $rowsSkipped = 0;
+
     protected array $warnings = [];
+
     protected array $headersRead = [];
 
     public function __construct(
@@ -54,9 +58,10 @@ class BankStatementsImport implements ToModel, WithHeadingRow, WithEvents, WithC
         $rawBalance = $rowMapped['running_balance'] ?? null;
         $hasBalance = $rawBalance !== null && $rawBalance !== '';
 
-        if ($rawDate === '' && !$hasBalance) {
+        if ($rawDate === '' && ! $hasBalance) {
             $this->rowsSkipped++;
             $this->warnings[] = "Row {$rowNum}: Skipped empty row.";
+
             return null;
         }
 
@@ -67,6 +72,7 @@ class BankStatementsImport implements ToModel, WithHeadingRow, WithEvents, WithC
                 'import_job_id' => $this->importJobId,
                 'row' => $rowMapped,
             ]);
+
             return null;
         }
 
@@ -75,6 +81,7 @@ class BankStatementsImport implements ToModel, WithHeadingRow, WithEvents, WithC
                 return null;
             }
             $cleanVal = str_replace(',', '', trim((string) $val));
+
             return is_numeric($cleanVal) ? (float) $cleanVal : null;
         };
 
@@ -94,6 +101,7 @@ class BankStatementsImport implements ToModel, WithHeadingRow, WithEvents, WithC
                         'import_job_id' => $this->importJobId,
                         'tdate' => $rawDate,
                     ]);
+
                     return null;
                 }
                 $parsedDate = date('Y-m-d', $fallback);
@@ -104,7 +112,7 @@ class BankStatementsImport implements ToModel, WithHeadingRow, WithEvents, WithC
 
         return BankStatement::create([
             'tdate' => $parsedDate,
-            'checkno' => !empty($rowMapped['checkno']) ? trim((string) $rowMapped['checkno']) : null,
+            'checkno' => ! empty($rowMapped['checkno']) ? trim((string) $rowMapped['checkno']) : null,
             'running_balance' => $toNum($rawBalance),
             'branch_description' => $rowMapped['branch_description'] ?? null,
             'partic' => $rowMapped['partic'] ?? null,
@@ -189,7 +197,7 @@ class BankStatementsImport implements ToModel, WithHeadingRow, WithEvents, WithC
 
         $mapped = [];
         foreach ($this->mapping as $target => $source) {
-            if (!is_string($source) || $source === '') {
+            if (! is_string($source) || $source === '') {
                 continue;
             }
 

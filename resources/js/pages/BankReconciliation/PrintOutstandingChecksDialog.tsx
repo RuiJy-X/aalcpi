@@ -12,7 +12,8 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
+import type { DateRange } from 'react-day-picker';
+import { DatePickerWithRange } from '@/components/date-range';
 import { Label } from '@/components/ui/label';
 
 type OutstandingCheckItem = {
@@ -48,8 +49,14 @@ export function PrintOutstandingChecksDialog({
     defaultPeriodTo?: string;
 }) {
     const [isOpen, setIsOpen] = React.useState(false);
-    const [dateFrom, setDateFrom] = React.useState(defaultPeriodFrom);
-    const [dateTo, setDateTo] = React.useState(defaultPeriodTo);
+    const [dateRange, setDateRange] = React.useState<DateRange | undefined>(
+        defaultPeriodFrom
+            ? {
+                  from: new Date(defaultPeriodFrom),
+                  to: defaultPeriodTo ? new Date(defaultPeriodTo) : undefined,
+              }
+            : undefined,
+    );
     const [isLoading, setIsLoading] = React.useState(false);
     const [previewData, setPreviewData] = React.useState<OutstandingChecksResponse | null>(null);
     const [fetchError, setFetchError] = React.useState<string | null>(null);
@@ -81,22 +88,30 @@ export function PrintOutstandingChecksDialog({
 
     React.useEffect(() => {
         if (isOpen) {
-            setDateFrom(defaultPeriodFrom);
-            setDateTo(defaultPeriodTo);
+            const initialRange: DateRange | undefined = defaultPeriodFrom
+                ? {
+                      from: new Date(defaultPeriodFrom),
+                      to: defaultPeriodTo
+                          ? new Date(defaultPeriodTo)
+                          : undefined,
+                  }
+                : undefined;
+            setDateRange(initialRange);
             fetchPreview(defaultPeriodFrom, defaultPeriodTo);
         }
     }, [isOpen, defaultPeriodFrom, defaultPeriodTo, fetchPreview]);
 
-    const handleDateFromChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const val = e.target.value;
-        setDateFrom(val);
-        fetchPreview(val, dateTo);
-    };
-
-    const handleDateToChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const val = e.target.value;
-        setDateTo(val);
-        fetchPreview(dateFrom, val);
+    const handleRangeChange = (nextRange: DateRange | undefined) => {
+        setDateRange(nextRange);
+        const fromStr = nextRange?.from
+            ? format(nextRange.from, 'yyyy-MM-dd')
+            : '';
+        const toStr = nextRange?.to
+            ? format(nextRange.to, 'yyyy-MM-dd')
+            : nextRange?.from
+              ? format(nextRange.from, 'yyyy-MM-dd')
+              : '';
+        fetchPreview(fromStr, toStr);
     };
 
     const formatCurrency = (amount: number) => {
@@ -106,19 +121,17 @@ export function PrintOutstandingChecksDialog({
         }).format(amount);
     };
 
-    const escapeHtml = (str: string) => {
-        return (str || '')
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
-    };
-
     const triggerPrint = (useDomPdf = false) => {
         const params = new URLSearchParams();
-        if (dateFrom) params.append('date_from', dateFrom);
-        if (dateTo) params.append('date_to', dateTo);
+        const fromStr = dateRange?.from
+            ? format(dateRange.from, 'yyyy-MM-dd')
+            : '';
+        const toStr = dateRange?.to
+            ? format(dateRange.to, 'yyyy-MM-dd')
+            : fromStr;
+
+        if (fromStr) params.append('date_from', fromStr);
+        if (toStr) params.append('date_to', toStr);
 
         const route = useDomPdf ? '/BankReconciliation/outstanding-checks-pdf' : '/BankReconciliation/outstanding-checks-print';
         window.open(`${route}?${params.toString()}`, '_blank');
@@ -145,36 +158,23 @@ export function PrintOutstandingChecksDialog({
                 </DialogHeader>
 
                 <div className="space-y-4 py-2">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
-                            <Label htmlFor="print-date-from">Date From</Label>
-                            <Input
-                                id="print-date-from"
-                                type="date"
-                                value={dateFrom}
-                                onChange={handleDateFromChange}
-                            />
-                        </div>
-                        <div className="space-y-1.5">
-                            <Label htmlFor="print-date-to">Date To</Label>
-                            <Input
-                                id="print-date-to"
-                                type="date"
-                                value={dateTo}
-                                onChange={handleDateToChange}
-                            />
-                        </div>
+                    <div className="space-y-1.5">
+                        <Label>Date Range</Label>
+                        <DatePickerWithRange
+                            value={dateRange}
+                            onChange={handleRangeChange}
+                            className="w-full"
+                        />
                     </div>
 
-                    {(dateFrom || dateTo) && (
+                    {dateRange?.from && (
                         <div className="flex justify-end">
                             <Button
                                 type="button"
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => {
-                                    setDateFrom('');
-                                    setDateTo('');
+                                    setDateRange(undefined);
                                     fetchPreview('', '');
                                 }}
                                 className="h-7 text-xs text-muted-foreground"

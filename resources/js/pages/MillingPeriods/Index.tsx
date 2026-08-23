@@ -332,21 +332,18 @@ export default function Index({
                             onCancel={cancelEditing}
                             onSave={saveEdits}
                         />
-                        <Button
-                            onClick={handleOpenCreate}
-                            disabled={isEditing}
-                        >
+                        <Button onClick={handleOpenCreate} disabled={isEditing}>
                             <Plus />
                             Add
                         </Button>
                     </ContainerHeaderEnd>
                 </ContainerHeader>
                 <DataTable
-                    onRowDoubleClick={
-                        isEditing
-                            ? undefined
-                            : (milling_period) => handleOpenView(milling_period)
-                    }
+                    // onRowDoubleClick={
+                    //     isEditing
+                    //         ? undefined
+                    //         : (milling_period) => handleOpenView(milling_period)
+                    // }
                     bulkDelete={isEditing ? undefined : millingPeriodBulkDelete}
                     data={milling_periods}
                     columns={millingPeriodColumns}

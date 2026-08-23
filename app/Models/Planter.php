@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Planter extends Model
@@ -16,7 +16,7 @@ class Planter extends Model
         'address',
         'contact_number',
         'tin_number',
-        'registration_date'
+        'registration_date',
     ];
 
     public function haciendas(): HasMany
@@ -28,6 +28,4 @@ class Planter extends Model
     {
         return $this->hasMany(Production::class);
     }
-
-
 }

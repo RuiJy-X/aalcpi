@@ -22,14 +22,10 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import {
-    Plus,
-    FileText,
-    Printer,
-    Calendar,
-    RotateCcw,
-    Filter,
-} from 'lucide-react';
+import { Plus, FileText, Printer, RotateCcw } from 'lucide-react';
+import type { DateRange } from 'react-day-picker';
+import { DatePickerWithRange } from '@/components/date-range';
+import { format } from 'date-fns';
 import {
     show as payrollShow,
     create as payrollCreate,
@@ -58,8 +54,9 @@ const Index = ({ payrolls }: { payrolls: PayrollType[] }) => {
     >('all');
 
     // Date Range Filter state
-    const [filterStartDate, setFilterStartDate] = useState<string>('');
-    const [filterEndDate, setFilterEndDate] = useState<string>('');
+    const [dateRange, setDateRange] = useState<DateRange | undefined>(
+        undefined,
+    );
     const [searchQuery, setSearchQuery] = useState<string>('');
 
     // Export PDF Modal state
@@ -98,18 +95,16 @@ const Index = ({ payrolls }: { payrolls: PayrollType[] }) => {
             }
 
             // Date Range Filter
-            if (filterStartDate) {
-                const pStart = p.period_start ? new Date(p.period_start) : null;
-                const filterStart = new Date(filterStartDate);
-                if (pStart && pStart < filterStart) {
+            if (dateRange?.from) {
+                const filterStartStr = format(dateRange.from, 'yyyy-MM-dd');
+                if (p.period_start && p.period_start < filterStartStr) {
                     return false;
                 }
             }
 
-            if (filterEndDate) {
-                const pEnd = p.period_end ? new Date(p.period_end) : null;
-                const filterEnd = new Date(filterEndDate);
-                if (pEnd && pEnd > filterEnd) {
+            if (dateRange?.to) {
+                const filterEndStr = format(dateRange.to, 'yyyy-MM-dd');
+                if (p.period_end && p.period_end > filterEndStr) {
                     return false;
                 }
             }
@@ -118,16 +113,18 @@ const Index = ({ payrolls }: { payrolls: PayrollType[] }) => {
             if (searchQuery.trim()) {
                 const q = searchQuery.toLowerCase();
                 const matches =
-                    p.milling_period?.crop_year?.toLowerCase().includes(q) ||
+                    p.employee_name?.toLowerCase().includes(q) ||
+                    p.employee_code?.toLowerCase().includes(q) ||
+                    p.position?.toLowerCase().includes(q) ||
                     p.status?.toLowerCase().includes(q) ||
-                    String(p.gross_payroll ?? '').includes(q) ||
-                    String(p.net_payroll ?? '').includes(q);
+                    String(p.gross_pay ?? '').includes(q) ||
+                    String(p.net_pay ?? '').includes(q);
                 if (!matches) return false;
             }
 
             return true;
         });
-    }, [payrolls, activeTab, filterStartDate, filterEndDate, searchQuery]);
+    }, [payrolls, activeTab, dateRange, searchQuery]);
 
     const payrollColumns = useMemo(
         () => createPayrollColumns(),
@@ -135,8 +132,7 @@ const Index = ({ payrolls }: { payrolls: PayrollType[] }) => {
     );
 
     const handleClearDateFilter = () => {
-        setFilterStartDate('');
-        setFilterEndDate('');
+        setDateRange(undefined);
     };
 
     const handleStreamSummaryPdf = (e: React.FormEvent) => {
@@ -189,119 +185,91 @@ const Index = ({ payrolls }: { payrolls: PayrollType[] }) => {
                 </ContainerHeader>
 
                 {/* Date Filter & Status Navigation Bar */}
+                <Tabs
+                    value={activeTab}
+                    onValueChange={(val) => setActiveTab(val as any)}
+                    className="w-full sm:w-auto"
+                >
+                    <TabsList variant="line" className="h-10">
+                        <TabsTrigger
+                            value="all"
+                            className="gap-2 text-xs font-semibold sm:text-sm"
+                        >
+                            All Payrolls
+                            <Badge
+                                variant="secondary"
+                                className="py-0.2 px-1.5 text-xs"
+                            >
+                                {counts.all}
+                            </Badge>
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="draft"
+                            className="gap-2 text-xs font-semibold sm:text-sm"
+                        >
+                            Draft
+                            <Badge
+                                variant="outline"
+                                className="py-0.2 border-amber-300 bg-amber-50 px-1.5 text-xs text-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
+                            >
+                                {counts.draft}
+                            </Badge>
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="pending"
+                            className="gap-2 text-xs font-semibold sm:text-sm"
+                        >
+                            Pending
+                            <Badge
+                                variant="outline"
+                                className="py-0.2 border-blue-300 bg-blue-50 px-1.5 text-xs text-blue-800 dark:bg-blue-950/60 dark:text-blue-300"
+                            >
+                                {counts.pending}
+                            </Badge>
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="paid"
+                            className="gap-2 text-xs font-semibold sm:text-sm"
+                        >
+                            Paid
+                            <Badge
+                                variant="outline"
+                                className="py-0.2 border-emerald-300 bg-emerald-50 px-1.5 text-xs text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
+                            >
+                                {counts.paid}
+                            </Badge>
+                        </TabsTrigger>
+                    </TabsList>
+                </Tabs>
                 <div className="space-y-4 pt-2">
                     {/* Status Tabs Navigation */}
                     <div className="flex flex-col gap-3 border-b border-border/60 pb-3 sm:flex-row sm:items-center sm:justify-between">
-                        <Tabs
-                            value={activeTab}
-                            onValueChange={(val) => setActiveTab(val as any)}
-                            className="w-full sm:w-auto"
-                        >
-                            <TabsList variant="line" className="h-10">
-                                <TabsTrigger
-                                    value="all"
-                                    className="gap-2 text-xs font-semibold sm:text-sm"
-                                >
-                                    All Payrolls
-                                    <Badge
-                                        variant="secondary"
-                                        className="py-0.2 px-1.5 text-xs"
-                                    >
-                                        {counts.all}
-                                    </Badge>
-                                </TabsTrigger>
-                                <TabsTrigger
-                                    value="draft"
-                                    className="gap-2 text-xs font-semibold sm:text-sm"
-                                >
-                                    Draft
-                                    <Badge
-                                        variant="outline"
-                                        className="py-0.2 border-amber-300 bg-amber-50 px-1.5 text-xs text-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
-                                    >
-                                        {counts.draft}
-                                    </Badge>
-                                </TabsTrigger>
-                                <TabsTrigger
-                                    value="pending"
-                                    className="gap-2 text-xs font-semibold sm:text-sm"
-                                >
-                                    Pending
-                                    <Badge
-                                        variant="outline"
-                                        className="py-0.2 border-blue-300 bg-blue-50 px-1.5 text-xs text-blue-800 dark:bg-blue-950/60 dark:text-blue-300"
-                                    >
-                                        {counts.pending}
-                                    </Badge>
-                                </TabsTrigger>
-                                <TabsTrigger
-                                    value="paid"
-                                    className="gap-2 text-xs font-semibold sm:text-sm"
-                                >
-                                    Paid
-                                    <Badge
-                                        variant="outline"
-                                        className="py-0.2 border-emerald-300 bg-emerald-50 px-1.5 text-xs text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
-                                    >
-                                        {counts.paid}
-                                    </Badge>
-                                </TabsTrigger>
-                            </TabsList>
-                        </Tabs>
-
-                        {/* Date Filter Bar */}
-                        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card p-2 shadow-xs">
-                            <div className="flex items-center gap-1.5 px-1 text-xs font-bold tracking-wider text-muted-foreground uppercase">
-                                <Filter className="h-3.5 w-3.5 text-primary" />
-                                Date Filter:
-                            </div>
-                            <div className="flex items-center gap-1">
-                                <Calendar className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                                <Input
-                                    type="date"
-                                    value={filterStartDate}
-                                    onChange={(e) =>
-                                        setFilterStartDate(e.target.value)
-                                    }
-                                    className="h-8 w-[130px] text-xs"
-                                    placeholder="Start Date"
-                                />
-                            </div>
-                            <span className="text-xs font-semibold text-muted-foreground">
-                                —
-                            </span>
-                            <div className="flex items-center gap-1">
-                                <Calendar className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                                <Input
-                                    type="date"
-                                    value={filterEndDate}
-                                    onChange={(e) =>
-                                        setFilterEndDate(e.target.value)
-                                    }
-                                    className="h-8 w-[130px] text-xs"
-                                    placeholder="End Date"
-                                />
-                            </div>
-
-                            {(filterStartDate || filterEndDate) && (
-                                <Button
-                                    variant="ghost"
-                                    size="xs"
-                                    onClick={handleClearDateFilter}
-                                    className="h-8 text-xs text-muted-foreground hover:text-foreground"
-                                >
-                                    <RotateCcw className="mr-1 h-3 w-3" />
-                                    Clear
-                                </Button>
-                            )}
-                        </div>
-
                         <DataTableSearch
                             value={searchQuery}
                             onChange={setSearchQuery}
                             placeholder="Search payrolls..."
                             className="w-full sm:w-72"
                         />
+                        {/* Date Filter Bar */}
+                        <div className="flex flex-wrap items-center gap-2">
+                            <DatePickerWithRange
+                                value={dateRange}
+                                onChange={setDateRange}
+                                className="w-64"
+                            />
+
+                            {(dateRange?.from || dateRange?.to) && (
+                                <Button
+                                    variant="ghost"
+                                    size="xs"
+                                    onClick={handleClearDateFilter}
+                                    className="h-9 text-xs text-muted-foreground hover:text-foreground"
+                                >
+                                    <RotateCcw className="mr-1 h-3 w-3" />
+                                    Clear
+                                </Button>
+                            )}
+                        </div>
                     </div>
 
                     <DataTable

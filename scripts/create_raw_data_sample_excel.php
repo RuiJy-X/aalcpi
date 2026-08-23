@@ -1,17 +1,17 @@
 <?php
 
-require __DIR__ . '/../vendor/autoload.php';
+require __DIR__.'/../vendor/autoload.php';
 
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
-$targetDir = __DIR__ . '/../storage/app/imports';
+$targetDir = __DIR__.'/../storage/app/imports';
 
-if (!is_dir($targetDir)) {
+if (! is_dir($targetDir)) {
     mkdir($targetDir, 0777, true);
 }
 
-$filePath = $targetDir . '/raw_data_sample.xlsx';
+$filePath = $targetDir.'/raw_data_sample.xlsx';
 $rowCount = 25;
 
 $headers = [
@@ -36,8 +36,8 @@ for ($i = 1; $i <= $rowCount; $i++) {
 
     $rows[] = [
         '2025-2026',
-        date('Y-m-d', strtotime('2026-01-01 +' . ($i - 1) . ' days')),
-        'P-' . str_pad((string) $i, 6, '0', STR_PAD_LEFT),
+        date('Y-m-d', strtotime('2026-01-01 +'.($i - 1).' days')),
+        'P-'.str_pad((string) $i, 6, '0', STR_PAD_LEFT),
         $grossCw,
         $netCw,
         mt_rand(1, 12),
@@ -49,12 +49,12 @@ for ($i = 1; $i <= $rowCount; $i++) {
     ];
 }
 
-$spreadsheet = new Spreadsheet();
+$spreadsheet = new Spreadsheet;
 $sheet = $spreadsheet->getActiveSheet();
 $sheet->fromArray($headers, null, 'A1');
 
 foreach ($rows as $index => $row) {
-    $sheet->fromArray($row, null, 'A' . ($index + 2));
+    $sheet->fromArray($row, null, 'A'.($index + 2));
 }
 
 (new Xlsx($spreadsheet))->save($filePath);

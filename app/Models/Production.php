@@ -2,13 +2,12 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class Production extends Model
 {
     use HasFactory;
-
 
     protected $fillable = [
         'planter_id', 'hacienda_id', 'milling_period_id', 'import_job_id', 'planter_code', 'hacienda_code',
@@ -16,7 +15,7 @@ class Production extends Model
         'gross_cw', 'net_cw', 'trucks', 'theoretical_lkg', 'actual_lkg',
         'pshr_net_lkg', 'pdpa_lkg', 'association_dues_lkg', 'actual_mol',
         'pshr_net_mol', 'pdpa_mol', 'association_dues_mol', 'trans_code', 'transloading',
-        'composite_sugar_price', 'composite_molasses_price', 'status'
+        'composite_sugar_price', 'composite_molasses_price', 'status',
     ];
 
     protected $casts = [
@@ -36,7 +35,18 @@ class Production extends Model
         'transloading' => 'boolean',
     ];
 
-    public function planter() { return $this->belongsTo(Planter::class); }
-    public function hacienda() { return $this->belongsTo(Hacienda::class); }
-    public function millingPeriod() { return $this->belongsTo(MillingPeriod::class); }
+    public function planter()
+    {
+        return $this->belongsTo(Planter::class);
+    }
+
+    public function hacienda()
+    {
+        return $this->belongsTo(Hacienda::class);
+    }
+
+    public function millingPeriod()
+    {
+        return $this->belongsTo(MillingPeriod::class);
+    }
 }

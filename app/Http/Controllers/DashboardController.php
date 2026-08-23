@@ -12,6 +12,7 @@ use App\Models\MillingPeriod;
 use App\Models\Payroll;
 use App\Models\Planter;
 use App\Models\Production;
+use App\Models\ReconciliationWorkspace;
 use App\Models\User;
 use App\Models\Weekly;
 use Illuminate\Http\Request;
@@ -487,7 +488,7 @@ class DashboardController extends Controller
 
         try {
             if (Schema::hasTable('reconciliation_workspace')) {
-                $rows = \App\Models\ReconciliationWorkspace::query()
+                $rows = ReconciliationWorkspace::query()
                     ->selectRaw('status, COUNT(*) as c')
                     ->groupBy('status')
                     ->pluck('c', 'status');

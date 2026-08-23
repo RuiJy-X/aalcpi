@@ -1,32 +1,31 @@
 <?php
 
-require __DIR__ . '/../vendor/autoload.php';
+require __DIR__.'/../vendor/autoload.php';
 
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
-$targetDir = __DIR__ . '/../storage/app/imports';
+$targetDir = __DIR__.'/../storage/app/imports';
 
-if (!is_dir($targetDir)) {
+if (! is_dir($targetDir)) {
     mkdir($targetDir, 0777, true);
 }
 
 /**
  * Create an XLSX file with headers and rows.
  *
- * @param string $filePath
- * @param array<int, string> $headers
- * @param array<int, array<int, mixed>> $rows
+ * @param  array<int, string>  $headers
+ * @param  array<int, array<int, mixed>>  $rows
  */
 function createExcelFile(string $filePath, array $headers, array $rows): void
 {
-    $spreadsheet = new Spreadsheet();
+    $spreadsheet = new Spreadsheet;
     $sheet = $spreadsheet->getActiveSheet();
 
     $sheet->fromArray($headers, null, 'A1');
 
     foreach ($rows as $index => $row) {
-        $sheet->fromArray($row, null, 'A' . ($index + 2));
+        $sheet->fromArray($row, null, 'A'.($index + 2));
     }
 
     (new Xlsx($spreadsheet))->save($filePath);
@@ -51,15 +50,15 @@ $planterHeaders = [
 $planterRows = [];
 for ($i = 1; $i <= $rowCount; $i++) {
     $planterRows[] = [
-        'PLN-' . str_pad((string) $i, 3, '0', STR_PAD_LEFT),
-        'Planter ' . $i,
-        'Barangay Sample ' . $i,
-        '09' . str_pad((string) (100000000 + $i), 9, '0', STR_PAD_LEFT),
-        'TIN-' . str_pad((string) $i, 6, '0', STR_PAD_LEFT),
-        date('Y-m-d', strtotime('2025-01-01 +' . ($i - 1) . ' days')),
-        'HAC-' . str_pad((string) $i, 3, '0', STR_PAD_LEFT),
-        'Hacienda ' . $i,
-        'Hacienda Address ' . $i,
+        'PLN-'.str_pad((string) $i, 3, '0', STR_PAD_LEFT),
+        'Planter '.$i,
+        'Barangay Sample '.$i,
+        '09'.str_pad((string) (100000000 + $i), 9, '0', STR_PAD_LEFT),
+        'TIN-'.str_pad((string) $i, 6, '0', STR_PAD_LEFT),
+        date('Y-m-d', strtotime('2025-01-01 +'.($i - 1).' days')),
+        'HAC-'.str_pad((string) $i, 3, '0', STR_PAD_LEFT),
+        'Hacienda '.$i,
+        'Hacienda Address '.$i,
         5 + $i,
         1.5 + ($i * 0.25),
     ];
@@ -91,46 +90,45 @@ $productionHeaders = [
 $productionCount = 10;
 $productionRows = [];
 
-for ($j = 1; $j <= $productionCount; $j++){
+for ($j = 1; $j <= $productionCount; $j++) {
     for ($i = 1; $i <= $rowCount; $i++) {
 
-        $counter = ((($j -1) * 10) + $i);
-        $day = ((($j -1) * 10) + $i) % 31 + 1; // Ensure day is between 1 and 31
-        $month = round($counter / 30,0, PHP_ROUND_HALF_UP);
+        $counter = ((($j - 1) * 10) + $i);
+        $day = ((($j - 1) * 10) + $i) % 31 + 1; // Ensure day is between 1 and 31
+        $month = round($counter / 30, 0, PHP_ROUND_HALF_UP);
         $year = 2026 + floor(($counter - 1) / 120);
 
-    $productionDate = date('Y-m-d', strtotime('2026-01-'. (($j -1) * 10) + $i . '+' . ($i - 1) . ' days'));
-    $productionDate = date('Y-m-d', strtotime($year.'-'.$month.'-'.$day . '+' . ($i - 1) . ' days'));
-    $startYear = (int) date('Y', strtotime($productionDate));
+        $productionDate = date('Y-m-d', strtotime('2026-01-'.(($j - 1) * 10) + $i.'+'.($i - 1).' days'));
+        $productionDate = date('Y-m-d', strtotime($year.'-'.$month.'-'.$day.'+'.($i - 1).' days'));
+        $startYear = (int) date('Y', strtotime($productionDate));
 
-    $productionRows[] = [
-        'PLN-' . str_pad((string) $i, 3, '0', STR_PAD_LEFT),
-        'Planter ' . $i,
-        'HAC-' . str_pad((string) $i, 3, '0', STR_PAD_LEFT),
-        'Hacienda ' . $i,
-        $productionDate,
-        sprintf('%04d-%04d', $startYear, $startYear + 1),
-        10 + $i,
-        8 + $i,
-        1 + ($i % 3),
-        11 + ($i * 2),
-        11 + ($i * 2),
-        7 + ($i * 2),
-        2 + ($i * 0.5),
-        2 + ($i * 0.25),
-        2 + ($i * 1.5),
-        1 + ($i * 1.25),
-        1 + ($i * 0.2),
-        1 + ($i * 0.15),
-        'TRX' . str_pad((string)$j *10 + $i , 4, '0', STR_PAD_LEFT),
-        $i % 2 === 0 ? 'true' : 'false',
-    ];
+        $productionRows[] = [
+            'PLN-'.str_pad((string) $i, 3, '0', STR_PAD_LEFT),
+            'Planter '.$i,
+            'HAC-'.str_pad((string) $i, 3, '0', STR_PAD_LEFT),
+            'Hacienda '.$i,
+            $productionDate,
+            sprintf('%04d-%04d', $startYear, $startYear + 1),
+            10 + $i,
+            8 + $i,
+            1 + ($i % 3),
+            11 + ($i * 2),
+            11 + ($i * 2),
+            7 + ($i * 2),
+            2 + ($i * 0.5),
+            2 + ($i * 0.25),
+            2 + ($i * 1.5),
+            1 + ($i * 1.25),
+            1 + ($i * 0.2),
+            1 + ($i * 0.15),
+            'TRX'.str_pad((string) $j * 10 + $i, 4, '0', STR_PAD_LEFT),
+            $i % 2 === 0 ? 'true' : 'false',
+        ];
     }
 }
 
-
-$planterFile = $targetDir . '/planter_sample.xlsx';
-$productionFile = $targetDir . '/productions_sample.xlsx';
+$planterFile = $targetDir.'/planter_sample.xlsx';
+$productionFile = $targetDir.'/productions_sample.xlsx';
 
 createExcelFile($planterFile, $planterHeaders, $planterRows);
 createExcelFile($productionFile, $productionHeaders, $productionRows);

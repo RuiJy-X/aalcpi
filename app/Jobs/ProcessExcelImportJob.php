@@ -30,7 +30,7 @@ class ProcessExcelImportJob implements ShouldQueue
     public bool $failOnTimeout = true;
 
     /**
-     * @param array<string, mixed> $options
+     * @param  array<string, mixed>  $options
      */
     public function __construct(
         public int $importJobId,
@@ -91,6 +91,7 @@ class ProcessExcelImportJob implements ShouldQueue
                     new PlanterImport($this->options['mapping'] ?? []),
                     $fullPath,
                 );
+
                 return;
 
             case 'productions_excel':
@@ -110,19 +111,21 @@ class ProcessExcelImportJob implements ShouldQueue
                     ),
                     $fullPath,
                 );
+
                 return;
 
             case 'attendance_excel':
-                $import = new AttendanceImport();
+                $import = new AttendanceImport;
                 Excel::import($import, $fullPath);
 
                 if ($import->importedCount === 0) {
                     throw new RuntimeException('No attendance rows were imported for the selected employee and date range.');
                 }
+
                 return;
 
             default:
-                throw new RuntimeException('Unsupported import type: ' . $this->type);
+                throw new RuntimeException('Unsupported import type: '.$this->type);
         }
     }
 }

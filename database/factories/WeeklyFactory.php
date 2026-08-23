@@ -2,10 +2,11 @@
 
 namespace Database\Factories;
 
+use App\Models\Weekly;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Weekly>
+ * @extends Factory<Weekly>
  */
 class WeeklyFactory extends Factory
 {

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class DatabaseConnection extends Model
 {
     protected $table = 'database_connections';
+
     protected $connection = 'connection_registry';
 
     protected $fillable = [
@@ -45,12 +46,13 @@ class DatabaseConnection extends Model
     {
         // Deactivate all other connections
         self::where('id', '!=', $this->id)->update(['is_active' => false]);
-        
+
         // Activate this one
         $this->update(['is_active' => true]);
-        
+
         return $this;
     }
+
     /**
      * Deactivate this connection (falls back to default/sqlite on next boot)
      */
@@ -105,7 +107,7 @@ class DatabaseConnection extends Model
         } catch (\Exception $e) {
             return [
                 'success' => false,
-                'message' => 'Connection failed: ' . $e->getMessage(),
+                'message' => 'Connection failed: '.$e->getMessage(),
             ];
         }
     }

@@ -2,20 +2,20 @@
 
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\AdvancementController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\BankReconciliationController;
 use App\Http\Controllers\BankReconciliationImportController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\HaciendaController;
+use App\Http\Controllers\HealthCheckController;
+use App\Http\Controllers\HolidayController;
 use App\Http\Controllers\ImportHistoryController;
 use App\Http\Controllers\ImportJobStatusController;
 use App\Http\Controllers\ImportMappingController;
 use App\Http\Controllers\MillingPeriodsController;
 use App\Http\Controllers\PayrollController;
-use App\Http\Controllers\AdvancementController;
-use App\Http\Controllers\HealthCheckController;
-use App\Http\Controllers\HolidayController;
 use App\Http\Controllers\PlanterController;
 use App\Http\Controllers\ProductionController;
 use App\Http\Controllers\WeeklyController;
@@ -420,6 +420,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/outstanding-checks-print', [BankReconciliationController::class, 'printOutstandingChecksHtml'])
             ->middleware('permission:bank_reconciliation.view')
             ->name('outstanding-checks-print');
+        Route::get('/export', [BankReconciliationController::class, 'export'])
+            ->middleware('permission:bank_reconciliation.view')
+            ->name('export');
         Route::get('/{bankReconciliation}', [BankReconciliationController::class, 'show'])
             ->middleware('permission:bank_reconciliation.view')
             ->name('show');

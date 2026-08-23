@@ -6,7 +6,7 @@ use App\Models\MillingPeriod;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\MillingPeriod>
+ * @extends Factory<MillingPeriod>
  */
 class MillingPeriodFactory extends Factory
 {
@@ -27,15 +27,14 @@ class MillingPeriodFactory extends Factory
 
         // Keep generated dates inside the current year so seeded data is always recent.
         $startDate = (new \DateTimeImmutable("{$currentYear}-01-01"))
-            ->modify('+' . ($weekIndex * 7) . ' days');
+            ->modify('+'.($weekIndex * 7).' days');
         $endDate = $startDate->modify('+6 days');
 
         $sequence++;
 
-
         return [
             'week_no' => $weekNo,
-            'crop_year' => $currentYear . '-' . ($currentYear + 1),
+            'crop_year' => $currentYear.'-'.($currentYear + 1),
             'start_date' => $startDate->format('Y-m-d'),
             'end_date' => $endDate->format('Y-m-d'),
             'sugar_factor' => fake()->randomFloat(16, 0.0000000000000001, 1),

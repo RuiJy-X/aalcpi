@@ -8,10 +8,12 @@ class ReconciliationWorkspace extends Model
 {
     // Point directly to our database view
     protected $table = 'reconciliation_workspace';
-    
+
     // Disable writes since views are read-only
     public $incrementing = false;
+
     protected $keyType = 'string';
+
     public $timestamps = false;
 
     protected $casts = [

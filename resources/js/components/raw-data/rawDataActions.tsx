@@ -13,9 +13,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
-import { show as rawDataShow } from '@/routes/RawData';
-import { edit as rawDataEdit } from '@/routes/RawData';
-import { destroy as rawDataDelete } from '@/routes/RawData';
+import { show as rawDataShow } from '@/routes/productions';
 import type { RawDataRow } from './raw-data-types';
 import { Button } from '../ui/button';
 
@@ -23,7 +21,7 @@ function RawDataActions({ rawData }: { rawData: RawDataRow }) {
     const [isDeleteOpen, setDeleteOpen] = React.useState(false);
 
     const handleDelete = () => {
-        router.delete(rawDataDelete(rawData.id).url, {
+        router.delete(`/Productions/${rawData.id}`, {
             preserveScroll: true,
             onSuccess: () => {
                 setDeleteOpen(false);
@@ -49,7 +47,7 @@ function RawDataActions({ rawData }: { rawData: RawDataRow }) {
                 variant="blue"
                 size="xs"
                 aria-label="Edit"
-                onClick={() => router.get(rawDataEdit(rawData.id).url)}
+                onClick={() => router.get(rawDataShow(rawData.id).url)}
             >
                 <Pencil className="size-4" />
             </Button>

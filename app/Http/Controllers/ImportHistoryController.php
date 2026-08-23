@@ -32,10 +32,10 @@ class ImportHistoryController extends Controller
         if ($request->has('filters')) {
             $filtersParam = $request->input('filters', []);
             if (is_array($filtersParam)) {
-                if (!empty($filtersParam['type'])) {
+                if (! empty($filtersParam['type'])) {
                     $type = is_array($filtersParam['type']) ? $filtersParam['type'][0] : $filtersParam['type'];
                 }
-                if (!empty($filtersParam['status'])) {
+                if (! empty($filtersParam['status'])) {
                     $status = is_array($filtersParam['status']) ? $filtersParam['status'][0] : $filtersParam['status'];
                 }
             }
@@ -63,8 +63,8 @@ class ImportHistoryController extends Controller
 
         if ($search !== '') {
             $query->where(function ($q) use ($search) {
-                $q->where('file_name', 'like', '%' . $search . '%')
-                    ->orWhere('message', 'like', '%' . $search . '%');
+                $q->where('file_name', 'like', '%'.$search.'%')
+                    ->orWhere('message', 'like', '%'.$search.'%');
             });
         }
 
@@ -218,9 +218,9 @@ class ImportHistoryController extends Controller
                 }
 
                 if (! empty($cropYear) && ! empty($week)) {
-                    $relativeOutputDirectory = 'weekly-pdfs/' . Str::slug((string) $cropYear) . '/week-' . Str::slug((string) $week);
+                    $relativeOutputDirectory = 'weekly-pdfs/'.Str::slug((string) $cropYear).'/week-'.Str::slug((string) $week);
                     Storage::disk('public')->deleteDirectory($relativeOutputDirectory);
-                    Storage::disk('local')->deleteDirectory('temp-pdf-cache/' . Str::slug((string) $cropYear) . '/week-' . Str::slug((string) $week));
+                    Storage::disk('local')->deleteDirectory('temp-pdf-cache/'.Str::slug((string) $cropYear).'/week-'.Str::slug((string) $week));
                 }
             }
 
@@ -237,13 +237,14 @@ class ImportHistoryController extends Controller
         $context = $importJob->context ?? [];
         $filePath = $context['file_path'] ?? null;
 
-        if (!$filePath || !Storage::disk('local')->exists($filePath)) {
+        if (! $filePath || ! Storage::disk('local')->exists($filePath)) {
             if ($importJob->status === ImportJob::STATUS_DONE) {
                 return response()->json([
                     'success' => true,
                     'message' => 'Import job is already completed.',
                 ]);
             }
+
             return response()->json([
                 'success' => false,
                 'message' => 'Uploaded import file is no longer available on server storage.',
@@ -291,9 +292,10 @@ class ImportHistoryController extends Controller
             ]);
         } catch (\Throwable $e) {
             $importJob->markFailed($e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Import execution failed: ' . $e->getMessage(),
+                'message' => 'Import execution failed: '.$e->getMessage(),
             ], 500);
         }
     }

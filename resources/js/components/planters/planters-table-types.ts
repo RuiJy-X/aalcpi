@@ -45,6 +45,7 @@ export type ProductionRow = {
     hacienda_name: string;
     hacienda_address: string;
     crop_year?: string | null;
+    production_date?: string | null;
     week_no?: number | null;
     gross_cw: number;
     net_cw: number;

@@ -2,9 +2,9 @@
 
 namespace App\Services;
 
+use App\Models\Attendance;
 use App\Models\Employee;
 use App\Models\Payroll;
-use App\Models\Attendance;
 use App\Utils\PayrollCalculationHelper;
 use Carbon\Carbon;
 
@@ -12,13 +12,6 @@ class PayrollCalculationService
 {
     /**
      * Generate payroll for an employee
-     *
-     * @param Employee $employee
-     * @param Carbon $periodStart
-     * @param Carbon $periodEnd
-     * @param int $holidays
-     * @param float $deductions
-     * @return Payroll
      */
     public function generatePayroll(
         Employee $employee,
@@ -68,11 +61,6 @@ class PayrollCalculationService
     /**
      * Calculate basic pay for the period
      * Basic pay = hourly_rate * total_hours_worked
-     *
-     * @param Employee $employee
-     * @param Carbon $periodStart
-     * @param Carbon $periodEnd
-     * @return float
      */
     private function calculateTotalHours(
         Employee $employee,
@@ -121,10 +109,6 @@ class PayrollCalculationService
 
     /**
      * Recalculate net pay when deductions change
-     *
-     * @param Payroll $payroll
-     * @param float $newDeductions
-     * @return Payroll
      */
     public function updateDeductions(Payroll $payroll, float $newDeductions): Payroll
     {

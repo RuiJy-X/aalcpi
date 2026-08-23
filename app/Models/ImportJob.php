@@ -7,8 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 class ImportJob extends Model
 {
     public const STATUS_QUEUED = 'queued';
+
     public const STATUS_RUNNING = 'running';
+
     public const STATUS_DONE = 'done';
+
     public const STATUS_FAILED = 'failed';
 
     protected $fillable = [

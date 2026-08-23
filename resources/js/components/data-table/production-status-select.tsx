@@ -28,7 +28,7 @@ export default function ProductionStatusSelect({
 
     const handleStatusChange = (newStatus: string) => {
         const previousStatus = status;
-        setStatus(newStatus);
+        setStatus(newStatus as 'draft' | 'completed');
         setError(null);
 
         router.patch(

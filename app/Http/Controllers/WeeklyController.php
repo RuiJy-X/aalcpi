@@ -5,10 +5,13 @@ namespace App\Http\Controllers;
 use App\Jobs\ProcessWeeklyImportJob;
 use App\Models\ImportJob;
 use App\Models\Weekly;
+use App\Services\PdfSplitterService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -138,7 +141,7 @@ class WeeklyController extends Controller
     /**
      * Shared filter builder for weekly list queries.
      *
-     * @return \Illuminate\Database\Eloquent\Builder<Weekly>
+     * @return Builder<Weekly>
      */
     private function buildWeeklyFilterQuery(
         string $selectedCropYear,
@@ -196,7 +199,7 @@ class WeeklyController extends Controller
      * Load every filtered PDF for the planters on the current page, plus
      * full week/crop-year coverage (not limited by the week filter).
      *
-     * @param  \Illuminate\Database\Eloquent\Builder<Weekly>  $filteredQuery
+     * @param  Builder<Weekly>  $filteredQuery
      * @param  Collection<int, Weekly|object>  $pagePlanters
      * @return list<array{
      *     planter_code: string,
@@ -501,9 +504,9 @@ class WeeklyController extends Controller
                 ->delete();
         });
 
-        $relativeOutputDirectory = 'weekly-pdfs/' . Str::slug($cropYear) . '/week-' . Str::slug($week);
+        $relativeOutputDirectory = 'weekly-pdfs/'.Str::slug($cropYear).'/week-'.Str::slug($week);
         Storage::disk('public')->deleteDirectory($relativeOutputDirectory);
-        Storage::disk('local')->deleteDirectory('temp-pdf-cache/' . Str::slug($cropYear) . '/week-' . Str::slug($week));
+        Storage::disk('local')->deleteDirectory('temp-pdf-cache/'.Str::slug($cropYear).'/week-'.Str::slug($week));
 
         return redirect()
             ->back()
@@ -516,7 +519,7 @@ class WeeklyController extends Controller
 
         return response()->file($filePath, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="' . $this->buildPlanterPdfFilename($weekly) . '"',
+            'Content-Disposition' => 'inline; filename="'.$this->buildPlanterPdfFilename($weekly).'"',
         ]);
     }
 
@@ -558,13 +561,13 @@ class WeeklyController extends Controller
         $cachedFilePath = "{$cacheDir}/{$planterSlug}_p{$page}.pdf";
 
         if (! file_exists($cachedFilePath)) {
-            $cmd = \App\Services\PdfSplitterService::buildExtractCommand(
+            $cmd = PdfSplitterService::buildExtractCommand(
                 $fullPath,
                 $page,
                 $cachedFilePath,
             );
 
-            $process = \Illuminate\Support\Facades\Process::run($cmd);
+            $process = Process::run($cmd);
             if (! $process->successful() || ! file_exists($cachedFilePath)) {
                 return $fullPath;
             }

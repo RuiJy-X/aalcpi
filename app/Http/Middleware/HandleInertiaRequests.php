@@ -39,6 +39,7 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
 
             'name' => config('app.name'),
+            'appVersion' => config('nativephp.version', config('app.version', '1.5.0')),
             'auth' => [
                 'user' => $this->filterUser($request->user()),
             ],

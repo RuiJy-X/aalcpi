@@ -132,7 +132,7 @@ export function useTableEditMode<T extends { id: string | number }>({
 
         router.patch(
             saveUrl,
-            { rows: payloadRows },
+            { rows: payloadRows } as any,
             {
                 preserveScroll: true,
                 preserveState: true,

@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class Attendance extends Model
 {
@@ -22,7 +22,8 @@ class Attendance extends Model
         'status',
     ];
 
-    public function employee() {
+    public function employee()
+    {
         return $this->belongsTo(Employee::class);
     }
 }

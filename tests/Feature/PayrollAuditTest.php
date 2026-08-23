@@ -1,11 +1,11 @@
 <?php
 
-use App\Models\User;
-use App\Models\Employee;
 use App\Models\Attendance;
+use App\Models\Employee;
 use App\Models\Payroll;
-use App\Support\Permissions;
+use App\Models\User;
 use App\Services\PayrollAuditService;
+use App\Support\Permissions;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Support\Carbon;
 
@@ -31,7 +31,7 @@ test('payroll batch audit reads employee sss_contribution deduction correctly', 
         'working_time' => 8.00,
     ]);
 
-    $auditService = new PayrollAuditService();
+    $auditService = new PayrollAuditService;
     $start = Carbon::parse('2026-08-01');
     $end = Carbon::parse('2026-08-15');
 

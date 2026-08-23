@@ -66,6 +66,7 @@ interface AuditedEmployee {
     cash_advance_deduction?: number;
     total_earnings: number;
     sss_contribution: number;
+    sss_loan?: number;
     pagibig_contribution: number;
     philhealth_contribution: number;
     emergency_loan: number;

@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class InternalDisbursements extends Model
 {
     protected $table = 'internal_disbursements';
+
     protected $fillable = [
         'audit_no', 'payee_name', 'check_no', 'check_amount', 'date_return',
         'bank_statement_id', 'import_job_id', 'date_issued', 'disbursement_week',
@@ -69,15 +70,17 @@ class InternalDisbursements extends Model
                 if ($bank->debit === null) {
                     return true;
                 }
+
                 return abs((float) $bank->debit - $checkAmount) < 0.01;
             });
         }
 
         return $candidates
             ->sortBy(function (BankStatement $bank) use ($reference) {
-                if (!$reference || !$bank->tdate) {
+                if (! $reference || ! $bank->tdate) {
                     return 0;
                 }
+
                 return abs(Carbon::parse($bank->tdate)->diffInDays($reference));
             })
             ->first();

@@ -6,10 +6,11 @@ use App\Http\Controllers\Concerns\HandlesBulkUpdates;
 use App\Imports\AttendanceImport;
 use App\Models\Attendance;
 use App\Models\Employee;
-use Illuminate\Http\Request;
-use Inertia\Inertia;
+use App\Models\Holiday;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
 use Maatwebsite\Excel\Facades\Excel;
 
 class AttendanceController extends Controller
@@ -39,7 +40,7 @@ class AttendanceController extends Controller
             ->orderBy('name', 'asc')
             ->get();
 
-        $holidays = \App\Models\Holiday::orderBy('date')->get()->map(fn($h) => [
+        $holidays = Holiday::orderBy('date')->get()->map(fn ($h) => [
             'id' => $h->id,
             'date' => $h->date?->toDateString() ?? (string) $h->date,
             'name' => $h->name,
@@ -58,30 +59,29 @@ class AttendanceController extends Controller
         return response()->json(Attendance::with('employee:id,name')->findOrFail($id));
     }
 
-
     public function create(Request $request)
     {
         $validated = $request->validate([
-            'employee_id'    => 'required|exists:employees,id',
-            'date'           => 'required|date',
-            'status'         => 'required|string',
-            'hours_worked'   => 'required|numeric|min:0|max:24',
+            'employee_id' => 'required|exists:employees,id',
+            'date' => 'required|date',
+            'status' => 'required|string',
+            'hours_worked' => 'required|numeric|min:0|max:24',
             'overtime_hours' => 'nullable|numeric|min:0|max:24',
         ]);
 
         $attendance = Attendance::updateOrCreate([
             'employee_id' => $validated['employee_id'],
-            'date'        => $validated['date'],
+            'date' => $validated['date'],
         ], [
-            'status'         => $validated['status'],
-            'hours_worked'   => $validated['hours_worked'],
-            'working_time'   => $validated['hours_worked'],
+            'status' => $validated['status'],
+            'hours_worked' => $validated['hours_worked'],
+            'working_time' => $validated['hours_worked'],
             'overtime_hours' => $validated['overtime_hours'] ?? 0,
         ]);
 
         return response()->json([
             'message' => 'Attendance recorded successfully!',
-            'data' => $attendance
+            'data' => $attendance,
         ], 201);
     }
 
@@ -102,7 +102,7 @@ class AttendanceController extends Controller
 
         return response()->json([
             'message' => 'Attendance updated successfully!',
-            'data' => $attendance
+            'data' => $attendance,
         ]);
     }
 
@@ -126,6 +126,7 @@ class AttendanceController extends Controller
     public function destroy($id)
     {
         Attendance::findOrFail($id)->delete();
+
         return response()->json(['message' => 'Attendance record deleted']);
     }
 
@@ -149,7 +150,7 @@ class AttendanceController extends Controller
             'file' => ['required', 'file', 'mimes:xlsx,xls,csv'],
         ]);
         try {
-            $import = new AttendanceImport();
+            $import = new AttendanceImport;
             Excel::import($import, $validated['file']);
 
             if ($import->importedCount === 0) {
@@ -166,7 +167,7 @@ class AttendanceController extends Controller
             throw $exception;
         } catch (\Throwable $exception) {
             throw ValidationException::withMessages([
-                'file' => 'Error importing attendance: ' . $exception->getMessage(),
+                'file' => 'Error importing attendance: '.$exception->getMessage(),
             ]);
         }
     }

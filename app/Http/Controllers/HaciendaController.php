@@ -2,14 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\HandlesBulkUpdates;
-use App\Models\Planter;
 use App\Models\Hacienda;
-use Inertia\Inertia;
+use App\Models\Planter;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Inertia\Inertia;
 
 class HaciendaController extends Controller
 {
@@ -39,7 +38,7 @@ class HaciendaController extends Controller
             if ($useCaseInsensitiveLike) {
                 $grammar = method_exists($query, 'getQuery') ? $query->getQuery()->getGrammar() : $query->getGrammar();
                 $wrapped = $grammar->wrap($column);
-                $query->whereRaw('lower(' . $wrapped . ') like ?', [strtolower($value)], $boolean);
+                $query->whereRaw('lower('.$wrapped.') like ?', [strtolower($value)], $boolean);
 
                 return;
             }
@@ -80,9 +79,9 @@ class HaciendaController extends Controller
                 'planters.name as planter_name',
             ]);
 
-        if (!empty($filters) && is_array($filters)) {
+        if (! empty($filters) && is_array($filters)) {
             foreach ($filters as $column => $value) {
-                if (!array_key_exists($column, $columnMap)) {
+                if (! array_key_exists($column, $columnMap)) {
                     continue;
                 }
 
@@ -97,7 +96,7 @@ class HaciendaController extends Controller
                     $normalized = array_map(fn ($v) => filter_var($v, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE), $values);
                     $normalized = array_values(array_filter($normalized, fn ($v) => $v !== null));
 
-                    if (!empty($normalized)) {
+                    if (! empty($normalized)) {
                         $baseQuery->whereIn($dbColumn, $normalized);
                     }
 
@@ -106,7 +105,7 @@ class HaciendaController extends Controller
 
                 if (in_array($column, $numericColumns, true)) {
                     $numericValues = array_filter($values, fn ($v) => $v !== '' && $v !== null && is_numeric($v));
-                    if (!empty($numericValues)) {
+                    if (! empty($numericValues)) {
                         $baseQuery->whereIn($dbColumn, $numericValues);
                     }
 
@@ -119,14 +118,14 @@ class HaciendaController extends Controller
                             continue;
                         }
 
-                        $applyLike($query, $dbColumn, '%' . $filterValue . '%', 'or');
+                        $applyLike($query, $dbColumn, '%'.$filterValue.'%', 'or');
                     }
                 });
             }
         }
 
         if ($search !== '') {
-            $like = '%' . $search . '%';
+            $like = '%'.$search.'%';
             $baseQuery->where(function ($query) use ($applyLike, $like) {
                 $applyLike($query, 'haciendas.hacienda_code', $like, 'or');
                 $applyLike($query, 'planters.name', $like, 'or');
@@ -185,7 +184,8 @@ class HaciendaController extends Controller
         ]);
     }
 
-    public function create($planterId){
+    public function create($planterId)
+    {
         // eager-load the planter's haciendas (and planter on each hacienda if needed)
         $planter = Planter::with('haciendas.planter')->findOrFail($planterId);
         $haciendas = $planter->haciendas;
@@ -193,10 +193,11 @@ class HaciendaController extends Controller
         return Inertia::render('Haciendas/Create', ['planter' => $planter, 'haciendas' => $haciendas]);
     }
 
-    public function store(Request $request, $planterId){
+    public function store(Request $request, $planterId)
+    {
         $planter = Planter::findOrFail($planterId);
 
-         $validated = $request->validate([
+        $validated = $request->validate([
             'haciendas' => 'nullable|array',
             'haciendas.*.hacienda_code' => 'required_with:haciendas|string|max:255|unique:haciendas,hacienda_code',
             'haciendas.*.name' => 'required_with:haciendas|string|max:255',
@@ -205,14 +206,13 @@ class HaciendaController extends Controller
             'haciendas.*.distance_from_urc' => 'required_with:haciendas|numeric|min:0',
             'haciendas.*.is_active' => 'required_with:haciendas|boolean',
 
-
         ]);
 
         $haciendasToCreate = array_filter($validated['haciendas'] ?? [], function ($hacienda) {
-            return !empty($hacienda['name']);
+            return ! empty($hacienda['name']);
         });
 
-        if (!empty($haciendasToCreate)) {
+        if (! empty($haciendasToCreate)) {
             DB::transaction(function () use ($planter, $haciendasToCreate) {
                 $planter->haciendas()->createMany($haciendasToCreate);
             });
@@ -221,17 +221,20 @@ class HaciendaController extends Controller
         return redirect()->route('haciendas.index')->with('success', 'hacienda created successfully.');
     }
 
-    public function show($haciendaId){
+    public function show($haciendaId)
+    {
         $hacienda = Hacienda::with('planter')->findOrFail($haciendaId);
         $planter = $hacienda->planter;
+
         return Inertia::render('Haciendas/View', ['hacienda' => $hacienda, 'planter' => $planter]);
     }
 
-    public function update(Request $request, $haciendaId){
+    public function update(Request $request, $haciendaId)
+    {
         $hacienda = Hacienda::findOrFail($haciendaId);
 
         $validatedData = $request->validate([
-            'hacienda_code' => 'required|string|max:255|unique:haciendas,hacienda_code,' . $hacienda->id,
+            'hacienda_code' => 'required|string|max:255|unique:haciendas,hacienda_code,'.$hacienda->id,
             'name' => 'required|string|max:255',
             'address' => 'required|string|max:255',
             'area_hectares' => 'required|numeric|min:0',
@@ -272,6 +275,4 @@ class HaciendaController extends Controller
 
         return redirect()->back()->with('success', 'Selected haciendas deleted successfully.');
     }
-
-
 }

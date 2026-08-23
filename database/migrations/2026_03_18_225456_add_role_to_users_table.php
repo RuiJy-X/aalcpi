@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::table('users', function (Blueprint $table) {
             // Add the role column (manager, cert_officer, employee)
             $table->string('role')->default('employee')->after('email');
-            
+
             // Add the employee link (so they can see their own data later)
             $table->foreignId('employee_id')->nullable()->after('role')->constrained()->onDelete('set null');
         });

@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Advancement;
 use App\Models\Employee;
-use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class AdvancementController extends Controller
@@ -24,7 +24,7 @@ class AdvancementController extends Controller
                 'id' => $adv->id,
                 'employee_id' => $adv->employee_id,
                 'employee_name' => $adv->employee?->name ?? 'N/A',
-                'employee_code' => $adv->employee?->employee_code ?? ('EMP-' . str_pad((string) $adv->employee_id, 3, '0', STR_PAD_LEFT)),
+                'employee_code' => $adv->employee?->employee_code ?? ('EMP-'.str_pad((string) $adv->employee_id, 3, '0', STR_PAD_LEFT)),
                 'position' => $adv->employee?->position ?? 'Encoder',
                 'amount' => (float) $adv->amount,
                 'remaining_balance' => (float) $adv->remaining_balance,
@@ -67,7 +67,7 @@ class AdvancementController extends Controller
                     'id' => $adv->id,
                     'employee_id' => $adv->employee_id,
                     'employee_name' => $adv->employee?->name ?? 'N/A',
-                    'employee_code' => $adv->employee?->employee_code ?? ('EMP-' . str_pad((string) $adv->employee_id, 3, '0', STR_PAD_LEFT)),
+                    'employee_code' => $adv->employee?->employee_code ?? ('EMP-'.str_pad((string) $adv->employee_id, 3, '0', STR_PAD_LEFT)),
                     'position' => $adv->employee?->position ?? 'Encoder',
                     'amount' => (float) $adv->amount,
                     'remaining_balance' => (float) $adv->remaining_balance,
@@ -154,6 +154,7 @@ class AdvancementController extends Controller
                     'message' => 'Only pending advancements can be cancelled.',
                 ], 422);
             }
+
             return redirect()->back()->withErrors(['message' => 'Only pending advancements can be cancelled.']);
         }
 

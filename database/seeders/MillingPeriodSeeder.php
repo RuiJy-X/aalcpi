@@ -20,7 +20,7 @@ class MillingPeriodSeeder extends Seeder
         for ($weekOffset = 0; $weekOffset < 4; $weekOffset++) {
             $weekStart = $baseWeekStart->copy()->addWeeks($weekOffset);
             $weekNo = (int) $weekStart->format('W');
-            $cropYear = $weekStart->year . '-' . ($weekStart->year + 1);
+            $cropYear = $weekStart->year.'-'.($weekStart->year + 1);
             $isPricedWeek = $weekOffset >= 2;
 
             MillingPeriod::create([

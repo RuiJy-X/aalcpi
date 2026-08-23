@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\Certification;
 use App\Models\Hacienda;
 use App\Models\MillingPeriod;
 use App\Models\Planter;
@@ -11,7 +10,6 @@ use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use App\Support\Permissions;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
@@ -46,7 +44,6 @@ class DatabaseSeeder extends Seeder
             ->orderBy('start_date')
             ->take(4)
             ->get();
-
 
         // Employees / Attendance / Payroll
         // $employees = Employee::factory()->count(5)->create();

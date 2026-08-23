@@ -2,11 +2,12 @@
 
 namespace Database\Factories;
 
+use App\Models\Hacienda;
 use App\Models\Planter;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Hacienda>
+ * @extends Factory<Hacienda>
  */
 class HaciendaFactory extends Factory
 {

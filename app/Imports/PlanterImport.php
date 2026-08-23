@@ -2,22 +2,21 @@
 
 namespace App\Imports;
 
-use App\Models\Planter;
 use App\Models\Hacienda;
+use App\Models\Planter;
+use Illuminate\Database\Eloquent\Model;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
-use Maatwebsite\Excel\Concerns\WithUpserts;
 use Maatwebsite\Excel\Concerns\WithSkipDuplicates;
+use Maatwebsite\Excel\Concerns\WithUpserts;
 
 class PlanterImport implements ToModel, WithHeadingRow, WithSkipDuplicates, WithUpserts
 {
     public function __construct(private readonly array $mapping = []) {}
 
     /**
-    * @param array $row
-    *
-    * @return \Illuminate\Database\Eloquent\Model|null
-    */
+     * @return Model|null
+     */
     public function model(array $row)
     {
         $row = $this->applyMapping($row);
@@ -40,7 +39,7 @@ class PlanterImport implements ToModel, WithHeadingRow, WithSkipDuplicates, With
                 'contact_number' => $contactNumber,
                 'tin_number' => $tinNumber,
                 'registration_date' => $regDate,
-            ], fn($val) => !is_null($val) && $val !== '')
+            ], fn ($val) => ! is_null($val) && $val !== '')
         );
 
         $haciendaName = $row['hacienda_name'] ?? $row['land_name'] ?? 'Unknown Hacienda';
@@ -62,6 +61,7 @@ class PlanterImport implements ToModel, WithHeadingRow, WithSkipDuplicates, With
 
         return $planter;
     }
+
     public function uniqueBy()
     {
         return 'planter_code';
@@ -75,7 +75,7 @@ class PlanterImport implements ToModel, WithHeadingRow, WithSkipDuplicates, With
 
         $mapped = [];
         foreach ($this->mapping as $target => $source) {
-            if (!is_string($source) || $source === '') {
+            if (! is_string($source) || $source === '') {
                 continue;
             }
 
@@ -90,6 +90,7 @@ class PlanterImport implements ToModel, WithHeadingRow, WithSkipDuplicates, With
         if (is_null($code) || $code === '') {
             return '00000';
         }
+
         // Convert to string, trim whitespace, and pad with leading zeros to 5 digits
         return str_pad((string) trim((string) $code), 5, '0', STR_PAD_LEFT);
     }

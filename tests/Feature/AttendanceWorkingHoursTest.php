@@ -43,7 +43,7 @@ class AttendanceWorkingHoursTest extends TestCase
             'working_time' => 4.00,
         ]);
 
-        $auditService = new PayrollAuditService();
+        $auditService = new PayrollAuditService;
         $batchData = $auditService->auditBatch($periodStart, $periodEnd);
 
         $employeeAudit = collect($batchData['ready'])->firstWhere('employee_id', $employee->id);

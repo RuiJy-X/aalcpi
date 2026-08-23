@@ -6,6 +6,7 @@ import type { Auth } from './auth';
 
 export type SharedData = {
     name: string;
+    appVersion?: string;
     auth: Auth;
     flash: {
         success?: string | null;

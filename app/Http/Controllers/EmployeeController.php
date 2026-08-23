@@ -2,22 +2,19 @@
 
 namespace App\Http\Controllers;
 
-
-use Inertia\Inertia;
-use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\HandlesBulkUpdates;
+use App\Models\Advancement;
 use App\Models\Attendance;
 use App\Models\Employee;
-use App\Models\Advancement;
-use App\Models\PayrollCalculationSetting;
 use App\Models\Payroll;
+use App\Models\PayrollCalculationSetting;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class EmployeeController extends Controller
 {
     use HandlesBulkUpdates;
-
 
     public function index()
     {
@@ -48,7 +45,7 @@ class EmployeeController extends Controller
                     'employee_name' => $employee->name,
                     'date' => $record->date,
                     'week' => $record->week,
-                'time_in' => $record->time_in,
+                    'time_in' => $record->time_in,
                     'time_out' => $record->time_out,
                     'times' => $record->times,
                     'working_time' => $record->working_time,
@@ -61,48 +58,48 @@ class EmployeeController extends Controller
             ->get()
             ->map(function (Payroll $record) use ($employee) {
                 return [
-                    'id'                     => $record->id,
-                    'employee_id'            => $record->employee_id,
-                    'employee_code'          => $employee->employee_code ?? ('EMP-' . str_pad((string) $employee->id, 3, '0', STR_PAD_LEFT)),
-                    'employee_name'          => $employee->name ?? 'N/A',
-                    'position'               => $employee->position ?? 'N/A',
-                    'period_start'           => $record->period_start?->toDateString(),
-                    'period_end'             => $record->period_end?->toDateString(),
-                    'days_worked'            => (int) ($record->days_worked ?? 0),
-                    'total_days'             => (int) ($record->total_days ?? 0),
-                    'total_hours'            => (float) ($record->total_hours ?? 0),
-                    'hours_worked'           => (float) ($record->hours_worked ?? 0),
-                    'hourly_rate'            => (float) ($record->hourly_rate ?? 0),
-                    'daily_rate'             => (float) ($record->daily_rate ?? $employee->daily_rate ?? 0),
-                    'basic_pay'              => (float) ($record->basic_pay ?? 0),
-                    'overtime_hours'         => (float) ($record->overtime_hours ?? 0),
-                    'overtime_pay'           => (float) ($record->overtime_pay ?? 0),
-                    'holidays'               => (int) ($record->holidays ?? 0),
-                    'holiday_pay'            => (float) ($record->holiday_pay ?? 0),
-                    'cash_advance_payout'    => (float) ($record->cash_advance_payout ?? 0),
+                    'id' => $record->id,
+                    'employee_id' => $record->employee_id,
+                    'employee_code' => $employee->employee_code ?? ('EMP-'.str_pad((string) $employee->id, 3, '0', STR_PAD_LEFT)),
+                    'employee_name' => $employee->name ?? 'N/A',
+                    'position' => $employee->position ?? 'N/A',
+                    'period_start' => $record->period_start?->toDateString(),
+                    'period_end' => $record->period_end?->toDateString(),
+                    'days_worked' => (int) ($record->days_worked ?? 0),
+                    'total_days' => (int) ($record->total_days ?? 0),
+                    'total_hours' => (float) ($record->total_hours ?? 0),
+                    'hours_worked' => (float) ($record->hours_worked ?? 0),
+                    'hourly_rate' => (float) ($record->hourly_rate ?? 0),
+                    'daily_rate' => (float) ($record->daily_rate ?? $employee->daily_rate ?? 0),
+                    'basic_pay' => (float) ($record->basic_pay ?? 0),
+                    'overtime_hours' => (float) ($record->overtime_hours ?? 0),
+                    'overtime_pay' => (float) ($record->overtime_pay ?? 0),
+                    'holidays' => (int) ($record->holidays ?? 0),
+                    'holiday_pay' => (float) ($record->holiday_pay ?? 0),
+                    'cash_advance_payout' => (float) ($record->cash_advance_payout ?? 0),
                     'cash_advance_deduction' => (float) ($record->cash_advance_deduction ?? 0),
-                    'gross_pay'              => (float) ($record->gross_pay ?? 0),
-                    'sss_contribution'       => (float) ($record->sss_contribution ?? $employee->sss_contribution ?? 0),
-                    'pagibig_contribution'   => (float) ($record->pagibig_contribution ?? $employee->pagibig_contribution ?? 0),
+                    'gross_pay' => (float) ($record->gross_pay ?? 0),
+                    'sss_contribution' => (float) ($record->sss_contribution ?? $employee->sss_contribution ?? 0),
+                    'pagibig_contribution' => (float) ($record->pagibig_contribution ?? $employee->pagibig_contribution ?? 0),
                     'philhealth_contribution' => (float) ($record->philhealth_contribution ?? $employee->philhealth_contribution ?? 0),
-                    'emergency_loan'         => (float) ($record->emergency_loan ?? $employee->emergency_loan ?? 0),
-                    'withholding_tax'        => (float) ($record->withholding_tax ?? $employee->withholding_tax ?? 0),
-                    'deductions'             => (float) ($record->deductions ?? 0),
-                    'net_pay'                => (float) ($record->net_pay ?? 0),
-                    'status'                 => $record->status,
-                    'created_at'             => $record->created_at?->toDateTimeString(),
-                    'updated_at'             => $record->updated_at?->toDateTimeString(),
-                    'employee'               => [
-                        'id'                     => $employee->id,
-                        'name'                   => $employee->name,
-                        'employee_code'          => $employee->employee_code,
-                        'position'               => $employee->position,
-                        'daily_rate'             => (float) ($employee->daily_rate ?? 0),
-                        'sss_contribution'       => (float) ($employee->sss_contribution ?? 0),
-                        'pagibig_contribution'   => (float) ($employee->pagibig_contribution ?? 0),
+                    'emergency_loan' => (float) ($record->emergency_loan ?? $employee->emergency_loan ?? 0),
+                    'withholding_tax' => (float) ($record->withholding_tax ?? $employee->withholding_tax ?? 0),
+                    'deductions' => (float) ($record->deductions ?? 0),
+                    'net_pay' => (float) ($record->net_pay ?? 0),
+                    'status' => $record->status,
+                    'created_at' => $record->created_at?->toDateTimeString(),
+                    'updated_at' => $record->updated_at?->toDateTimeString(),
+                    'employee' => [
+                        'id' => $employee->id,
+                        'name' => $employee->name,
+                        'employee_code' => $employee->employee_code,
+                        'position' => $employee->position,
+                        'daily_rate' => (float) ($employee->daily_rate ?? 0),
+                        'sss_contribution' => (float) ($employee->sss_contribution ?? 0),
+                        'pagibig_contribution' => (float) ($employee->pagibig_contribution ?? 0),
                         'philhealth_contribution' => (float) ($employee->philhealth_contribution ?? 0),
-                        'emergency_loan'         => (float) ($employee->emergency_loan ?? 0),
-                        'withholding_tax'        => (float) ($employee->withholding_tax ?? 0),
+                        'emergency_loan' => (float) ($employee->emergency_loan ?? 0),
+                        'withholding_tax' => (float) ($employee->withholding_tax ?? 0),
                     ],
                 ];
             });
@@ -134,7 +131,6 @@ class EmployeeController extends Controller
         ]);
     }
 
-
     public function create()
     {
         return Inertia::render('Employees/Create');
@@ -143,23 +139,23 @@ class EmployeeController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name'                     => 'required|string|max:255',
-            'employee_code'            => 'required|string|unique:employees,employee_code',
-            'position'                 => 'nullable|string|max:255',
-            'daily_rate'               => 'required|numeric|min:0',
-            'base_salary'              => 'nullable|numeric|min:0',
-            'hourly_rate'              => 'nullable|numeric|min:0',
-            'address'                  => 'nullable|string|max:255',
-            'tin'                      => 'nullable|string|max:255',
-            'sss_no'                   => 'nullable|string|max:255',
-            'pagibig_no'               => 'nullable|string|max:255',
-            'philhealth_no'            => 'nullable|string|max:255',
-            'contact_number'           => 'nullable|string|max:255',
-            'sss_contribution'         => 'nullable|numeric|min:0',
-            'pagibig_contribution'     => 'nullable|numeric|min:0',
-            'philhealth_contribution'   => 'nullable|numeric|min:0',
-            'emergency_loan'           => 'nullable|numeric|min:0',
-            'withholding_tax'          => 'nullable|numeric|min:0',
+            'name' => 'required|string|max:255',
+            'employee_code' => 'required|string|unique:employees,employee_code',
+            'position' => 'nullable|string|max:255',
+            'daily_rate' => 'required|numeric|min:0',
+            'base_salary' => 'nullable|numeric|min:0',
+            'hourly_rate' => 'nullable|numeric|min:0',
+            'address' => 'nullable|string|max:255',
+            'tin' => 'nullable|string|max:255',
+            'sss_no' => 'nullable|string|max:255',
+            'pagibig_no' => 'nullable|string|max:255',
+            'philhealth_no' => 'nullable|string|max:255',
+            'contact_number' => 'nullable|string|max:255',
+            'sss_contribution' => 'nullable|numeric|min:0',
+            'pagibig_contribution' => 'nullable|numeric|min:0',
+            'philhealth_contribution' => 'nullable|numeric|min:0',
+            'emergency_loan' => 'nullable|numeric|min:0',
+            'withholding_tax' => 'nullable|numeric|min:0',
         ]);
 
         $settings = $this->getHourlyRateSettings();
@@ -172,13 +168,14 @@ class EmployeeController extends Controller
             if (empty($validated['base_salary'])) {
                 $validated['base_salary'] = number_format($dailyRate * $daysPerMonth, 2, '.', '');
             }
-        } elseif (!empty($validated['base_salary'])) {
+        } elseif (! empty($validated['base_salary'])) {
             $baseSalary = (float) $validated['base_salary'];
             $validated['daily_rate'] = number_format($baseSalary / $daysPerMonth, 2, '.', '');
             $validated['hourly_rate'] = number_format($baseSalary / ($daysPerMonth * $hoursPerDay), 2, '.', '');
         }
 
         $employee = Employee::create($validated);
+
         return redirect()->route('employees.index')->with('success', 'Employee profile created successfully!');
     }
 
@@ -213,23 +210,23 @@ class EmployeeController extends Controller
         $employee = Employee::findOrFail($id);
 
         $validated = $request->validate([
-            'name'                     => 'required|string|max:255',
-            'employee_code'            => 'required|string|unique:employees,employee_code,' . $id,
-            'position'                 => 'nullable|string|max:255',
-            'daily_rate'               => 'required|numeric|min:0',
-            'base_salary'              => 'nullable|numeric|min:0',
-            'hourly_rate'              => 'nullable|numeric|min:0',
-            'address'                  => 'nullable|string|max:255',
-            'tin'                      => 'nullable|string|max:255',
-            'sss_no'                   => 'nullable|string|max:255',
-            'pagibig_no'               => 'nullable|string|max:255',
-            'philhealth_no'            => 'nullable|string|max:255',
-            'contact_number'           => 'nullable|string|max:255',
-            'sss_contribution'         => 'nullable|numeric|min:0',
-            'pagibig_contribution'     => 'nullable|numeric|min:0',
-            'philhealth_contribution'   => 'nullable|numeric|min:0',
-            'emergency_loan'           => 'nullable|numeric|min:0',
-            'withholding_tax'          => 'nullable|numeric|min:0',
+            'name' => 'required|string|max:255',
+            'employee_code' => 'required|string|unique:employees,employee_code,'.$id,
+            'position' => 'nullable|string|max:255',
+            'daily_rate' => 'required|numeric|min:0',
+            'base_salary' => 'nullable|numeric|min:0',
+            'hourly_rate' => 'nullable|numeric|min:0',
+            'address' => 'nullable|string|max:255',
+            'tin' => 'nullable|string|max:255',
+            'sss_no' => 'nullable|string|max:255',
+            'pagibig_no' => 'nullable|string|max:255',
+            'philhealth_no' => 'nullable|string|max:255',
+            'contact_number' => 'nullable|string|max:255',
+            'sss_contribution' => 'nullable|numeric|min:0',
+            'pagibig_contribution' => 'nullable|numeric|min:0',
+            'philhealth_contribution' => 'nullable|numeric|min:0',
+            'emergency_loan' => 'nullable|numeric|min:0',
+            'withholding_tax' => 'nullable|numeric|min:0',
         ]);
 
         $settings = $this->getHourlyRateSettings();
@@ -242,13 +239,14 @@ class EmployeeController extends Controller
             if (empty($validated['base_salary'])) {
                 $validated['base_salary'] = number_format($dailyRate * $daysPerMonth, 2, '.', '');
             }
-        } elseif (!empty($validated['base_salary'])) {
+        } elseif (! empty($validated['base_salary'])) {
             $baseSalary = (float) $validated['base_salary'];
             $validated['daily_rate'] = number_format($baseSalary / $daysPerMonth, 2, '.', '');
             $validated['hourly_rate'] = number_format($baseSalary / ($daysPerMonth * $hoursPerDay), 2, '.', '');
         }
 
         $employee->update($validated);
+
         return redirect()->route('employees.show', $employee->id)->with('success', 'Employee profile updated successfully!');
     }
 
@@ -360,6 +358,7 @@ class EmployeeController extends Controller
     {
         $employee = Employee::findOrFail($id);
         $employee->delete();
+
         return redirect()->back()->with('success', 'Employee removed successfully!');
     }
 
@@ -391,7 +390,7 @@ class EmployeeController extends Controller
             ->latest('advancement_date')
             ->get();
 
-        $soaNumber = 'SOA-' . ($employee->employee_code ?? ('EMP-' . str_pad((string) $employee->id, 3, '0', STR_PAD_LEFT))) . '-' . now()->format('Ymd');
+        $soaNumber = 'SOA-'.($employee->employee_code ?? ('EMP-'.str_pad((string) $employee->id, 3, '0', STR_PAD_LEFT))).'-'.now()->format('Ymd');
         $dateIssued = now()->format('F d, Y');
 
         $basicPay = (float) ($latestPayroll->basic_pay ?? round(($employee->daily_rate ?? 0) * 13, 2));
@@ -400,45 +399,45 @@ class EmployeeController extends Controller
         $cashAdvanceDeduction = (float) ($latestPayroll->cash_advance_deduction ?? 0);
 
         $data = [
-            'soa_number'             => $soaNumber,
-            'date_issued'            => $dateIssued,
-            'payroll_id'             => $latestPayroll?->id,
-            'employee_code'          => $employee->employee_code ?? ('EMP-' . str_pad((string) $employee->id, 3, '0', STR_PAD_LEFT)),
-            'employee_name'          => $employee->name ?? 'N/A',
-            'position'               => $employee->position ?? 'N/A',
-            'address'                => $employee->address ?? 'N/A',
-            'contact_number'         => $employee->contact_number ?? 'N/A',
-            'tin'                    => $employee->tin ?? 'N/A',
-            'sss_no'                 => $employee->sss_no ?? 'N/A',
-            'pagibig_no'             => $employee->pagibig_no ?? 'N/A',
-            'philhealth_no'          => $employee->philhealth_no ?? 'N/A',
-            'daily_rate'             => (float) ($employee->daily_rate ?? 0),
-            'period_start'           => $latestPayroll?->period_start?->toDateString() ?? now()->startOfMonth()->toDateString(),
-            'period_end'             => $latestPayroll?->period_end?->toDateString() ?? now()->endOfMonth()->toDateString(),
-            'days_worked'            => $latestPayroll->days_worked ?? 13,
-            'total_hours'            => $latestPayroll->total_hours ?? 104,
-            'basic_pay'              => $basicPay,
-            'overtime_hours'         => (float) ($latestPayroll->overtime_hours ?? 0),
-            'overtime_pay'           => (float) ($latestPayroll->overtime_pay ?? 0),
-            'holidays'               => (int) ($latestPayroll->holidays ?? 0),
-            'holiday_pay'            => (float) ($latestPayroll->holiday_pay ?? 0),
-            'cash_advance_payout'    => $cashAdvancePayout,
-            'gross_pay'              => $grossPay,
-            'sss_contribution'       => (float) ($employee->sss_contribution ?? 0),
-            'sss_loan'               => (float) ($latestPayroll->sss_loan ?? $employee->sss_loan ?? 0),
-            'pagibig_contribution'   => (float) ($employee->pagibig_contribution ?? 200.00),
-            'pagibig_loan'           => (float) ($latestPayroll->pagibig_loan ?? $employee->pagibig_loan ?? 0),
+            'soa_number' => $soaNumber,
+            'date_issued' => $dateIssued,
+            'payroll_id' => $latestPayroll?->id,
+            'employee_code' => $employee->employee_code ?? ('EMP-'.str_pad((string) $employee->id, 3, '0', STR_PAD_LEFT)),
+            'employee_name' => $employee->name ?? 'N/A',
+            'position' => $employee->position ?? 'N/A',
+            'address' => $employee->address ?? 'N/A',
+            'contact_number' => $employee->contact_number ?? 'N/A',
+            'tin' => $employee->tin ?? 'N/A',
+            'sss_no' => $employee->sss_no ?? 'N/A',
+            'pagibig_no' => $employee->pagibig_no ?? 'N/A',
+            'philhealth_no' => $employee->philhealth_no ?? 'N/A',
+            'daily_rate' => (float) ($employee->daily_rate ?? 0),
+            'period_start' => $latestPayroll?->period_start?->toDateString() ?? now()->startOfMonth()->toDateString(),
+            'period_end' => $latestPayroll?->period_end?->toDateString() ?? now()->endOfMonth()->toDateString(),
+            'days_worked' => $latestPayroll->days_worked ?? 13,
+            'total_hours' => $latestPayroll->total_hours ?? 104,
+            'basic_pay' => $basicPay,
+            'overtime_hours' => (float) ($latestPayroll->overtime_hours ?? 0),
+            'overtime_pay' => (float) ($latestPayroll->overtime_pay ?? 0),
+            'holidays' => (int) ($latestPayroll->holidays ?? 0),
+            'holiday_pay' => (float) ($latestPayroll->holiday_pay ?? 0),
+            'cash_advance_payout' => $cashAdvancePayout,
+            'gross_pay' => $grossPay,
+            'sss_contribution' => (float) ($employee->sss_contribution ?? 0),
+            'sss_loan' => (float) ($latestPayroll->sss_loan ?? $employee->sss_loan ?? 0),
+            'pagibig_contribution' => (float) ($employee->pagibig_contribution ?? 200.00),
+            'pagibig_loan' => (float) ($latestPayroll->pagibig_loan ?? $employee->pagibig_loan ?? 0),
             'philhealth_contribution' => (float) ($employee->philhealth_contribution ?? 0),
-            'emergency_loan'         => (float) ($latestPayroll->emergency_loan ?? $employee->emergency_loan ?? 0),
-            'withholding_tax'        => (float) ($employee->withholding_tax ?? 0),
+            'emergency_loan' => (float) ($latestPayroll->emergency_loan ?? $employee->emergency_loan ?? 0),
+            'withholding_tax' => (float) ($employee->withholding_tax ?? 0),
             'cash_advance_deduction' => $cashAdvanceDeduction,
-            'deductions'             => (float) ($latestPayroll->deductions ?? ($employee->sss_contribution + $employee->pagibig_contribution + $employee->philhealth_contribution + $cashAdvanceDeduction)),
-            'net_pay'                => (float) ($latestPayroll->net_pay ?? max(0, $grossPay - ($latestPayroll->deductions ?? 0))),
-            'advancements'           => $advancements,
+            'deductions' => (float) ($latestPayroll->deductions ?? ($employee->sss_contribution + $employee->pagibig_contribution + $employee->philhealth_contribution + $cashAdvanceDeduction)),
+            'net_pay' => (float) ($latestPayroll->net_pay ?? max(0, $grossPay - ($latestPayroll->deductions ?? 0))),
+            'advancements' => $advancements,
         ];
 
         $pdf = Pdf::loadView('pdfs.statement_of_account', $data)->setPaper('a4', 'portrait');
 
-        return $pdf->stream("soa_{$employee->id}_" . now()->format('Ymd') . ".pdf");
+        return $pdf->stream("soa_{$employee->id}_".now()->format('Ymd').'.pdf');
     }
 }

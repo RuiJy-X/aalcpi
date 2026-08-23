@@ -8,10 +8,6 @@ class PayrollCalculationHelper
 {
     /**
      * Calculate daily rate from salary
-     *
-     * @param float $monthlySalary
-     * @param int $workingDaysPerMonth
-     * @return float
      */
     public static function calculateDailyRate(float $monthlySalary, int $workingDaysPerMonth = 30): float
     {
@@ -24,11 +20,6 @@ class PayrollCalculationHelper
 
     /**
      * Calculate hourly rate from salary
-     *
-     * @param float $monthlySalary
-     * @param int $workingDaysPerMonth
-     * @param int $hoursPerDay
-     * @return float
      */
     public static function calculateHourlyRate(
         float $monthlySalary,
@@ -40,17 +31,12 @@ class PayrollCalculationHelper
         }
 
         $dailyRate = self::calculateDailyRate($monthlySalary, $workingDaysPerMonth);
+
         return round($dailyRate / $hoursPerDay, 2);
     }
 
     /**
      * Calculate pro-rated salary for partial period
-     *
-     * @param float $monthlySalary
-     * @param Carbon $periodStart
-     * @param Carbon $periodEnd
-     * @param int $workingDaysPerMonth
-     * @return float
      */
     public static function calculateProratedSalary(
         float $monthlySalary,
@@ -66,10 +52,6 @@ class PayrollCalculationHelper
 
     /**
      * Count working days (excluding weekends) between two dates
-     *
-     * @param Carbon $startDate
-     * @param Carbon $endDate
-     * @return int
      */
     public static function countWorkingDays(Carbon $startDate, Carbon $endDate): int
     {
@@ -90,11 +72,6 @@ class PayrollCalculationHelper
 
     /**
      * Calculate overtime pay
-     *
-     * @param float $hourlyRate
-     * @param int $overtimeHours
-     * @param float $overtimeMultiplier
-     * @return float
      */
     public static function calculateOvertimePay(
         float $hourlyRate,
@@ -106,10 +83,6 @@ class PayrollCalculationHelper
 
     /**
      * Calculate Pag-IBIG contribution (2% of monthly salary)
-     *
-     * @param float $monthlySalary
-     * @param float $rate
-     * @return float
      */
     public static function calculatePagibigContribution(float $monthlySalary, float $rate = 0.02): float
     {
@@ -122,10 +95,6 @@ class PayrollCalculationHelper
 
     /**
      * Calculate net pay
-     *
-     * @param float $grossPay
-     * @param float $deductions
-     * @return float
      */
     public static function calculateNetPay(float $grossPay, float $deductions): float
     {
@@ -134,13 +103,9 @@ class PayrollCalculationHelper
 
     /**
      * Format currency
-     *
-     * @param float $amount
-     * @param string $currency
-     * @return string
      */
     public static function formatCurrency(float $amount, string $currency = '₱'): string
     {
-        return $currency . number_format($amount, 2);
+        return $currency.number_format($amount, 2);
     }
 }

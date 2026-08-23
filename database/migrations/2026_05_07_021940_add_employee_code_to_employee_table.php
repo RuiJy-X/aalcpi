@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('employees', function (Blueprint $table) {
-            //Add employe code to employee table
+            // Add employe code to employee table
             $table->string('employee_code')->unique();
         });
     }

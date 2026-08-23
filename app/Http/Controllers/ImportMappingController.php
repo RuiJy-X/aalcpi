@@ -110,7 +110,7 @@ class ImportMappingController extends Controller
             $validated['import_type'],
         );
 
-        if (!empty($errors)) {
+        if (! empty($errors)) {
             return response()->json([
                 'message' => 'Invalid mapping',
                 'errors' => $errors,
@@ -165,7 +165,7 @@ class ImportMappingController extends Controller
                     continue;
                 }
                 $headers = $readRow($r);
-                if (!empty($headers)) {
+                if (! empty($headers)) {
                     break;
                 }
             }
@@ -187,7 +187,7 @@ class ImportMappingController extends Controller
         $errors = [];
 
         $unknownKeys = array_diff(array_keys($mapping), $allowedKeys);
-        if (!empty($unknownKeys)) {
+        if (! empty($unknownKeys)) {
             $errors['mapping_unknown'] = array_values($unknownKeys);
         }
 
@@ -200,14 +200,14 @@ class ImportMappingController extends Controller
                 continue;
             }
 
-            if (!isset($headerSet[$source])) {
+            if (! isset($headerSet[$source])) {
                 $errors['mapping_invalid'][$target] = 'Header not found in file.';
             }
         }
 
         $mappedValues = array_values(array_filter($mapping, static fn ($value) => $value !== null && $value !== ''));
         $duplicates = array_filter(array_count_values($mappedValues), static fn (int $count) => $count > 1);
-        if (!empty($duplicates)) {
+        if (! empty($duplicates)) {
             $errors['mapping_duplicates'] = array_keys($duplicates);
         }
 

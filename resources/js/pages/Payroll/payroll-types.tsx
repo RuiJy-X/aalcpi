@@ -23,6 +23,7 @@ export type PayrollType = {
     cash_advance_payout?: string | number | null;
     cash_advance_deduction?: string | number | null;
     sss_contribution?: string | number | null;
+    sss_loan?: string | number | null;
     pagibig_contribution?: string | number | null;
     philhealth_contribution?: string | number | null;
     emergency_loan?: string | number | null;
@@ -30,6 +31,7 @@ export type PayrollType = {
     deductions: string | number;
     net_pay: string | number;
     status: string;
+    employee?: PayrollEmployeeSummary | null;
     created_at: string;
     updated_at: string;
 };
@@ -44,6 +46,7 @@ export type PayrollEmployeeSummary = {
     base_salary?: string | number | null;
     cash_advance_balance?: string | number | null;
     sss_contribution?: string | number | null;
+    sss_loan?: string | number | null;
     pagibig_contribution?: string | number | null;
     philhealth_contribution?: string | number | null;
     emergency_loan?: string | number | null;

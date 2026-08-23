@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\HandlesBulkUpdates;
+use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\User;
 use App\Support\Permissions;

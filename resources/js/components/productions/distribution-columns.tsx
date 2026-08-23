@@ -6,12 +6,7 @@ import { Check, Printer, X } from 'lucide-react';
 import type { ProductionRow } from '@/components/planters/planters-table-types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-    accept,
-    cancel_acceptance,
-    reject,
-    voucher,
-} from '@/routes/distributions';
+
 
 const statusLabelMap: Record<string, string> = {
     pending_price: 'Pending Price',
@@ -141,7 +136,7 @@ export const distributionColumns: ColumnDef<ProductionRow>[] = [
                         disabled={!canReview}
                         onClick={() => {
                             router.patch(
-                                accept(production.id).url,
+                                `/distributions/${production.id}/accept`,
                                 {},
                                 { preserveScroll: true },
                             );
@@ -171,7 +166,7 @@ export const distributionColumns: ColumnDef<ProductionRow>[] = [
 
                             if (isAccepted) {
                                 router.patch(
-                                    cancel_acceptance(production.id).url,
+                                    `/distributions/${production.id}/cancel-acceptance`,
                                     { reason: reason.trim() },
                                     { preserveScroll: true },
                                 );
@@ -179,7 +174,7 @@ export const distributionColumns: ColumnDef<ProductionRow>[] = [
                             }
 
                             router.patch(
-                                reject(production.id).url,
+                                `/distributions/${production.id}/reject`,
                                 { reason: reason.trim() },
                                 { preserveScroll: true },
                             );
@@ -194,7 +189,7 @@ export const distributionColumns: ColumnDef<ProductionRow>[] = [
                         variant="secondary"
                         disabled={!isAccepted}
                         onClick={() =>
-                            window.open(voucher(production.id).url, '_blank')
+                            window.open(`/distributions/${production.id}/voucher`, '_blank')
                         }
                     >
                         <Printer className="h-4 w-4" />

@@ -19,10 +19,10 @@ return new class extends Migration
             $table->unique(['week_no', 'crop_year']);
             $table->date('start_date');
             $table->date('end_date');
-            $table->decimal('sugar_factor', 20,16);
-            $table->decimal('mol_factor', 20,16);
-            $table->decimal('sugar_price', 20,4)->nullable();
-            $table->decimal('mol_price', 20,4)->nullable();
+            $table->decimal('sugar_factor', 20, 16);
+            $table->decimal('mol_factor', 20, 16);
+            $table->decimal('sugar_price', 20, 4)->nullable();
+            $table->decimal('mol_price', 20, 4)->nullable();
         });
     }
 

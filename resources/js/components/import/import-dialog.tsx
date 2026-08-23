@@ -230,7 +230,7 @@ export function ImportDialog({ config }: { config: ImportConfig }) {
             }
         });
 
-        router.post(config.route, payload, {
+        router.post(config.route, payload as any, {
             forceFormData: true,
             preserveScroll: true,
             onStart: () => setIsImporting(true),

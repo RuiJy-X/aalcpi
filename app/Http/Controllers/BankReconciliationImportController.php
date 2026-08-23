@@ -2,10 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use App\Models\ImportMapping;
-use App\Models\ImportJob;
 use App\Jobs\ProcessBankReconImportJob;
+use App\Models\ImportJob;
+use App\Models\ImportMapping;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -43,7 +42,7 @@ class BankReconciliationImportController extends Controller
         // 3. Register the audit tracking record in the database
         $importJob = ImportJob::create([
             'user_id' => $request->user()?->id,
-            'type' => 'bank_recon_' . $type, // bank_recon_internal or bank_recon_bank
+            'type' => 'bank_recon_'.$type, // bank_recon_internal or bank_recon_bank
             'status' => ImportJob::STATUS_QUEUED,
             'file_name' => $request->file('file')->getClientOriginalName(),
             'context' => [

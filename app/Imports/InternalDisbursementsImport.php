@@ -3,28 +3,36 @@
 namespace App\Imports;
 
 use App\Models\BankStatement;
-use App\Models\InternalDisbursements;
 use App\Models\ImportJob;
+use App\Models\InternalDisbursements;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Concerns\ToModel;
-use Maatwebsite\Excel\Concerns\WithHeadingRow;
-use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
+use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Events\AfterImport;
 use Maatwebsite\Excel\Events\ImportFailed;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
 
-class InternalDisbursementsImport implements ToModel, WithHeadingRow, WithEvents, WithChunkReading
+class InternalDisbursementsImport implements ToModel, WithChunkReading, WithEvents, WithHeadingRow
 {
     protected $importJobId;
+
     protected $filePath;
+
     protected string $dateIssued;
+
     protected int $disbursementWeek;
+
     protected int $rowsRead = 0;
+
     protected int $rowsSaved = 0;
+
     protected int $rowsSkipped = 0;
+
     protected array $warnings = [];
+
     protected array $headersRead = [];
 
     public function __construct(
@@ -64,15 +72,16 @@ class InternalDisbursementsImport implements ToModel, WithHeadingRow, WithEvents
         if (empty($rowMapped['check_no']) && empty($rowMapped['audit_no'])) {
             $this->rowsSkipped++;
             $this->warnings[] = "Row {$rowNum}: Skipped row (Check Number and Audit Number are both empty).";
+
             return null;
         }
 
         $checkNo = trim((string) ($rowMapped['check_no'] ?? $rowMapped['check_no.'] ?? ''));
-        $auditNo = !empty($rowMapped['audit_no']) ? trim((string) $rowMapped['audit_no']) : null;
+        $auditNo = ! empty($rowMapped['audit_no']) ? trim((string) $rowMapped['audit_no']) : null;
         $checkAmount = is_numeric($rowMapped['check_amount']) ? (float) $rowMapped['check_amount'] : 0.00;
 
         $dateReturn = null;
-        if (!empty($rowMapped['date_return'])) {
+        if (! empty($rowMapped['date_return'])) {
             $dateReturn = is_numeric($rowMapped['date_return'])
                 ? Date::excelToDateTimeObject($rowMapped['date_return'])->format('Y-m-d')
                 : date('Y-m-d', strtotime($rowMapped['date_return']));
@@ -175,7 +184,7 @@ class InternalDisbursementsImport implements ToModel, WithHeadingRow, WithEvents
 
         $mapped = [];
         foreach ($this->mapping as $target => $source) {
-            if (!is_string($source) || $source === '') {
+            if (! is_string($source) || $source === '') {
                 continue;
             }
 

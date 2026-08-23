@@ -2,21 +2,19 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\HandlesBulkUpdates;
 use App\Jobs\ProcessExcelImportJob;
+use App\Models\Hacienda;
 use App\Models\ImportJob;
 use App\Models\ImportMapping;
+use App\Models\MillingPeriod;
 use App\Models\Planter;
 use App\Models\Production;
-use App\Models\Hacienda;
-use App\Models\MillingPeriod;
-use Inertia\Inertia;
-use Illuminate\Support\Facades\Schema;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
-
+use Illuminate\Support\Facades\Schema;
+use Inertia\Inertia;
 
 class PlanterController extends Controller
 {
@@ -52,7 +50,7 @@ class PlanterController extends Controller
             if ($useCaseInsensitiveLike) {
                 $grammar = method_exists($query, 'getQuery') ? $query->getQuery()->getGrammar() : $query->getGrammar();
                 $wrapped = $grammar->wrap($column);
-                $query->whereRaw('lower(' . $wrapped . ') like ?', [strtolower($value)], $boolean);
+                $query->whereRaw('lower('.$wrapped.') like ?', [strtolower($value)], $boolean);
 
                 return;
             }
@@ -83,9 +81,9 @@ class PlanterController extends Controller
             'planters.updated_at',
         ]);
 
-        if (!empty($filters) && is_array($filters)) {
+        if (! empty($filters) && is_array($filters)) {
             foreach ($filters as $column => $value) {
-                if (!array_key_exists($column, $columnMap)) {
+                if (! array_key_exists($column, $columnMap)) {
                     continue;
                 }
 
@@ -102,14 +100,14 @@ class PlanterController extends Controller
                             continue;
                         }
 
-                        $applyLike($query, $dbColumn, '%' . $filterValue . '%', 'or');
+                        $applyLike($query, $dbColumn, '%'.$filterValue.'%', 'or');
                     }
                 });
             }
         }
 
         if ($search !== '') {
-            $like = '%' . $search . '%';
+            $like = '%'.$search.'%';
             $baseQuery->where(function ($query) use ($applyLike, $like) {
                 $applyLike($query, 'planters.planter_code', $like, 'or');
                 $applyLike($query, 'planters.name', $like, 'or');
@@ -181,16 +179,14 @@ class PlanterController extends Controller
         ]);
     }
 
-    public function create(){
+    public function create()
+    {
         return Inertia::render('Planters/Create');
     }
-
-
 
     public function data()
     {
         $planters = Planter::with('haciendas')->get();
-
 
         return response()->json($planters);
     }
@@ -204,10 +200,10 @@ class PlanterController extends Controller
     {
         $validated = $request->validate([
             'planter_code' => 'required|string|max:255|unique:planters,planter_code',
-            'name'           => 'required|string|max:255',
-            'address'        => 'required|string',
+            'name' => 'required|string|max:255',
+            'address' => 'required|string',
             'contact_number' => 'required|string',
-            'tin_number'     => 'required|string|unique:planters,tin_number',
+            'tin_number' => 'required|string|unique:planters,tin_number',
             'registration_date' => (now()->toDateString() >= $request->registration_date) ? 'required|date' : 'required|date|before_or_equal:today',
             'haciendas' => 'nullable|array',
             'haciendas.*.hacienda_code' => 'required_with:haciendas|string|max:255',
@@ -218,23 +214,20 @@ class PlanterController extends Controller
             'haciendas.*.is_active' => 'required_with:haciendas|boolean',
         ]);
 
-
-
         $planter = Planter::create($validated);
         $validatedhaciendas = $validated['haciendas'] ?? [];
         $validatedhaciendas = array_values(array_filter($validatedhaciendas, function ($hacienda) {
-            return !empty($hacienda['name'])
-                || !empty($hacienda['address'])
+            return ! empty($hacienda['name'])
+                || ! empty($hacienda['address'])
                 || isset($hacienda['area_hectares'])
                 || isset($hacienda['distance_from_urc']);
         }));
 
-        if (!empty($validatedhaciendas)) {
+        if (! empty($validatedhaciendas)) {
             $planter->haciendas()->createMany($validatedhaciendas);
         }
 
         return redirect()->back()->with('success', 'Planter created successfully!');
-
 
     }
 
@@ -248,11 +241,10 @@ class PlanterController extends Controller
             'contact_number' => 'required|string',
             'tin_number' => 'required|string',
             'registration_date' => (now()->toDateString() >= $request->registration_date) ? 'required|date' : 'required|date|before_or_equal:today',
-            'updated_at' => [(now()->toDateString() >= $request->updated_at) , 'nullable|date']
+            'updated_at' => [(now()->toDateString() >= $request->updated_at), 'nullable|date'],
         ]);
 
         $planter->update($validated);
-
 
         return redirect()->route('planters.show', $planter->id)->with('success', 'Planter information updated successfully.');
     }
@@ -301,7 +293,7 @@ class PlanterController extends Controller
         $selectedWeek = $request->string('week_no')->toString();
         $selectedViewMode = $request->string('view_mode')->toString();
 
-        if (!in_array($selectedViewMode, ['weekly', 'yearly'], true)) {
+        if (! in_array($selectedViewMode, ['weekly', 'yearly'], true)) {
             $selectedViewMode = 'weekly';
         }
 
@@ -319,7 +311,7 @@ class PlanterController extends Controller
             ->get()->map(function ($production) use ($millingPeriods) {
                 $productionDate = $this->resolveProductionDate($production);
                 $matchingPeriod = $millingPeriods->first(function ($period) use ($productionDate) {
-                    if (!$productionDate) {
+                    if (! $productionDate) {
                         return false;
                     }
 
@@ -363,10 +355,9 @@ class PlanterController extends Controller
             ->map(fn ($periods) => $periods->pluck('week_no')->unique()->sort()->values())
             ->toArray();
 
-
-
         $haciendas = Hacienda::with('planter')->where('planter_id', $id)->get()->map(function ($hacienda) {
             $hacienda->planter_name = $hacienda->planter ? $hacienda->planter->name : '';
+
             return $hacienda;
         });
 
@@ -396,7 +387,7 @@ class PlanterController extends Controller
             ->where('import_type', 'planters')
             ->first();
 
-        if (!$mapping) {
+        if (! $mapping) {
             return back()->with('error', 'Import mapping not found for planters.');
         }
 
@@ -466,13 +457,13 @@ class PlanterController extends Controller
             ->groupBy(function ($production) {
                 $cropYear = $production->crop_year ?: 'Unknown Crop Year';
 
-                return $production->planter_id . '::' . $cropYear;
+                return $production->planter_id.'::'.$cropYear;
             })
             ->map(function (Collection $groupedProductions) use ($numericFields) {
                 $baseProduction = $groupedProductions->first();
                 $cropYear = $baseProduction->crop_year ?: 'Unknown Crop Year';
 
-                $baseProduction->id = 'yearly-' . $baseProduction->planter_id . '-' . $cropYear;
+                $baseProduction->id = 'yearly-'.$baseProduction->planter_id.'-'.$cropYear;
                 $baseProduction->crop_year = $cropYear;
                 $baseProduction->week_no = null;
                 $baseProduction->production_date = null;

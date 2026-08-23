@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use Database\Factories\WeeklyFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Weekly extends Model
 {
-    /** @use HasFactory<\Database\Factories\WeeklyFactory> */
+    /** @use HasFactory<WeeklyFactory> */
     use HasFactory;
 
     protected $fillable = [

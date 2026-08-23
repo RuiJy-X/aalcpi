@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Advancement;
 use App\Models\Employee;
 use App\Models\Payroll;
 use App\Models\User;
@@ -75,7 +76,7 @@ class StatementOfAccountPdfTest extends TestCase
         ]);
 
         // Active advancement
-        \App\Models\Advancement::create([
+        Advancement::create([
             'employee_id' => $employee->id,
             'amount' => 3000.00,
             'remaining_balance' => 1500.00,
@@ -84,7 +85,7 @@ class StatementOfAccountPdfTest extends TestCase
         ]);
 
         // Historical / cancelled advancements (should be excluded)
-        \App\Models\Advancement::create([
+        Advancement::create([
             'employee_id' => $employee->id,
             'amount' => 2000.00,
             'remaining_balance' => 0.00,
@@ -92,7 +93,7 @@ class StatementOfAccountPdfTest extends TestCase
             'status' => 'deducted',
         ]);
 
-        \App\Models\Advancement::create([
+        Advancement::create([
             'employee_id' => $employee->id,
             'amount' => 1000.00,
             'remaining_balance' => 1000.00,

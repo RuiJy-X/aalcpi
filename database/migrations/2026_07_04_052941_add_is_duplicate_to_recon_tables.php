@@ -1,4 +1,5 @@
 <?php
+
 // database/migrations/2026_07_04_000001_add_is_duplicate_to_recon_tables.php
 
 use Illuminate\Database\Migrations\Migration;

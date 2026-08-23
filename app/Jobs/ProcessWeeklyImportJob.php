@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\ImportJob;
 use App\Models\Weekly;
+use App\Services\PdfSplitterService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -52,7 +53,7 @@ class ProcessWeeklyImportJob implements ShouldQueue
 
         $week = trim($this->week);
         $cropYear = trim($this->cropYear);
-        $relativeOutputDirectory = 'weekly-pdfs/' . Str::slug($cropYear) . '/week-' . Str::slug($week);
+        $relativeOutputDirectory = 'weekly-pdfs/'.Str::slug($cropYear).'/week-'.Str::slug($week);
         $inputPath = Storage::disk('local')->path($this->temporaryPath);
         $outputPath = Storage::disk('public')->path($relativeOutputDirectory);
 
@@ -63,7 +64,7 @@ class ProcessWeeklyImportJob implements ShouldQueue
             throw new RuntimeException('Weekly import PDF could not be staged for processing.');
         }
 
-        $processCommand = \App\Services\PdfSplitterService::buildProcessCommand(
+        $processCommand = PdfSplitterService::buildProcessCommand(
             $inputPath,
             $week,
             $cropYear,
@@ -87,7 +88,7 @@ class ProcessWeeklyImportJob implements ShouldQueue
                 try {
                     $payload = json_decode($process->output(), true, 512, JSON_THROW_ON_ERROR);
                 } catch (JsonException $exception) {
-                    throw new RuntimeException('The weekly splitter returned invalid JSON: ' . $exception->getMessage());
+                    throw new RuntimeException('The weekly splitter returned invalid JSON: '.$exception->getMessage());
                 }
 
                 $files = collect($payload['files'] ?? []);
@@ -127,13 +128,14 @@ class ProcessWeeklyImportJob implements ShouldQueue
 
                     if ($outputFile === '') {
                         $skippedCount++;
-                        $warnings[] = "File entry #" . ($index + 1) . ": Output PDF file path was empty.";
+                        $warnings[] = 'File entry #'.($index + 1).': Output PDF file path was empty.';
+
                         return;
                     }
 
                     $relativePath = '';
-                    if (str_starts_with(strtolower($outputFile), strtolower($normalizedPublicRoot . '/'))) {
-                        $relativePath = substr($outputFile, strlen($normalizedPublicRoot . '/'));
+                    if (str_starts_with(strtolower($outputFile), strtolower($normalizedPublicRoot.'/'))) {
+                        $relativePath = substr($outputFile, strlen($normalizedPublicRoot.'/'));
                     } elseif (stripos($outputFile, 'storage/app/public/') !== false) {
                         $relativePath = substr($outputFile, stripos($outputFile, 'storage/app/public/') + strlen('storage/app/public/'));
                     } else {
@@ -144,7 +146,8 @@ class ProcessWeeklyImportJob implements ShouldQueue
 
                     if ($relativePath === '') {
                         $skippedCount++;
-                        $warnings[] = "File entry #" . ($index + 1) . ": Could not determine relative output path.";
+                        $warnings[] = 'File entry #'.($index + 1).': Could not determine relative output path.';
+
                         return;
                     }
 
@@ -197,7 +200,7 @@ class ProcessWeeklyImportJob implements ShouldQueue
                     'status' => ImportJob::STATUS_DONE,
                     'finished_at' => now(),
                     'context' => $context,
-                    'message' => "Imported {$importedCount} weekly planter PDF(s) across " . count($uniquePlanterCodes) . " planter(s).",
+                    'message' => "Imported {$importedCount} weekly planter PDF(s) across ".count($uniquePlanterCodes).' planter(s).',
                 ]);
             }
         } catch (Throwable $exception) {

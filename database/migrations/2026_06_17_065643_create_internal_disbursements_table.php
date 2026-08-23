@@ -17,9 +17,9 @@ return new class extends Migration
             $table->string('audit_no')->nullable()->index();
             $table->string('payee_name');
             $table->string('check_no')->index();
-            $table->decimal('check_amount',20,2);
+            $table->decimal('check_amount', 20, 2);
             $table->date('date_return')->nullable();
-            $table->string('status')->default('Outstanding'); // Outstanding, Matched, Amount Mismatch  
+            $table->string('status')->default('Outstanding'); // Outstanding, Matched, Amount Mismatch
             $table->foreignId('bank_statement_id')->nullable()->constrained('bank_statements')->nullOnDelete();
         });
     }

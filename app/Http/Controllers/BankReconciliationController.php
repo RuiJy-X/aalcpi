@@ -2,16 +2,18 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
+use App\Exports\BankReconciliationExport;
 use App\Models\BankStatement;
 use App\Models\InternalDisbursements;
-use Barryvdh\DomPDF\Facade\Pdf;
-use Inertia\Inertia;
 use App\Models\ReconciliationWorkspace;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Inertia\Inertia;
+use Maatwebsite\Excel\Facades\Excel;
 
 class BankReconciliationController extends Controller
 {
@@ -45,7 +47,7 @@ class BankReconciliationController extends Controller
             if ($useCaseInsensitiveLike) {
                 $grammar = method_exists($query, 'getQuery') ? $query->getQuery()->getGrammar() : $query->getGrammar();
                 $wrapped = $grammar->wrap($column);
-                $query->whereRaw('lower(' . $wrapped . ') like ?', [strtolower($value)], $boolean);
+                $query->whereRaw('lower('.$wrapped.') like ?', [strtolower($value)], $boolean);
 
                 return;
             }
@@ -73,20 +75,20 @@ class BankReconciliationController extends Controller
 
         $baseQuery = ReconciliationWorkspace::query();
 
-        if ($request->filled('status') && !array_key_exists('status', $filters)) {
+        if ($request->filled('status') && ! array_key_exists('status', $filters)) {
             $filters['status'] = $request->input('status');
         }
 
-        if ($request->filled('disbursement_week') && !array_key_exists('disbursement_week', $filters)) {
+        if ($request->filled('disbursement_week') && ! array_key_exists('disbursement_week', $filters)) {
             $filters['disbursement_week'] = $request->input('disbursement_week');
         }
-        if ($request->filled('is_duplicate') && !array_key_exists('is_duplicate', $filters)) {
+        if ($request->filled('is_duplicate') && ! array_key_exists('is_duplicate', $filters)) {
             $filters['is_duplicate'] = $request->input('is_duplicate');
         }
 
-        if (!empty($filters) && is_array($filters)) {
+        if (! empty($filters) && is_array($filters)) {
             foreach ($filters as $column => $value) {
-                if (!array_key_exists($column, $columnMap)) {
+                if (! array_key_exists($column, $columnMap)) {
                     continue;
                 }
 
@@ -108,7 +110,7 @@ class BankReconciliationController extends Controller
                         if ($isExactMatch) {
                             $query->orWhere($dbColumn, $filterValue);
                         } else {
-                            $applyLike($query, $dbColumn, '%' . $filterValue . '%', 'or');
+                            $applyLike($query, $dbColumn, '%'.$filterValue.'%', 'or');
                         }
                     }
                 });
@@ -116,7 +118,7 @@ class BankReconciliationController extends Controller
         }
 
         if ($search !== '') {
-            $like = '%' . $search . '%';
+            $like = '%'.$search.'%';
             $baseQuery->where(function ($query) use ($applyLike, $like) {
                 $applyLike($query, 'reconciliation_workspace.ref_no', $like, 'or');
                 $applyLike($query, 'reconciliation_workspace.description', $like, 'or');
@@ -187,18 +189,18 @@ class BankReconciliationController extends Controller
         }
 
         // Single aggregate query for total count and sum totals
-        $summary = (clone $baseQuery)->reorder()->selectRaw("
+        $summary = (clone $baseQuery)->reorder()->selectRaw('
             COUNT(*) as total_count,
             COALESCE(SUM(internal_amount), 0) as internal_total,
             COALESCE(SUM(bank_amount), 0) as bank_total
-        ")->first();
+        ')->first();
 
         $totalCount = (int) ($summary->total_count ?? 0);
 
         $summaryStats = [
-            'total_count'    => $totalCount,
+            'total_count' => $totalCount,
             'internal_total' => (float) ($summary->internal_total ?? 0),
-            'bank_total'     => (float) ($summary->bank_total ?? 0),
+            'bank_total' => (float) ($summary->bank_total ?? 0),
         ];
 
         $page = (int) $request->input('page', 1);
@@ -238,7 +240,7 @@ class BankReconciliationController extends Controller
     private function buildFileAuditStats(string $periodFrom, string $periodTo, array $filters = []): array
     {
         $hasDateFilter = $periodFrom !== '';
-        $referenceDate = $hasDateFilter ? \Illuminate\Support\Carbon::parse($periodFrom) : \Illuminate\Support\Carbon::now();
+        $referenceDate = $hasDateFilter ? Carbon::parse($periodFrom) : Carbon::now();
         $targetMonthStr = $referenceDate->format('Y-m');
         $monthStart = $referenceDate->copy()->startOfMonth()->toDateString();
         $monthEnd = $referenceDate->copy()->endOfMonth()->toDateString();
@@ -247,8 +249,8 @@ class BankReconciliationController extends Controller
         $periodLabel = $hasDateFilter
             ? ($periodFrom === $monthStart && ($periodTo === '' || $periodTo === $monthEnd)
                 ? $referenceDate->format('F Y')
-                : $referenceDate->format('M d, Y') . ($periodTo !== '' && $periodTo !== $periodFrom ? ' – ' . \Illuminate\Support\Carbon::parse($periodTo)->format('M d, Y') : ''))
-            : 'All Dates (Showing ' . $referenceDate->format('F Y') . ' Cycle)';
+                : $referenceDate->format('M d, Y').($periodTo !== '' && $periodTo !== $periodFrom ? ' – '.Carbon::parse($periodTo)->format('M d, Y') : ''))
+            : 'All Dates (Showing '.$referenceDate->format('F Y').' Cycle)';
 
         // 1. Audit Bank Statement (1 file expected per month)
         $bankJobQuery = DB::table('bank_statements')
@@ -256,7 +258,7 @@ class BankReconciliationController extends Controller
             ->where(function ($q) use ($monthStart, $monthEnd, $periodFrom, $periodToResolved, $hasDateFilter) {
                 if ($hasDateFilter) {
                     $q->whereBetween('bank_statements.bank_date', [$monthStart, $monthEnd])
-                      ->orWhereBetween('bank_statements.tdate', [$periodFrom, $periodToResolved]);
+                        ->orWhereBetween('bank_statements.tdate', [$periodFrom, $periodToResolved]);
                 } else {
                     $q->whereBetween('bank_statements.bank_date', [$monthStart, $monthEnd]);
                 }
@@ -272,14 +274,14 @@ class BankReconciliationController extends Controller
             ->first();
 
         $bankFileStatus = [
-            'status'       => $bankJobQuery && (int) $bankJobQuery->record_count > 0 ? 'imported' : 'missing',
-            'month'        => $referenceDate->format('F Y'),
-            'month_key'    => $targetMonthStr,
-            'file_name'    => $bankJobQuery->file_name ?? null,
-            'import_job_id'=> $bankJobQuery->import_job_id ?? null,
+            'status' => $bankJobQuery && (int) $bankJobQuery->record_count > 0 ? 'imported' : 'missing',
+            'month' => $referenceDate->format('F Y'),
+            'month_key' => $targetMonthStr,
+            'file_name' => $bankJobQuery->file_name ?? null,
+            'import_job_id' => $bankJobQuery->import_job_id ?? null,
             'record_count' => (int) ($bankJobQuery->record_count ?? 0),
-            'total_debit'  => (float) ($bankJobQuery->total_debit ?? 0),
-            'uploaded_at'  => !empty($bankJobQuery->uploaded_at) ? \Illuminate\Support\Carbon::parse($bankJobQuery->uploaded_at)->format('M d, Y h:i A') : null,
+            'total_debit' => (float) ($bankJobQuery->total_debit ?? 0),
+            'uploaded_at' => ! empty($bankJobQuery->uploaded_at) ? Carbon::parse($bankJobQuery->uploaded_at)->format('M d, Y h:i A') : null,
         ];
 
         // 2. Audit Weekly Summary Ledgers (4 files expected per month: Weeks 1, 2, 3, 4)
@@ -307,9 +309,9 @@ class BankReconciliationController extends Controller
             ->keyBy('week');
 
         $expectedWeeks = [1, 2, 3, 4];
-        $detectedWeeks = $weeklyLedgersQuery->keys()->map(fn($w) => (int) $w)->all();
+        $detectedWeeks = $weeklyLedgersQuery->keys()->map(fn ($w) => (int) $w)->all();
         foreach ($detectedWeeks as $w) {
-            if ($w >= 5 && !in_array($w, $expectedWeeks, true)) {
+            if ($w >= 5 && ! in_array($w, $expectedWeeks, true)) {
                 $expectedWeeks[] = $w;
             }
         }
@@ -324,26 +326,26 @@ class BankReconciliationController extends Controller
             if ($ledger && (int) $ledger->record_count > 0) {
                 $importedWeeksCount++;
                 $weeklyLedgers[] = [
-                    'week'         => $week,
-                    'status'       => 'imported',
-                    'file_name'    => $ledger->file_name,
-                    'import_job_id'=> $ledger->import_job_id,
-                    'date_issued'  => $ledger->date_issued ? \Illuminate\Support\Carbon::parse($ledger->date_issued)->format('M d, Y') : null,
+                    'week' => $week,
+                    'status' => 'imported',
+                    'file_name' => $ledger->file_name,
+                    'import_job_id' => $ledger->import_job_id,
+                    'date_issued' => $ledger->date_issued ? Carbon::parse($ledger->date_issued)->format('M d, Y') : null,
                     'record_count' => (int) $ledger->record_count,
                     'total_amount' => (float) $ledger->total_amount,
-                    'uploaded_at'  => !empty($ledger->uploaded_at) ? \Illuminate\Support\Carbon::parse($ledger->uploaded_at)->format('M d, Y h:i A') : null,
+                    'uploaded_at' => ! empty($ledger->uploaded_at) ? Carbon::parse($ledger->uploaded_at)->format('M d, Y h:i A') : null,
                 ];
             } else {
                 $missingWeeks[] = $week;
                 $weeklyLedgers[] = [
-                    'week'         => $week,
-                    'status'       => 'missing',
-                    'file_name'    => null,
-                    'import_job_id'=> null,
-                    'date_issued'  => null,
+                    'week' => $week,
+                    'status' => 'missing',
+                    'file_name' => null,
+                    'import_job_id' => null,
+                    'date_issued' => null,
                     'record_count' => 0,
                     'total_amount' => 0.0,
-                    'uploaded_at'  => null,
+                    'uploaded_at' => null,
                 ];
             }
         }
@@ -353,21 +355,21 @@ class BankReconciliationController extends Controller
         $missingFilesCount = max(0, $totalExpected - $totalImported);
 
         return [
-            'has_date_filter'      => $hasDateFilter,
-            'target_month'         => $targetMonthStr,
-            'month_label'          => $referenceDate->format('F Y'),
-            'period_label'         => $periodLabel,
-            'period_from'          => $hasDateFilter ? $periodFrom : $monthStart,
-            'period_to'            => $hasDateFilter ? $periodToResolved : $monthEnd,
-            'bank_file'            => $bankFileStatus,
-            'weekly_ledgers'       => $weeklyLedgers,
-            'expected_weeks'       => $expectedWeeks,
-            'missing_weeks'        => $missingWeeks,
+            'has_date_filter' => $hasDateFilter,
+            'target_month' => $targetMonthStr,
+            'month_label' => $referenceDate->format('F Y'),
+            'period_label' => $periodLabel,
+            'period_from' => $hasDateFilter ? $periodFrom : $monthStart,
+            'period_to' => $hasDateFilter ? $periodToResolved : $monthEnd,
+            'bank_file' => $bankFileStatus,
+            'weekly_ledgers' => $weeklyLedgers,
+            'expected_weeks' => $expectedWeeks,
+            'missing_weeks' => $missingWeeks,
             'imported_weeks_count' => $importedWeeksCount,
             'total_expected_files' => $totalExpected,
             'total_imported_files' => $totalImported,
-            'missing_files_count'  => $missingFilesCount,
-            'is_complete'          => $missingFilesCount === 0,
+            'missing_files_count' => $missingFilesCount,
+            'is_complete' => $missingFilesCount === 0,
         ];
     }
 
@@ -482,7 +484,7 @@ class BankReconciliationController extends Controller
         foreach ($validated['ids'] as $compositeId) {
             [$source, $sourceId] = array_pad(explode(':', $compositeId, 2), 2, null);
 
-            if (!is_numeric($sourceId)) {
+            if (! is_numeric($sourceId)) {
                 continue;
             }
 
@@ -497,7 +499,7 @@ class BankReconciliationController extends Controller
             return redirect()->back()->with('error', 'No valid records selected.');
         }
 
-        if (!empty($internalIds)) {
+        if (! empty($internalIds)) {
             $linkedBankIds = InternalDisbursements::whereIn('id', $internalIds)
                 ->whereNotNull('bank_statement_id')
                 ->pluck('bank_statement_id')
@@ -511,7 +513,7 @@ class BankReconciliationController extends Controller
             Cache::forget('bank_recon_week_options');
         }
 
-        if (!empty($bankIds)) {
+        if (! empty($bankIds)) {
             BankStatement::whereIn('id', $bankIds)->delete();
         }
 
@@ -535,7 +537,8 @@ class BankReconciliationController extends Controller
             if ($useCaseInsensitiveLike) {
                 $grammar = method_exists($query, 'getQuery') ? $query->getQuery()->getGrammar() : $query->getGrammar();
                 $wrapped = $grammar->wrap($column);
-                $query->whereRaw('lower(' . $wrapped . ') like ?', [strtolower($value)], $boolean);
+                $query->whereRaw('lower('.$wrapped.') like ?', [strtolower($value)], $boolean);
+
                 return;
             }
             $query->where($column, $likeOperator, $value, $boolean);
@@ -558,17 +561,17 @@ class BankReconciliationController extends Controller
 
         $query = ReconciliationWorkspace::query();
 
-        if ($request->filled('status') && !array_key_exists('status', $filters)) {
+        if ($request->filled('status') && ! array_key_exists('status', $filters)) {
             $filters['status'] = $request->input('status');
         }
 
-        if ($request->filled('disbursement_week') && !array_key_exists('disbursement_week', $filters)) {
+        if ($request->filled('disbursement_week') && ! array_key_exists('disbursement_week', $filters)) {
             $filters['disbursement_week'] = $request->input('disbursement_week');
         }
 
-        if (!empty($filters) && is_array($filters)) {
+        if (! empty($filters) && is_array($filters)) {
             foreach ($filters as $column => $value) {
-                if (!array_key_exists($column, $columnMap) || $value === '' || $value === null) {
+                if (! array_key_exists($column, $columnMap) || $value === '' || $value === null) {
                     continue;
                 }
                 $dbColumn = $columnMap[$column];
@@ -583,7 +586,7 @@ class BankReconciliationController extends Controller
                         if ($isExactMatch) {
                             $q->orWhere($dbColumn, $filterValue);
                         } else {
-                            $applyLike($q, $dbColumn, '%' . $filterValue . '%', 'or');
+                            $applyLike($q, $dbColumn, '%'.$filterValue.'%', 'or');
                         }
                     }
                 });
@@ -591,7 +594,7 @@ class BankReconciliationController extends Controller
         }
 
         if ($search !== '') {
-            $like = '%' . $search . '%';
+            $like = '%'.$search.'%';
             $query->where(function ($q) use ($applyLike, $like) {
                 $applyLike($q, 'reconciliation_workspace.ref_no', $like, 'or');
                 $applyLike($q, 'reconciliation_workspace.description', $like, 'or');
@@ -624,7 +627,7 @@ class BankReconciliationController extends Controller
         $unrecordedBankIds = $matches->where('source', 'bank')->pluck('source_id')->toArray();
 
         $linkedBankIds = [];
-        if (!empty($internalIds)) {
+        if (! empty($internalIds)) {
             $linkedBankIds = InternalDisbursements::whereIn('id', $internalIds)
                 ->whereNotNull('bank_statement_id')
                 ->pluck('bank_statement_id')
@@ -635,11 +638,11 @@ class BankReconciliationController extends Controller
 
         $bankIds = array_values(array_unique(array_merge($unrecordedBankIds, $linkedBankIds)));
 
-        if (!empty($internalIds)) {
+        if (! empty($internalIds)) {
             InternalDisbursements::whereIn('id', $internalIds)->delete();
         }
 
-        if (!empty($bankIds)) {
+        if (! empty($bankIds)) {
             BankStatement::whereIn('id', $bankIds)->delete();
         }
 
@@ -679,16 +682,16 @@ class BankReconciliationController extends Controller
         $grouped = [];
         foreach ($records as $record) {
             $rawDate = $record->internal_date_issued;
-            $dateObj = $rawDate ? \Illuminate\Support\Carbon::parse($rawDate) : null;
+            $dateObj = $rawDate ? Carbon::parse($rawDate) : null;
             $monthKey = $dateObj ? $dateObj->format('Y-m') : 'Unknown';
             $monthLabel = $dateObj ? $dateObj->format('F Y') : 'Unknown Date';
 
-            if (!isset($grouped[$monthKey])) {
+            if (! isset($grouped[$monthKey])) {
                 $grouped[$monthKey] = [
-                    'month_key'   => $monthKey,
+                    'month_key' => $monthKey,
                     'month_label' => $monthLabel,
-                    'items'       => [],
-                    'subtotal'    => 0,
+                    'items' => [],
+                    'subtotal' => 0,
                 ];
             }
 
@@ -696,12 +699,12 @@ class BankReconciliationController extends Controller
             $amount = (float) ($record->internal_amount ?? 0);
 
             $grouped[$monthKey]['items'][] = [
-                'no'           => $itemNo,
-                'date'         => $dateObj ? $dateObj->format('m/d/Y') : '',
-                'raw_date'     => $rawDate ? (string) $rawDate : '',
-                'payee_name'   => $record->description ?? '',
-                'check_no'     => $record->ref_no ?? '',
-                'amount'       => $amount,
+                'no' => $itemNo,
+                'date' => $dateObj ? $dateObj->format('m/d/Y') : '',
+                'raw_date' => $rawDate ? (string) $rawDate : '',
+                'payee_name' => $record->description ?? '',
+                'check_no' => $record->ref_no ?? '',
+                'amount' => $amount,
                 'date_cleared' => '',
             ];
 
@@ -713,9 +716,9 @@ class BankReconciliationController extends Controller
         $totalCount = count($records);
 
         return [
-            'date_from'   => $dateFrom,
-            'date_to'     => $dateTo,
-            'months'      => $monthsList,
+            'date_from' => $dateFrom,
+            'date_to' => $dateTo,
+            'months' => $monthsList,
             'grand_total' => $grandTotal,
             'total_count' => $totalCount,
         ];
@@ -728,7 +731,7 @@ class BankReconciliationController extends Controller
     {
         $request->validate([
             'date_from' => 'nullable|date',
-            'date_to'   => 'nullable|date',
+            'date_to' => 'nullable|date',
         ]);
 
         $data = $this->buildOutstandingChecksData($request);
@@ -746,21 +749,21 @@ class BankReconciliationController extends Controller
 
         $request->validate([
             'date_from' => 'nullable|date',
-            'date_to'   => 'nullable|date',
+            'date_to' => 'nullable|date',
         ]);
 
         $data = $this->buildOutstandingChecksData($request);
 
         $pdf = Pdf::loadView('pdfs.outstanding_checks', [
-            'dateFrom'   => $data['date_from'],
-            'dateTo'     => $data['date_to'],
-            'months'     => $data['months'],
+            'dateFrom' => $data['date_from'],
+            'dateTo' => $data['date_to'],
+            'months' => $data['months'],
             'grandTotal' => $data['grand_total'],
             'totalCount' => $data['total_count'],
         ])
-        ->setPaper('a4', 'portrait')
-        ->setOption('isFontSubsettingEnabled', true)
-        ->setOption('isRemoteEnabled', false);
+            ->setPaper('a4', 'portrait')
+            ->setOption('isFontSubsettingEnabled', true)
+            ->setOption('isRemoteEnabled', false);
 
         return $pdf->stream('outstanding_checks_report.pdf');
     }
@@ -773,20 +776,104 @@ class BankReconciliationController extends Controller
     {
         $request->validate([
             'date_from' => 'nullable|date',
-            'date_to'   => 'nullable|date',
+            'date_to' => 'nullable|date',
         ]);
 
         $data = $this->buildOutstandingChecksData($request);
 
         return view('pdfs.outstanding_checks', [
-            'dateFrom'   => $data['date_from'],
-            'dateTo'     => $data['date_to'],
-            'months'     => $data['months'],
+            'dateFrom' => $data['date_from'],
+            'dateTo' => $data['date_to'],
+            'months' => $data['months'],
             'grandTotal' => $data['grand_total'],
             'totalCount' => $data['total_count'],
-            'autoPrint'  => true,
+            'autoPrint' => true,
         ]);
     }
+
+    /**
+     * Export the reconciliation workspace records into a multi-sheet Excel file (.xlsx)
+     * containing 6 sheets: All, Outstanding, Unrecorded, Matched, Mismatch, Duplicates
+     * and including dataset completion file audit statistics.
+     */
+    public function export(Request $request)
+    {
+        @ini_set('memory_limit', '512M');
+        @set_time_limit(300);
+
+        $periodFrom = $request->string('period_from')->toString();
+        $periodTo = $request->string('period_to')->toString();
+        $disbursementWeek = $request->string('disbursement_week')->toString();
+        $search = $request->string('search')->toString();
+        $dateColumn = $request->string('date_column')->toString();
+        $dateFrom = $request->string('date_from')->toString();
+        $dateTo = $request->string('date_to')->toString();
+
+        $driver = Schema::getConnection()->getDriverName();
+        $likeOperator = $driver === 'pgsql' ? 'ilike' : 'like';
+        $useCaseInsensitiveLike = $driver === 'sqlite';
+        $applyLike = function ($query, string $column, string $value, string $boolean = 'and') use ($likeOperator, $useCaseInsensitiveLike) {
+            if ($useCaseInsensitiveLike) {
+                $grammar = method_exists($query, 'getQuery') ? $query->getQuery()->getGrammar() : $query->getGrammar();
+                $wrapped = $grammar->wrap($column);
+                $query->whereRaw('lower('.$wrapped.') like ?', [strtolower($value)], $boolean);
+
+                return;
+            }
+
+            $query->where($column, $likeOperator, $value, $boolean);
+        };
+
+        $baseQuery = ReconciliationWorkspace::query();
+
+        if ($periodFrom !== '') {
+            $periodToResolved = $periodTo !== '' ? $periodTo : $periodFrom;
+            $baseQuery->where(function ($query) use ($periodFrom, $periodToResolved) {
+                $query->whereBetween('reconciliation_workspace.internal_date_issued', [$periodFrom, $periodToResolved])
+                    ->orWhereBetween('reconciliation_workspace.transaction_date', [$periodFrom, $periodToResolved]);
+            });
+        }
+
+        if ($disbursementWeek !== '' && $disbursementWeek !== 'all') {
+            $baseQuery->where('reconciliation_workspace.disbursement_week', $disbursementWeek);
+        }
+
+        if ($search !== '') {
+            $like = '%'.$search.'%';
+            $baseQuery->where(function ($query) use ($applyLike, $like) {
+                $applyLike($query, 'reconciliation_workspace.ref_no', $like, 'or');
+                $applyLike($query, 'reconciliation_workspace.description', $like, 'or');
+            });
+        }
+
+        if ($dateColumn !== '' && $dateFrom !== '') {
+            $toDate = $dateTo !== '' ? $dateTo : $dateFrom;
+            $baseQuery->whereBetween('reconciliation_workspace.'.$dateColumn, [$dateFrom, $toDate]);
+        }
+
+        $allRecords = $baseQuery->orderBy('reconciliation_workspace.transaction_date', 'desc')->get();
+
+        $sheetsData = [
+            'All' => $allRecords,
+            'Outstanding' => $allRecords->where('status', 'Outstanding')->values(),
+            'Unrecorded' => $allRecords->where('status', 'Unrecorded Bank Entry')->values(),
+            'Matched' => $allRecords->where('status', 'Matched')->values(),
+            'Mismatch' => $allRecords->where('status', 'Amount Mismatch')->values(),
+            'Duplicates' => $allRecords->where('is_duplicate', true)->values(),
+        ];
+
+        $fileAuditStats = $this->buildFileAuditStats($periodFrom, $periodTo);
+
+        $cycleName = $fileAuditStats['target_month'] ?? now()->format('Y-m');
+        $fileName = 'Bank_Reconciliation_'.str_replace([' ', '-', '–', ','], '_', $fileAuditStats['period_label'] ?? $cycleName).'.xlsx';
+
+        return Excel::download(
+            new BankReconciliationExport($sheetsData, $fileAuditStats, [
+                'period_from' => $periodFrom,
+                'period_to' => $periodTo,
+                'generated_at' => now()->format('F d, Y h:i A'),
+            ]),
+            $fileName
+        );
+    }
 }
-
-

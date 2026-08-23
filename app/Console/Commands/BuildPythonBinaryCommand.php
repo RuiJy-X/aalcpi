@@ -33,6 +33,7 @@ class BuildPythonBinaryCommand extends Command
 
         if (file_exists($outputBinary) && ! $this->option('force')) {
             $this->info("Binary already exists at [{$outputBinary}]. Use --force to rebuild.");
+
             return self::SUCCESS;
         }
 
@@ -68,6 +69,7 @@ class BuildPythonBinaryCommand extends Command
         if (! $result->successful()) {
             $this->error('Failed to compile Python binary:');
             $this->line($result->errorOutput() ?: $result->output());
+
             return self::FAILURE;
         }
 

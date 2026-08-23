@@ -2,23 +2,21 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Jobs\ProcessExcelImportJob;
 use App\Models\Hacienda;
 use App\Models\ImportJob;
 use App\Models\ImportMapping;
 use App\Models\Planter;
 use App\Models\Production;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Collection;
 use Inertia\Inertia;
-use Barryvdh\DomPDF\Facade\Pdf;
 
 class ProductionController extends Controller
 {
-
     public function index(Request $request)
     {
         $selectedCropYear = $request->string('crop_year')->toString();
@@ -53,7 +51,7 @@ class ProductionController extends Controller
             if ($useCaseInsensitiveLike) {
                 $grammar = method_exists($query, 'getQuery') ? $query->getQuery()->getGrammar() : $query->getGrammar();
                 $wrapped = $grammar->wrap($column);
-                $query->whereRaw('lower(' . $wrapped . ') like ?', [strtolower($value)], $boolean);
+                $query->whereRaw('lower('.$wrapped.') like ?', [strtolower($value)], $boolean);
 
                 return;
             }
@@ -116,12 +114,12 @@ class ProductionController extends Controller
             }
         }
 
-        if (!empty($filters) && is_array($filters)) {
+        if (! empty($filters) && is_array($filters)) {
             foreach ($filters as $column => $value) {
                 if ($column === 'status') {
                     continue;
                 }
-                if (!array_key_exists($column, $columnMap)) {
+                if (! array_key_exists($column, $columnMap)) {
                     continue;
                 }
 
@@ -138,14 +136,14 @@ class ProductionController extends Controller
                             continue;
                         }
 
-                        $applyLike($query, $dbColumn, '%' . $filterValue . '%', 'or');
+                        $applyLike($query, $dbColumn, '%'.$filterValue.'%', 'or');
                     }
                 });
             }
         }
 
         if ($search !== '') {
-            $like = '%' . $search . '%';
+            $like = '%'.$search.'%';
             $baseQuery->where(function ($query) use ($applyLike, $like) {
                 $applyLike($query, 'productions.planter_code', $like, 'or');
                 $applyLike($query, 'planters.name', $like, 'or');
@@ -299,13 +297,13 @@ class ProductionController extends Controller
             ->groupBy(function ($production) {
                 $cropYear = $production->crop_year ?: 'Unknown Crop Year';
 
-                return $production->planter_id . '::' . $cropYear;
+                return $production->planter_id.'::'.$cropYear;
             })
             ->map(function (Collection $groupedProductions) use ($numericFields) {
                 $baseProduction = $groupedProductions->first();
                 $cropYear = $baseProduction->crop_year ?: 'Unknown Crop Year';
 
-                $baseProduction->id = 'yearly-' . $baseProduction->planter_id . '-' . $cropYear;
+                $baseProduction->id = 'yearly-'.$baseProduction->planter_id.'-'.$cropYear;
                 $baseProduction->crop_year = $cropYear;
                 $baseProduction->week_no = null;
                 $baseProduction->production_date = null;
@@ -363,7 +361,7 @@ class ProductionController extends Controller
         $compositeSugarPrice = $validated['composite_sugar_price'] ?? null;
         $compositeMolassesPrice = $validated['composite_molasses_price'] ?? null;
 
-        if (!$mapping) {
+        if (! $mapping) {
             return back()->with('error', 'Import mapping not found for productions.');
         }
 
@@ -437,10 +435,12 @@ class ProductionController extends Controller
         ]);
 
         $production = Production::create($validated);
+
         return response()->json(['message' => 'Record created!', 'data' => $production], 201);
     }
 
-    public function destroy($productionId){
+    public function destroy($productionId)
+    {
         $production = Production::findOrFail($productionId);
         $production->delete();
 
@@ -621,7 +621,7 @@ class ProductionController extends Controller
 
         $pdf = Pdf::loadView('pdfs.weekly_data', compact('production'))->setPaper('a4', 'landscape');
 
-    return $pdf->stream("{$production->planter->name}_weekly_data.pdf");
+        return $pdf->stream("{$production->planter->name}_weekly_data.pdf");
     }
 
     public function certification(Request $request)
@@ -629,7 +629,6 @@ class ProductionController extends Controller
 
         $planter_code = $request->query('planter_code');
         $crop_year = $request->query('crop_year');
-
 
         $productions = Production::with(['planter', 'hacienda'])
             ->when($planter_code, function ($query, $planter_code) {
@@ -645,13 +644,13 @@ class ProductionController extends Controller
         $aggregated_collection = $this->aggregateYearlyProductions($productions);
         $aggregate_production = $aggregated_collection->first();
 
-        if (!$aggregate_production) {
-        return back()->with('error', 'No production data found for the selected criteria.');
+        if (! $aggregate_production) {
+            return back()->with('error', 'No production data found for the selected criteria.');
         }
 
-         $pdf = Pdf::loadView('pdfs.certification_final_data', ['production' => $aggregate_production])->setPaper('a4', 'portrait');
+        $pdf = Pdf::loadView('pdfs.certification_final_data', ['production' => $aggregate_production])->setPaper('a4', 'portrait');
 
-         return $pdf->stream("{$aggregate_production->planter->name}_final_data.pdf");
+        return $pdf->stream("{$aggregate_production->planter->name}_final_data.pdf");
 
     }
 
@@ -672,8 +671,7 @@ class ProductionController extends Controller
             'productions' => $productions,
         ])->setPaper('a4', 'portrait');
 
-        return $pdf->download('productions_final_data_' . now()->format('Ymd_His') . '.pdf');
+        return $pdf->download('productions_final_data_'.now()->format('Ymd_His').'.pdf');
 
     }
-
 }

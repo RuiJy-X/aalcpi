@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('payrolls', function (Blueprint $table) {
-            if (!Schema::hasColumn('payrolls', 'holiday_pay')) {
+            if (! Schema::hasColumn('payrolls', 'holiday_pay')) {
                 $table->decimal('holiday_pay', 16, 2)->default(0.00)->after('holidays');
             }
         });

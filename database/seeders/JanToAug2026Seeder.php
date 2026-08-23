@@ -8,7 +8,6 @@ use App\Models\Attendance;
 use App\Models\Employee;
 use App\Models\Holiday;
 use App\Models\Payroll;
-use App\Services\PayrollAuditService;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -64,7 +63,7 @@ class JanToAug2026Seeder extends Seeder
         $employees = [];
         foreach ($names as $index => $name) {
             $empNum = $index + 1;
-            $code = 'EMP-' . str_pad((string) $empNum, 3, '0', STR_PAD_LEFT);
+            $code = 'EMP-'.str_pad((string) $empNum, 3, '0', STR_PAD_LEFT);
             $dailyRate = (float) (450 + ($index % 8) * 50);
             $hourlyRate = round($dailyRate / 8.00, 2);
             $baseSalary = round($dailyRate * 26, 2);
@@ -72,22 +71,22 @@ class JanToAug2026Seeder extends Seeder
             $employee = Employee::updateOrCreate(
                 ['employee_code' => $code],
                 [
-                    'name'                    => $name,
-                    'position'                => $positions[$index % count($positions)],
-                    'daily_rate'              => $dailyRate,
-                    'hourly_rate'             => $hourlyRate,
-                    'base_salary'             => $baseSalary,
-                    'address'                 => $cities[$index % count($cities)],
-                    'contact_number'          => '09' . sprintf('%09d', 100000000 + $index * 1234567),
-                    'tin'                     => sprintf('%03d-%03d-%03d-000', 100 + $index, 200 + $index, 300 + $index),
-                    'sss_no'                  => sprintf('%02d-%07d-%01d', 10 + $index, 1000000 + $index * 10, $index % 10),
-                    'pagibig_no'              => sprintf('%04d-%04d-%04d', 1000 + $index, 2000 + $index, 3000 + $index),
-                    'philhealth_no'           => sprintf('%02d-%09d-%01d', 12 + $index, 100000000 + $index * 100, $index % 10),
-                    'sss_contribution'        => $index % 3 === 0 ? 300.00 : 0.00,
-                    'pagibig_contribution'    => 200.00,
+                    'name' => $name,
+                    'position' => $positions[$index % count($positions)],
+                    'daily_rate' => $dailyRate,
+                    'hourly_rate' => $hourlyRate,
+                    'base_salary' => $baseSalary,
+                    'address' => $cities[$index % count($cities)],
+                    'contact_number' => '09'.sprintf('%09d', 100000000 + $index * 1234567),
+                    'tin' => sprintf('%03d-%03d-%03d-000', 100 + $index, 200 + $index, 300 + $index),
+                    'sss_no' => sprintf('%02d-%07d-%01d', 10 + $index, 1000000 + $index * 10, $index % 10),
+                    'pagibig_no' => sprintf('%04d-%04d-%04d', 1000 + $index, 2000 + $index, 3000 + $index),
+                    'philhealth_no' => sprintf('%02d-%09d-%01d', 12 + $index, 100000000 + $index * 100, $index % 10),
+                    'sss_contribution' => $index % 3 === 0 ? 300.00 : 0.00,
+                    'pagibig_contribution' => 200.00,
                     'philhealth_contribution' => $index % 3 === 0 ? 250.00 : 0.00,
-                    'emergency_loan'          => $index % 5 === 0 ? 150.00 : 0.00,
-                    'withholding_tax'         => $index % 4 === 0 ? 100.00 : 0.00,
+                    'emergency_loan' => $index % 5 === 0 ? 150.00 : 0.00,
+                    'withholding_tax' => $index % 4 === 0 ? 100.00 : 0.00,
                 ]
             );
 
@@ -118,22 +117,22 @@ class JanToAug2026Seeder extends Seeder
 
             while ($curr->lte($endDate)) {
                 // Workdays: Mon - Sat (Sunday off)
-                if (!$curr->isSunday()) {
+                if (! $curr->isSunday()) {
                     // Periodic overtime (9-10 hrs) for select days
                     $isOvertime = ($empIndex + $curr->day) % 7 === 0;
                     $workingTime = $isOvertime ? 10.00 : 8.00;
                     $timeOut = $isOvertime ? '19:00:00' : '17:00:00';
 
                     $attendanceBatch[] = [
-                        'employee_id'  => $employee->id,
-                        'date'         => $curr->toDateString(),
-                        'week'         => 'W' . $curr->weekOfYear,
-                        'time_in'      => '08:00:00',
-                        'time_out'     => $timeOut,
-                        'times'        => 1,
+                        'employee_id' => $employee->id,
+                        'date' => $curr->toDateString(),
+                        'week' => 'W'.$curr->weekOfYear,
+                        'time_in' => '08:00:00',
+                        'time_out' => $timeOut,
+                        'times' => 1,
                         'working_time' => $workingTime,
-                        'created_at'   => $now,
-                        'updated_at'   => $now,
+                        'created_at' => $now,
+                        'updated_at' => $now,
                     ];
                 }
                 $curr->addDay();
@@ -210,15 +209,15 @@ class JanToAug2026Seeder extends Seeder
 
         foreach ($cashAdvancementSetup as $advData) {
             Advancement::create([
-                'employee_id'         => $advData['employee_id'],
-                'amount'              => $advData['amount'],
-                'remaining_balance'   => $advData['amount'],
-                'advancement_date'    => $advData['advancement_date'],
-                'status'              => 'pending_payout',
+                'employee_id' => $advData['employee_id'],
+                'amount' => $advData['amount'],
+                'remaining_balance' => $advData['amount'],
+                'advancement_date' => $advData['advancement_date'],
+                'status' => 'pending_payout',
                 'repayment_term_type' => $advData['repayment_term_type'],
-                'repayment_terms'     => $advData['repayment_terms'],
-                'installment_amount'  => $advData['installment_amount'],
-                'notes'               => $advData['notes'],
+                'repayment_terms' => $advData['repayment_terms'],
+                'installment_amount' => $advData['installment_amount'],
+                'notes' => $advData['notes'],
             ]);
         }
 

@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\Advancement;
-use App\Models\AdvancementDeduction;
 use App\Models\Employee;
 use App\Models\Payroll;
 use App\Models\User;

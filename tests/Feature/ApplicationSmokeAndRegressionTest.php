@@ -3,12 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\Advancement;
-use App\Models\Attendance;
 use App\Models\Employee;
-use App\Models\ImportJob;
 use App\Models\Payroll;
 use App\Models\User;
-use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -19,6 +16,7 @@ class ApplicationSmokeAndRegressionTest extends TestCase
     use RefreshDatabase;
 
     protected User $adminUser;
+
     protected Employee $testEmployee;
 
     protected function setUp(): void
@@ -80,23 +78,23 @@ class ApplicationSmokeAndRegressionTest extends TestCase
     public function test_employee_crud_and_validation_with_exact_17_fields(): void
     {
         $payload = [
-            'employee_code'           => 'EMP-999',
-            'name'                    => 'Test Employee 17 Fields',
-            'position'                => 'Supervisor',
-            'daily_rate'              => 800.00,
-            'base_salary'             => 19200.00,
-            'hourly_rate'             => 100.00,
-            'address'                 => '123 Main St',
-            'contact_number'          => '09123456789',
-            'tin'                     => '123-456-789',
-            'sss_no'                  => '12-3456789-0',
-            'pagibig_no'              => '1234-5678-9012',
-            'philhealth_no'           => '12-345678901-2',
-            'sss_contribution'        => 350.00,
-            'pagibig_contribution'    => 200.00,
+            'employee_code' => 'EMP-999',
+            'name' => 'Test Employee 17 Fields',
+            'position' => 'Supervisor',
+            'daily_rate' => 800.00,
+            'base_salary' => 19200.00,
+            'hourly_rate' => 100.00,
+            'address' => '123 Main St',
+            'contact_number' => '09123456789',
+            'tin' => '123-456-789',
+            'sss_no' => '12-3456789-0',
+            'pagibig_no' => '1234-5678-9012',
+            'philhealth_no' => '12-345678901-2',
+            'sss_contribution' => 350.00,
+            'pagibig_contribution' => 200.00,
             'philhealth_contribution' => 250.00,
-            'emergency_loan'          => 150.00,
-            'withholding_tax'         => 100.00,
+            'emergency_loan' => 150.00,
+            'withholding_tax' => 100.00,
         ];
 
         // Store

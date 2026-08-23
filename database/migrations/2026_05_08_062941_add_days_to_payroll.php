@@ -12,9 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('payrolls', function (Blueprint $table) {
-            $table->decimal('total_hours',8,2)->default(0);
+            $table->decimal('total_hours', 8, 2)->default(0);
             $table->integer('total_days')->default(0);
-            $table->decimal('hours_worked',8,2)->default(0);
+            $table->decimal('hours_worked', 8, 2)->default(0);
             $table->decimal('days_worked')->default(0);
         });
     }

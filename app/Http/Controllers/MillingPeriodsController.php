@@ -2,19 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Http\Controllers\Concerns\HandlesBulkUpdates;
 use App\Models\MillingPeriod;
-use Inertia\Inertia;
-use Illuminate\Validation\Rule;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use Inertia\Inertia;
 
 class MillingPeriodsController extends Controller
 {
     use HandlesBulkUpdates;
-
-
-
 
     /**
      * Display a listing of the resource.
@@ -194,10 +191,10 @@ class MillingPeriodsController extends Controller
             'mol_price' => ['nullable', 'numeric', 'min:0'],
         ]);
 
-        if (!isset($validated['sugar_factor'])) {
+        if (! isset($validated['sugar_factor'])) {
             $validated['sugar_factor'] = $millingPeriod->sugar_factor ?? 1.0;
         }
-        if (!isset($validated['mol_factor'])) {
+        if (! isset($validated['mol_factor'])) {
             $validated['mol_factor'] = $millingPeriod->mol_factor ?? 0.0;
         }
 
@@ -226,8 +223,6 @@ class MillingPeriodsController extends Controller
             successLabel: 'milling period',
         );
     }
-
-
 
     /**
      * Remove the specified resource from storage.
@@ -279,7 +274,7 @@ class MillingPeriodsController extends Controller
         $weekNo = (int) $date->isoWeek();
 
         $query = MillingPeriod::where('week_no', $weekNo);
-        if (!empty($validated['crop_year'])) {
+        if (! empty($validated['crop_year'])) {
             $query->where('crop_year', $validated['crop_year']);
         }
 

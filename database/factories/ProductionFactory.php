@@ -5,10 +5,12 @@ namespace Database\Factories;
 use App\Models\Hacienda;
 use App\Models\MillingPeriod;
 use App\Models\Planter;
+use App\Models\Production;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Carbon;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Production>
+ * @extends Factory<Production>
  */
 class ProductionFactory extends Factory
 {
@@ -38,8 +40,8 @@ class ProductionFactory extends Factory
         $millingPeriod = MillingPeriod::query()->inRandomOrder()->first();
 
         if ($millingPeriod) {
-            $startDate = \Illuminate\Support\Carbon::parse($millingPeriod->start_date);
-            $endDate = \Illuminate\Support\Carbon::parse($millingPeriod->end_date);
+            $startDate = Carbon::parse($millingPeriod->start_date);
+            $endDate = Carbon::parse($millingPeriod->end_date);
             $productionDate = fake()->dateTimeBetween($startDate, $endDate);
         } else {
             $productionDate = fake()->dateTimeBetween('-2 years', 'now');

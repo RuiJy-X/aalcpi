@@ -71,9 +71,7 @@ export default function Index({
                 <DataTable
                     columns={rolesColumns}
                     data={roles}
-                    onRowDoubleClick={(role) =>
-                        router.visit(rolesShow(role.id).url)
-                    }
+                    onRowDoubleClick={(role) => rolesShow(role.id).url}
                 />
             </Container>
 

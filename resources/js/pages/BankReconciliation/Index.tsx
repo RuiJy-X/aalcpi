@@ -44,7 +44,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { FolderSearch, X } from 'lucide-react';
+import { FolderSearch, X, FileSpreadsheet } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -451,6 +451,31 @@ export default function Index({
         });
     };
 
+    const handleExportExcel = () => {
+        const params = new URLSearchParams();
+        if (table_state?.period_from) {
+            params.append('period_from', table_state.period_from);
+        }
+        if (table_state?.period_to) {
+            params.append('period_to', table_state.period_to);
+        }
+        if (selectedWeek !== 'all') {
+            params.append('disbursement_week', selectedWeek);
+        }
+        if (searchValue) {
+            params.append('search', searchValue);
+        }
+        if (table_state?.date_column && table_state?.date_from) {
+            params.append('date_column', table_state.date_column);
+            params.append('date_from', table_state.date_from);
+            if (table_state?.date_to) {
+                params.append('date_to', table_state.date_to);
+            }
+        }
+
+        window.open(`/BankReconciliation/export?${params.toString()}`, '_blank');
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Bank Reconciliation" />
@@ -676,6 +701,15 @@ export default function Index({
                                 defaultPeriodFrom={table_state?.period_from}
                                 defaultPeriodTo={table_state?.period_to}
                             />
+                            <Button
+                                variant="outline"
+                                onClick={handleExportExcel}
+                                className="gap-2 text-emerald-700 hover:text-emerald-800 dark:text-emerald-400"
+                                title="Export all 6 status sheets to Excel"
+                            >
+                                <FileSpreadsheet className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                                Export Excel
+                            </Button>
                             <BankReconImportDialog />
                             <Button
                                 variant="destructive"

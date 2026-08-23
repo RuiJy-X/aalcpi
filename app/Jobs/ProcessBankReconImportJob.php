@@ -2,18 +2,18 @@
 
 namespace App\Jobs;
 
+use App\Imports\BankStatementsImport;
+use App\Imports\InternalDisbursementsImport;
 use App\Models\BankStatement;
 use App\Models\ImportJob;
 use App\Models\InternalDisbursements;
-use App\Imports\InternalDisbursementsImport;
-use App\Imports\BankStatementsImport;
-use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Storage;
+use Maatwebsite\Excel\Facades\Excel;
 use Throwable;
 
 class ProcessBankReconImportJob implements ShouldQueue
@@ -27,11 +27,17 @@ class ProcessBankReconImportJob implements ShouldQueue
     public bool $failOnTimeout = true;
 
     protected $jobId;
+
     protected $type;
+
     protected $filePath;
+
     protected $dateIssued;
+
     protected $disbursementWeek;
+
     protected $bankDate;
+
     protected array $mapping;
 
     public function __construct(
@@ -121,7 +127,7 @@ class ProcessBankReconImportJob implements ShouldQueue
     private function replacePriorBatch(): void
     {
         if ($this->type === 'bank') {
-            if (!$this->bankDate) {
+            if (! $this->bankDate) {
                 return;
             }
 

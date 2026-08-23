@@ -1,4 +1,5 @@
 <?php
+
 // database/migrations/2026_07_04_000002_add_is_duplicate_to_reconciliation_workspace_view.php
 
 use Illuminate\Database\Migrations\Migration;
@@ -9,12 +10,12 @@ return new class extends Migration
 {
     public function up(): void
     {
-        DB::statement("DROP VIEW IF EXISTS reconciliation_workspace");
+        DB::statement('DROP VIEW IF EXISTS reconciliation_workspace');
 
         $driver = Schema::getConnection()->getDriverName();
 
         $daysOutstandingExpr = $driver === 'pgsql'
-            ? "(CURRENT_DATE - internal_disbursements.date_issued)"
+            ? '(CURRENT_DATE - internal_disbursements.date_issued)'
             : "CAST(julianday('now') - julianday(internal_disbursements.date_issued) AS INTEGER)";
 
         DB::statement("
@@ -92,6 +93,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        DB::statement("DROP VIEW IF EXISTS reconciliation_workspace");
+        DB::statement('DROP VIEW IF EXISTS reconciliation_workspace');
     }
 };
