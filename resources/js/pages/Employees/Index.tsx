@@ -16,8 +16,9 @@ import {
     Container,
 } from '@/components/container';
 import { DataTable } from '@/components/data-table/data-table';
+import { DataTableSearch } from '@/components/data-table/data-table-search';
 import { createEmployeeColumns } from './employee-column-def';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -96,6 +97,19 @@ export default function Dashboard({
         ],
     });
 
+    const [search, setSearch] = useState('');
+
+    const filteredEmployees = useMemo(() => {
+        if (!search.trim()) return employees;
+        const q = search.toLowerCase();
+        return employees.filter(
+            (e) =>
+                e.name?.toLowerCase().includes(q) ||
+                e.employee_code?.toLowerCase().includes(q) ||
+                e.position?.toLowerCase().includes(q),
+        );
+    }, [employees, search]);
+
     const employeeColumns = useMemo(
         () =>
             createEmployeeColumns({
@@ -118,11 +132,18 @@ export default function Dashboard({
                                 Employee Profiles & Rates
                             </h1>
                         </div>
-                        <p className="text-sm font-normal text-muted-foreground mt-0.5">
-                            Manage company employee accounts, daily pay rates, and constant payroll loan deductions.
+                        <p className="mt-0.5 text-sm font-normal text-muted-foreground">
+                            Manage company employee accounts, daily pay rates,
+                            and constant payroll loan deductions.
                         </p>
                     </div>
-                    <ContainerHeaderEnd>
+                    <ContainerHeaderEnd className="w-full justify-between gap-3">
+                        <DataTableSearch
+                            value={search}
+                            onChange={setSearch}
+                            placeholder="Search employees..."
+                            className="w-full sm:w-72"
+                        />
                         <div className="flex items-center gap-3">
                             <TableEditToolbar
                                 isEditing={isEditing}
@@ -132,7 +153,11 @@ export default function Dashboard({
                                 onCancel={cancelEditing}
                                 onSave={saveEdits}
                             />
-                            <Button asChild disabled={isEditing} className="px-5">
+                            <Button
+                                asChild
+                                disabled={isEditing}
+                                className="px-5"
+                            >
                                 <Link href={employeeCreate().url}>
                                     <Plus className="mr-2 h-4 w-4" />
                                     New Employee Setup
@@ -145,7 +170,7 @@ export default function Dashboard({
                 <div className="pt-2">
                     <DataTable
                         columns={employeeColumns}
-                        data={employees}
+                        data={filteredEmployees}
                         onRowDoubleClick={
                             isEditing
                                 ? undefined
@@ -157,7 +182,7 @@ export default function Dashboard({
             </Container>
 
             <Container>
-                <div className="flex items-center gap-2 border-b border-border/60 pb-3 mb-4">
+                <div className="mb-4 flex items-center gap-2 border-b border-border/60 pb-3">
                     <Settings2 className="h-5 w-5 text-primary" />
                     <h2 className="text-base font-bold text-foreground">
                         Global Pay Rate Computation Rules
@@ -166,7 +191,9 @@ export default function Dashboard({
                 <form onSubmit={handleSettingsSubmit}>
                     <div className="flex flex-wrap items-end gap-4">
                         <Field className="w-44">
-                            <Label className="text-xs font-semibold">Days per Month</Label>
+                            <Label className="text-xs font-semibold">
+                                Days per Month
+                            </Label>
                             <Input
                                 type="number"
                                 min="1"
@@ -183,7 +210,9 @@ export default function Dashboard({
                             )}
                         </Field>
                         <Field className="w-44">
-                            <Label className="text-xs font-semibold">Hours per Day</Label>
+                            <Label className="text-xs font-semibold">
+                                Hours per Day
+                            </Label>
                             <Input
                                 type="number"
                                 min="0.25"
@@ -199,12 +228,20 @@ export default function Dashboard({
                                 </p>
                             )}
                         </Field>
-                        <Button type="submit" disabled={processing} variant="secondary">
-                            {processing ? 'Updating...' : 'Update Computation Settings'}
+                        <Button
+                            type="submit"
+                            disabled={processing}
+                            variant="secondary"
+                        >
+                            {processing
+                                ? 'Updating...'
+                                : 'Update Computation Settings'}
                         </Button>
                     </div>
                     <p className="mt-2 text-xs text-muted-foreground">
-                        These parameters control automatic conversion between Daily Rates, Monthly Salaries, and Hourly Rates across all employee profiles.
+                        These parameters control automatic conversion between
+                        Daily Rates, Monthly Salaries, and Hourly Rates across
+                        all employee profiles.
                     </p>
                 </form>
             </Container>

@@ -34,8 +34,9 @@ export function PeriodFilterBar({
     const hasPeriod = Boolean(value?.from);
 
     return (
-        <div className={`mx-2 mb-4 flex flex-wrap items-center gap-3 ${className}`}>
-            <Filter className="size-4 text-gray-500" />
+        <div
+            className={`mx-2 mb-4 flex flex-wrap items-center gap-3 ${className}`}
+        >
             <DatePickerWithRange
                 className="w-64 bg-white"
                 value={value}

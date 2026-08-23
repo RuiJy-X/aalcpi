@@ -312,6 +312,11 @@ export function createProductionColumns(
             enableHiding: false,
         },
         {
+            id: 'actions',
+            header: 'Actions',
+            cell: ({ row }) => <ProductionActions production={row.original} />,
+        },
+        {
             accessorKey: 'status',
             header: ({ column }) => (
                 <SortableHeader label="Status" column={column} />
@@ -406,9 +411,7 @@ export function createProductionColumns(
                     field="crop_year"
                     isEditing={isEditing}
                     onCellChange={onCellChange}
-                    display={
-                        row.original.crop_year ?? 'No crop year assigned'
-                    }
+                    display={row.original.crop_year ?? 'No crop year assigned'}
                     className={row.original.crop_year ? '' : 'text-red-500'}
                 />
             ),
@@ -416,10 +419,7 @@ export function createProductionColumns(
         {
             accessorKey: 'composite_sugar_price',
             header: ({ column }) => (
-                <SortableHeader
-                    label="Composite Sugar Price"
-                    column={column}
-                />
+                <SortableHeader label="Composite Sugar Price" column={column} />
             ),
             cell: ({ row }) => (
                 <EditableTextCell
@@ -704,13 +704,6 @@ export function createProductionColumns(
                         {row.original.created_at?.split('T')[0]}
                     </div>
                 </div>
-            ),
-        },
-        {
-            id: 'actions',
-            header: 'Actions',
-            cell: ({ row }) => (
-                <ProductionActions production={row.original} />
             ),
         },
     ];

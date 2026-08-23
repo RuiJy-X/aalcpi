@@ -11,6 +11,7 @@ import type { DateRange } from 'react-day-picker';
 import { productionBulkDelete } from '@/components/data-table/bulk-delete';
 import { productionBulkDownload } from '@/components/data-table/bulk-download';
 import { DataTable } from '@/components/data-table/data-table';
+import { DataTableSearch } from '@/components/data-table/data-table-search';
 
 import {
     createProductionColumns,
@@ -19,6 +20,7 @@ import {
 } from '@/components/data-table/production-columns';
 import type { ProductionRow } from '@/components/planters/planters-table-types';
 // import PlantersTabsTable from '@/components/planters/planters-tabs-table';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
     Select,
     SelectContent,
@@ -28,6 +30,7 @@ import {
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Pencil, Save, X } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import {
     Dialog,
     DialogClose,
@@ -75,6 +78,7 @@ export default function Index({
     filters,
     pagination,
     table_state,
+    statusCounts,
     stats = {
         totalProductions: 0,
         totalNetCw: 0,
@@ -92,6 +96,7 @@ export default function Index({
     crop_years: string[];
     filters: {
         crop_year?: string;
+        status?: string;
     };
     pagination: {
         total: number;
@@ -104,8 +109,14 @@ export default function Index({
         sort?: string;
         direction?: string;
         filters?: Record<string, string | string[]>;
+        status?: string;
         period_from?: string;
         period_to?: string;
+    };
+    statusCounts?: {
+        all: number;
+        draft: number;
+        completed: number;
     };
     stats?: ProductionStatsData;
 }) {
@@ -120,6 +131,12 @@ export default function Index({
         filters?.crop_year && filters.crop_year !== ''
             ? filters.crop_year
             : 'all';
+
+    const activeTab =
+        table_state?.status ||
+        (table_state?.filters?.status as string) ||
+        filters?.status ||
+        'all';
 
     const [periodRange, setPeriodRange] = React.useState<DateRange | undefined>(
         table_state?.period_from
@@ -165,9 +182,9 @@ export default function Index({
 
     const [isEditing, setIsEditing] = React.useState(false);
     const [isSaving, setIsSaving] = React.useState(false);
-    const [drafts, setDrafts] = React.useState<
-        Record<string, ProductionDraft>
-    >({});
+    const [drafts, setDrafts] = React.useState<Record<string, ProductionDraft>>(
+        {},
+    );
     // Avoid flipping serverSide on/off (that was resetting page to 1).
     const isEditingRef = React.useRef(false);
     isEditingRef.current = isEditing;
@@ -290,7 +307,8 @@ export default function Index({
                 }
 
                 if (field === 'status') {
-                    payload[field] = value === 'completed' ? 'completed' : 'draft';
+                    payload[field] =
+                        value === 'completed' ? 'completed' : 'draft';
                     return;
                 }
 
@@ -306,7 +324,9 @@ export default function Index({
                 }
 
                 payload[field] =
-                    value === null || value === undefined ? null : String(value);
+                    value === null || value === undefined
+                        ? null
+                        : String(value);
             });
 
             return payload;
@@ -340,6 +360,7 @@ export default function Index({
             state: DataTableQueryState,
             cropYear: string,
             period: DateRange | undefined = periodRange,
+            statusFilter: string = activeTab,
         ) => {
             const query: Record<string, any> = {
                 page: state.pagination.pageIndex + 1,
@@ -359,8 +380,8 @@ export default function Index({
                 query.direction = state.sorting[0].desc ? 'desc' : 'asc';
             }
 
+            const filtersMap: Record<string, string | string[]> = {};
             if (state.columnFilters.length > 0) {
-                query.filters = {} as Record<string, string | string[]>;
                 state.columnFilters.forEach((filter) => {
                     if (
                         filter.value === '' ||
@@ -369,18 +390,26 @@ export default function Index({
                     ) {
                         return;
                     }
+                    if (filter.id === 'status') return;
 
                     if (Array.isArray(filter.value)) {
-                        (query.filters as Record<string, string | string[]>)[
-                            filter.id
-                        ] = filter.value.map((item) => String(item));
+                        filtersMap[filter.id] = filter.value.map((item) =>
+                            String(item),
+                        );
                         return;
                     }
 
-                    (query.filters as Record<string, string | string[]>)[
-                        filter.id
-                    ] = String(filter.value);
+                    filtersMap[filter.id] = String(filter.value);
                 });
+            }
+
+            if (statusFilter && statusFilter !== 'all') {
+                query.status = statusFilter;
+                filtersMap['status'] = statusFilter;
+            }
+
+            if (Object.keys(filtersMap).length > 0) {
+                query.filters = filtersMap;
             }
 
             if (period?.from) {
@@ -392,8 +421,28 @@ export default function Index({
 
             return query;
         },
-        [periodRange],
+        [periodRange, activeTab],
     );
+
+    const applyTabFilter = (tab: string) => {
+        const nextState = {
+            ...latestQueryRef.current,
+            pagination: {
+                ...latestQueryRef.current.pagination,
+                pageIndex: 0,
+            },
+        };
+        latestQueryRef.current = nextState;
+        router.get(
+            productionsIndex().url,
+            buildQueryParams(nextState, selectedCropYear, periodRange, tab),
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            },
+        );
+    };
 
     const applyFilters = (cropYear: string) => {
         const nextState = {
@@ -472,21 +521,128 @@ export default function Index({
         });
     };
 
+    const [searchValue, setSearchValue] = React.useState(
+        table_state?.search ?? '',
+    );
+
+    const handleSearchChange = React.useCallback(
+        (nextSearch: string) => {
+            if (nextSearch === (table_state?.search ?? '')) {
+                return;
+            }
+            setSearchValue(nextSearch);
+            const nextState: DataTableQueryState = {
+                ...latestQueryRef.current,
+                globalFilter: nextSearch,
+                pagination: {
+                    ...latestQueryRef.current.pagination,
+                    pageIndex: 0,
+                },
+            };
+            latestQueryRef.current = nextState;
+            router.get(
+                productionsIndex().url,
+                buildQueryParams(nextState, selectedCropYear),
+                {
+                    preserveState: true,
+                    preserveScroll: true,
+                    replace: true,
+                },
+            );
+        },
+        [buildQueryParams, selectedCropYear, table_state?.search],
+    );
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Productions"></Head>
+            <div className="mb-8">
+                <div className="flex justify-between">
+                    <h1 className="flex flex-wrap items-center gap-2.5 text-3xl font-bold tracking-tight text-foreground">
+                        Productions
+                        <Badge>
+                            {stats.totalProductions.toLocaleString()}{' '}
+                            productions
+                        </Badge>
+                    </h1>
+                </div>
+                <p className="mt-1 text-sm text-muted-foreground">
+                    View, manage, and edit productions. You can also register
+                    new productions and import production data in bulk using the
+                    import feature.
+                </p>
+            </div>
 
-            <PeriodFilterBar value={periodRange} onChange={applyPeriodFilter} />
+            {/* <PeriodFilterBar value={periodRange} onChange={applyPeriodFilter} /> */}
 
-            <KpiOverview periodLabel={formatPeriodLabel(periodRange)}>
+            {/* <KpiOverview periodLabel={formatPeriodLabel(periodRange)}>
                 <ProductionStats stats={stats} />
-            </KpiOverview>
+            </KpiOverview> */}
+
+            {/* Status Tabs Navigation */}
+            <div className="my-2 flex justify-start">
+                <Tabs
+                    value={activeTab}
+                    onValueChange={(val) => applyTabFilter(val)}
+                    className="w-full sm:w-auto"
+                >
+                    <TabsList variant="line" className="h-10">
+                        <TabsTrigger
+                            value="all"
+                            className="gap-2 text-xs font-semibold sm:text-sm"
+                        >
+                            All Productions
+                            <Badge
+                                variant="secondary"
+                                className="px-1.5 py-0.5 text-xs font-bold"
+                            >
+                                {(
+                                    statusCounts?.all ??
+                                    stats?.totalProductions ??
+                                    0
+                                ).toLocaleString()}
+                            </Badge>
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="draft"
+                            className="gap-2 text-xs font-semibold sm:text-sm"
+                        >
+                            Draft
+                            <Badge
+                                variant="outline"
+                                className="border-amber-300 bg-amber-50 px-1.5 py-0.5 text-xs font-bold text-amber-800 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
+                            >
+                                {(statusCounts?.draft ?? 0).toLocaleString()}
+                            </Badge>
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="completed"
+                            className="gap-2 text-xs font-semibold sm:text-sm"
+                        >
+                            Completed
+                            <Badge
+                                variant="outline"
+                                className="border-emerald-300 bg-emerald-50 px-1.5 py-0.5 text-xs font-bold text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
+                            >
+                                {(
+                                    statusCounts?.completed ?? 0
+                                ).toLocaleString()}
+                            </Badge>
+                        </TabsTrigger>
+                    </TabsList>
+                </Tabs>
+            </div>
 
             <Container>
                 <ContainerHeader>
-                    Productions Table
-                    <ContainerHeaderEnd>
-                        <div className="flex items-center gap-2">
+                    <ContainerHeaderEnd className="w-full justify-between gap-4">
+                        <DataTableSearch
+                            value={searchValue}
+                            onChange={handleSearchChange}
+                            placeholder="Search productions..."
+                            className="w-full sm:w-72"
+                        />
+                        <div className="flex flex-wrap items-center gap-2">
                             {!isEditing ? (
                                 <Button
                                     type="button"
@@ -623,8 +779,8 @@ export default function Index({
                                     </DialogFooter>
                                 </DialogContent>
                             </Dialog>
+                            <ImportDialog config={productionsImportConfig} />
                         </div>
-                        <ImportDialog config={productionsImportConfig} />
                     </ContainerHeaderEnd>
                 </ContainerHeader>
 
@@ -636,7 +792,9 @@ export default function Index({
                     totalRows={pagination.total}
                     initialState={latestQueryRef.current}
                     onQueryChange={handleQueryChange}
-                    bulkDownload={isEditing ? undefined : productionBulkDownload}
+                    bulkDownload={
+                        isEditing ? undefined : productionBulkDownload
+                    }
                     bulkDelete={isEditing ? undefined : productionBulkDelete}
                     onRowDoubleClick={
                         isEditing

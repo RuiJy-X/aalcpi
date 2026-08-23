@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DataTable } from '@/components/data-table/data-table';
+import { DataTableSearch } from '@/components/data-table/data-table-search';
 import type { ColumnDef } from '@tanstack/react-table';
 import { ArrowUpDown } from 'lucide-react';
 import {
@@ -550,6 +551,12 @@ export default function AdvancementsIndexPage({
                                 </TabsTrigger>
                             </TabsList>
                         </Tabs>
+                        <DataTableSearch
+                            value={searchQuery}
+                            onChange={setSearchQuery}
+                            placeholder="Search advances..."
+                            className="w-full sm:w-72"
+                        />
                     </div>
 
                     {/* Advancements Master DataTable */}

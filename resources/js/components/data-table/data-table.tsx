@@ -24,7 +24,6 @@ import {
     ChevronsRight,
     CircleAlert,
     CircleCheckBig,
-    FilterIcon,
     DownloadIcon,
     Trash2,
 } from 'lucide-react';
@@ -33,14 +32,6 @@ import { router, usePage } from '@inertiajs/react';
 import type { DateRange } from 'react-day-picker';
 import type { SharedData } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-    DropdownMenu,
-    DropdownMenuCheckboxItem,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import {
     Dialog,
     DialogClose,
@@ -67,11 +58,18 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { Button } from '../ui/button';
-import { SearchInput } from '../ui/search-input';
 
 import type { BulkDeleteConfig } from './bulk-delete';
 import type { BulkDownloadConfig } from './bulk-download';
-import Filter from './data-table-column-filter';
+
+export type DataTableQueryState = {
+    sorting: SortingState;
+    columnFilters: ColumnFiltersState;
+    globalFilter: string;
+    pagination: PaginationState;
+    dateRange?: DateRange;
+    dateFilterColumnId?: string;
+};
 
 interface DataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[];
@@ -82,22 +80,8 @@ interface DataTableProps<TData, TValue> {
     serverSide?: boolean;
     pageCount?: number;
     totalRows?: number;
-    initialState?: Partial<{
-        sorting: SortingState;
-        columnFilters: ColumnFiltersState;
-        globalFilter: string;
-        pagination: PaginationState;
-        dateRange: DateRange;
-        dateFilterColumnId: string;
-    }>;
-    onQueryChange?: (state: {
-        sorting: SortingState;
-        columnFilters: ColumnFiltersState;
-        globalFilter: string;
-        pagination: PaginationState;
-        dateRange?: DateRange;
-        dateFilterColumnId?: string;
-    }) => void;
+    initialState?: Partial<DataTableQueryState>;
+    onQueryChange?: (state: DataTableQueryState) => void;
     queryDebounceMs?: number;
     defaultPageSize?: number;
 }
@@ -137,10 +121,6 @@ export function DataTable<TData, TValue>({
             pageIndex: 0,
             pageSize: defaultPageSize,
         },
-    );
-
-    const [activeFilters, setActiveFilters] = React.useState<string[]>(
-        () => initialState?.columnFilters?.map((filter) => filter.id) ?? [],
     );
 
     // Column visibility
@@ -292,31 +272,6 @@ export function DataTable<TData, TValue>({
         },
     });
 
-    const hideableColumns = React.useMemo(
-        () => table.getAllColumns().filter((column) => column.getCanHide()),
-        [table],
-    );
-    const canSelectAllColumns = hideableColumns.some(
-        (column) => !column.getIsVisible(),
-    );
-    const canClearAllColumns = hideableColumns.some((column) =>
-        column.getIsVisible(),
-    );
-    const setAllColumnsVisibility = React.useCallback(
-        (isVisible: boolean) => {
-            table.setColumnVisibility((current) => {
-                const nextVisibility = { ...current };
-
-                hideableColumns.forEach((column) => {
-                    nextVisibility[column.id] = isVisible;
-                });
-
-                return nextVisibility;
-            });
-        },
-        [table, hideableColumns],
-    );
-
     const selectedRows = table.getFilteredSelectedRowModel().rows;
     const selectedCount = selectedRows.length;
     const totalRowCount = totalRows ?? table.getFilteredRowModel().rows.length;
@@ -430,166 +385,39 @@ export function DataTable<TData, TValue>({
                     </Card>
                 </div>
             )}
-            <div className="align-center flex items-center gap-2 py-4">
-                <div className="w-full bg-white sm:w-72">
-                    <SearchInput
-                        placeholder="Search all columns..."
-                        value={(table.getState().globalFilter as string) ?? ''}
-                        onChange={(event) =>
-                            table.setGlobalFilter(event.target.value)
-                        }
-                        className="max-w-sm"
-                    />
+            {((bulkDelete && selectedCount > 0) ||
+                (bulkDownload && selectedCount > 0)) && (
+                <div className="flex items-center gap-2 py-3">
+                    {bulkDelete && selectedCount > 0 && (
+                        <Button
+                            variant="destructive"
+                            onClick={() => setBulkDeleteOpen(true)}
+                        >
+                            <Trash2 />
+                            Delete ({selectedCount})
+                        </Button>
+                    )}
+                    {bulkDownload && selectedCount > 0 && (
+                        <Button variant="outline" onClick={handleBulkDownload}>
+                            <DownloadIcon />
+                            Export ({selectedCount})
+                        </Button>
+                    )}
                 </div>
-                {bulkDelete && selectedCount > 0 && (
-                    <Button
-                        variant="destructive"
-                        onClick={() => setBulkDeleteOpen(true)}
-                    >
-                        <Trash2 />
-                        Delete ({selectedCount})
-                    </Button>
-                )}
-                {bulkDownload && selectedCount > 0 && (
-                    <Button variant="outline" onClick={handleBulkDownload}>
-                        <DownloadIcon />
-                        Export ({selectedCount})
-                    </Button>
-                )}
-
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="outline" className="">
-                            <FilterIcon />
-                            Filters
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                        align="start"
-                        className="max-h-75 overflow-y-auto"
-                    >
-                        {table
-                            .getAllColumns()
-                            .filter((column) => column.getCanFilter())
-                            .map((column) => {
-                                const isActive = activeFilters.includes(
-                                    column.id,
-                                );
-
-                                return (
-                                    <DropdownMenuCheckboxItem
-                                        key={column.id}
-                                        className="capitalize"
-                                        onSelect={(e) => e.preventDefault()}
-                                        checked={isActive}
-                                        onCheckedChange={(value) => {
-                                            const shouldShow = Boolean(value);
-
-                                            setActiveFilters((prev) => {
-                                                if (shouldShow) {
-                                                    return prev.includes(
-                                                        column.id,
-                                                    )
-                                                        ? prev
-                                                        : [...prev, column.id];
-                                                }
-
-                                                return prev.filter(
-                                                    (id) => id !== column.id,
-                                                );
-                                            });
-
-                                            if (!shouldShow) {
-                                                column.setFilterValue(
-                                                    undefined,
-                                                );
-                                            }
-                                        }}
-                                    >
-                                        {column.id}
-                                    </DropdownMenuCheckboxItem>
-                                );
-                            })}
-                    </DropdownMenuContent>
-                </DropdownMenu>
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="outline" className="ml-auto">
-                            Columns
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                        align="end"
-                        className="max-h-75 overflow-y-auto"
-                    >
-                        <DropdownMenuItem
-                            onSelect={(event) => {
-                                event.preventDefault();
-                                setAllColumnsVisibility(true);
-                            }}
-                            disabled={!canSelectAllColumns}
-                        >
-                            Select all
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                            onSelect={(event) => {
-                                event.preventDefault();
-                                setAllColumnsVisibility(false);
-                            }}
-                            disabled={!canClearAllColumns}
-                        >
-                            Clear all
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        {hideableColumns.map((column) => (
-                            <DropdownMenuCheckboxItem
-                                key={column.id}
-                                className="capitalize"
-                                onSelect={(e) => e.preventDefault()}
-                                checked={column.getIsVisible()}
-                                onCheckedChange={(value) =>
-                                    column.toggleVisibility(!!value)
-                                }
-                            >
-                                {column.id}
-                            </DropdownMenuCheckboxItem>
-                        ))}
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            </div>
-            <div className="mx-5">
-                {activeFilters.length > 0 && (
-                    <div className="flex flex-wrap gap-5">
-                        {table.getAllColumns().map((column) => {
-                            if (
-                                !column.getCanFilter() ||
-                                !activeFilters.includes(column.id)
-                            ) {
-                                return null;
-                            }
-
-                            return (
-                                <Filter
-                                    key={column.id}
-                                    column={column}
-                                    columnFilters={columnFilters}
-                                    setColumnFilters={setColumnFilters}
-                                />
-                            );
-                        })}
-                    </div>
-                )}
-            </div>
-            <div className="overflow-x-auto custom-scrollbar rounded-xl border border-border bg-card shadow-sm">
-                <Table className="w-full min-w-full" style={{ minWidth: '100%', width: '100%' }}>
-                    <TableHeader className="bg-muted/50 text-muted-foreground uppercase text-xs tracking-wider font-semibold border-b border-border">
+            )}
+            <div className="custom-scrollbar overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
+                <Table
+                    className="w-full min-w-full"
+                    style={{ minWidth: '100%', width: '100%' }}
+                >
+                    <TableHeader className="border-b border-border bg-muted/50 text-xs font-semibold text-muted-foreground uppercase">
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
                                 {headerGroup.headers.map((header) => {
                                     return (
                                         <TableHead
                                             key={header.id}
-                                            className="relative py-3 px-4 text-xs font-semibold uppercase tracking-wider whitespace-nowrap"
+                                            className="relative text-xs font-semibold whitespace-nowrap uppercase"
                                             style={{ width: header.getSize() }}
                                         >
                                             {header.isPlaceholder
@@ -624,7 +452,7 @@ export function DataTable<TData, TValue>({
                                     data-state={
                                         row.getIsSelected() && 'selected'
                                     }
-                                    className={`hover:bg-muted/40 transition-colors duration-150 ease-in ${onRowDoubleClick ? 'cursor-pointer' : ''}`}
+                                    className={`transition-colors duration-150 ease-in hover:bg-muted/40 ${onRowDoubleClick ? 'cursor-pointer' : ''}`}
                                     onDoubleClick={(event) =>
                                         handleRowDoubleClick(
                                             event,
@@ -642,7 +470,7 @@ export function DataTable<TData, TValue>({
                                                     cell,
                                                 ),
                                             }}
-                                            className="py-3 px-4 border-b border-border/60 text-xs whitespace-nowrap"
+                                            className="border-b border-border/60 px-4 py-3 text-xs whitespace-nowrap"
                                         >
                                             {flexRender(
                                                 cell.column.columnDef.cell,

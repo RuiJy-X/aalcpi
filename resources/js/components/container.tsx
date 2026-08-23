@@ -11,7 +11,7 @@ export const ContainerHeader = ({
     return (
         <div
             className={cn(
-                'mb-4 flex flex-wrap items-center justify-between gap-4 text-xl font-bold tracking-tight text-foreground sm:text-2xl',
+                'mb-4 flex flex-wrap items-center justify-between gap-4 border-b border-border pb-2 text-xl font-bold tracking-tight text-foreground sm:text-2xl',
                 className,
             )}
         >

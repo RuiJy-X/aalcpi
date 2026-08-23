@@ -9,6 +9,7 @@ import { format } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 import { haciendaBulkDelete } from '@/components/data-table/bulk-delete';
 import { DataTable } from '@/components/data-table/data-table';
+import { DataTableSearch } from '@/components/data-table/data-table-search';
 import { createHaciendaColumns } from '@/components/data-table/hacienda-columns';
 import { TableEditToolbar } from '@/components/data-table/table-edit-toolbar';
 import { useTableEditMode } from '@/hooks/use-table-edit-mode';
@@ -33,6 +34,7 @@ import {
     PeriodFilterBar,
     formatPeriodLabel,
 } from '@/components/period-filter-bar';
+import { Badge } from '@/components/ui/badge';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -233,20 +235,69 @@ export default function Index({
         );
     };
 
+    const [searchValue, setSearchValue] = React.useState(
+        table_state?.search ?? '',
+    );
+
+    const handleSearchChange = React.useCallback(
+        (nextSearch: string) => {
+            if (nextSearch === (table_state?.search ?? '')) {
+                return;
+            }
+            setSearchValue(nextSearch);
+            const nextState: DataTableQueryState = {
+                ...latestQueryRef.current,
+                globalFilter: nextSearch,
+                pagination: {
+                    ...latestQueryRef.current.pagination,
+                    pageIndex: 0,
+                },
+            };
+            latestQueryRef.current = nextState;
+            router.get(haciendasIndex().url, buildQueryParams(nextState), {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            });
+        },
+        [buildQueryParams, table_state?.search],
+    );
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Haciendas"></Head>
 
+            <div className="mb-8">
+                <div className="flex justify-between">
+                    <h1 className="flex flex-wrap items-center gap-2.5 text-3xl font-bold tracking-tight text-foreground">
+                        Haciendas
+                        <Badge>
+                            {stats.totalHaciendas.toLocaleString()} haciendas
+                        </Badge>
+                    </h1>
+                </div>
+                <p className="mt-1 text-sm text-muted-foreground">
+                    View, manage, and edit haciendas. You can also register new
+                    haciendas and import hacienda data in bulk using the import
+                    feature.
+                </p>
+            </div>
+
             <PeriodFilterBar value={periodRange} onChange={applyPeriodFilter} />
 
-            <KpiOverview periodLabel={formatPeriodLabel(periodRange)}>
+            {/* <KpiOverview periodLabel={formatPeriodLabel(periodRange)}>
                 <HaciendaStats stats={stats} />
-            </KpiOverview>
+            </KpiOverview> */}
 
             <Container>
                 <ContainerHeader>
-                    Hacienda Table
-                    <ContainerHeaderEnd>
+                    <ContainerHeaderEnd className="w-full justify-between gap-4">
+                        <DataTableSearch
+                            value={searchValue}
+                            onChange={handleSearchChange}
+                            placeholder="Search haciendas..."
+                            className="w-full sm:w-72"
+                        />
                         <TableEditToolbar
                             isEditing={isEditing}
                             isSaving={isSaving}

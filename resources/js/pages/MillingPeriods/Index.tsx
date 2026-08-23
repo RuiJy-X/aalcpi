@@ -21,6 +21,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Plus } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import {
     bulkUpdate as millingPeriodsBulkUpdate,
     create as millingPeriodCreate,
@@ -33,6 +34,7 @@ import { TableEditToolbar } from '@/components/data-table/table-edit-toolbar';
 import { useTableEditMode } from '@/hooks/use-table-edit-mode';
 import type { EventInput } from '@fullcalendar/core';
 import MillingPeriodsCalendar from '@/components/milling-periods/milling-periods-calendar';
+import { MillingPeriodModal } from '@/components/milling-periods/milling-period-modal';
 import MillingPeriodStats, {
     type MillingPeriodStatsData,
 } from '@/components/milling-periods/stat-cards/MillingPeriodStats';
@@ -80,6 +82,28 @@ export default function Index({
     const selectedWeekNo =
         filters?.week_no && filters.week_no !== '' ? filters.week_no : 'all';
 
+    const [selectedPeriod, setSelectedPeriod] = useState<MillingPeriodRow | null>(null);
+    const [modalMode, setModalMode] = useState<'view' | 'edit' | 'create'>('view');
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
+    const handleOpenView = (period: MillingPeriodRow) => {
+        setSelectedPeriod(period);
+        setModalMode('view');
+        setIsModalOpen(true);
+    };
+
+    const handleOpenEdit = (period: MillingPeriodRow) => {
+        setSelectedPeriod(period);
+        setModalMode('edit');
+        setIsModalOpen(true);
+    };
+
+    const handleOpenCreate = () => {
+        setSelectedPeriod(null);
+        setModalMode('create');
+        setIsModalOpen(true);
+    };
+
     const [periodRange, setPeriodRange] = useState<DateRange | undefined>(
         filters?.period_from
             ? {
@@ -110,16 +134,12 @@ export default function Index({
             'week_no',
             'start_date',
             'end_date',
-            'sugar_factor',
-            'mol_factor',
             'sugar_price',
             'mol_price',
         ],
         saveUrl: millingPeriodsBulkUpdate().url,
         numericFields: [
             'week_no',
-            'sugar_factor',
-            'mol_factor',
             'sugar_price',
             'mol_price',
         ],
@@ -130,6 +150,8 @@ export default function Index({
             createMillingPeriodColumns({
                 isEditing,
                 onCellChange: handleCellChange,
+                onView: handleOpenView,
+                onEdit: handleOpenEdit,
             }),
         [isEditing, handleCellChange],
     );
@@ -183,13 +205,15 @@ export default function Index({
     const calendarEvents = useMemo<EventInput[]>(() => {
         return milling_periods.map((period) => ({
             id: String(period.id),
-            title: `Week ${period.week_no} (${period.crop_year}) -  ₱/LKG: ${Number(period.sugar_price).toFixed(2)},  ₱/MOL: ${Number(period.mol_price).toFixed(2)}`,
+            title: `Week ${period.week_no} (${period.crop_year}) - ₱/LKG: ${Number(period.sugar_price).toFixed(2)}, ₱/MOL: ${Number(period.mol_price).toFixed(2)}`,
             start: period.start_date,
             end: period.end_date,
             allDay: true,
             extendedProps: {
-                sugar_factor: period.sugar_factor,
-                mol_factor: period.mol_factor,
+                week_no: period.week_no,
+                crop_year: period.crop_year,
+                sugar_price: period.sugar_price,
+                mol_price: period.mol_price,
             },
         }));
     }, [milling_periods]);
@@ -197,22 +221,33 @@ export default function Index({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Milling Periods"></Head>
-
+            <div className="mb-8">
+                <div className="flex justify-between">
+                    <h1 className="flex flex-wrap items-center gap-2.5 text-3xl font-bold tracking-tight text-foreground">
+                        Milling Periods
+                        <Badge>
+                            {stats.totalPeriods.toLocaleString()} productions
+                        </Badge>
+                    </h1>
+                </div>
+                <p className="mt-1 text-sm text-muted-foreground">
+                    View, manage, and edit milling periods. You can also
+                    register new milling periods and import milling data in bulk
+                    using the import feature.
+                </p>
+            </div>
+            {/* 
             <PeriodFilterBar value={periodRange} onChange={applyPeriodFilter} />
 
             <KpiOverview periodLabel={formatPeriodLabel(periodRange)}>
                 <MillingPeriodStats stats={stats} />
-            </KpiOverview>
+            </KpiOverview> */}
 
             <Container>
                 <ContainerHeader>
                     Milling Periods Calendar
                     <ContainerHeaderEnd>
-                        <Button
-                            onClick={() =>
-                                router.get(millingPeriodCreate().url)
-                            }
-                        >
+                        <Button onClick={handleOpenCreate}>
                             <Plus />
                             Add Week
                         </Button>
@@ -222,7 +257,12 @@ export default function Index({
                 <MillingPeriodsCalendar
                     events={calendarEvents}
                     onEventClick={(info) => {
-                        router.get(millingPeriodShow(info.event.id).url);
+                        const period = milling_periods.find(
+                            (p) => String(p.id) === info.event.id,
+                        );
+                        if (period) {
+                            handleOpenView(period);
+                        }
                     }}
                 />
             </Container>
@@ -293,9 +333,7 @@ export default function Index({
                             onSave={saveEdits}
                         />
                         <Button
-                            onClick={() =>
-                                router.get(millingPeriodCreate().url)
-                            }
+                            onClick={handleOpenCreate}
                             disabled={isEditing}
                         >
                             <Plus />
@@ -307,16 +345,20 @@ export default function Index({
                     onRowDoubleClick={
                         isEditing
                             ? undefined
-                            : (milling_period) =>
-                                  millingPeriodShow(milling_period.id).url
+                            : (milling_period) => handleOpenView(milling_period)
                     }
-                    bulkDelete={
-                        isEditing ? undefined : millingPeriodBulkDelete
-                    }
+                    bulkDelete={isEditing ? undefined : millingPeriodBulkDelete}
                     data={milling_periods}
                     columns={millingPeriodColumns}
                 ></DataTable>
             </Container>
+
+            <MillingPeriodModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                millingPeriod={selectedPeriod}
+                initialMode={modalMode}
+            />
         </AppLayout>
     );
 }

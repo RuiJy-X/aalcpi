@@ -92,7 +92,7 @@ export function ImportHistoryDialog({ type = 'bank_recon' }: { type?: string }) 
 
             // Refresh local list and reload parent page data
             setJobs((prev) => prev.filter((j) => j.id !== jobId));
-            router.reload({ preserveScroll: true });
+            router.reload();
         } catch (err) {
             const error = err as Error;
             setError(`Failed to delete import batch: ${error.message}`);

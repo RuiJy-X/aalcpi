@@ -129,7 +129,7 @@ export function PrintOutstandingChecksDialog({
             <DialogTrigger asChild>
                 <Button variant="outline" className="gap-2">
                     <Printer className="h-4 w-4" />
-                    Print Outstanding Checks
+                    Print Outstanding
                 </Button>
             </DialogTrigger>
             <DialogContent className="max-w-xl">
@@ -139,7 +139,8 @@ export function PrintOutstandingChecksDialog({
                         Print Outstanding Checks
                     </DialogTitle>
                     <DialogDescription>
-                        Select a date range to get all outstanding checks separated by month.
+                        Select a date range to get all outstanding checks
+                        separated by month.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -185,7 +186,7 @@ export function PrintOutstandingChecksDialog({
 
                     <div className="rounded-lg border bg-slate-50 p-4 dark:bg-slate-900">
                         {isLoading ? (
-                            <div className="flex items-center justify-center py-6 gap-2 text-muted-foreground">
+                            <div className="flex items-center justify-center gap-2 py-6 text-muted-foreground">
                                 <Loader2 className="h-5 w-5 animate-spin" />
                                 <span>Fetching outstanding checks...</span>
                             </div>
@@ -200,7 +201,10 @@ export function PrintOutstandingChecksDialog({
                                         Total Outstanding Checks:
                                     </span>
                                     <span className="text-base font-bold text-foreground">
-                                        {previewData.total_count} record{previewData.total_count === 1 ? '' : 's'}
+                                        {previewData.total_count} record
+                                        {previewData.total_count === 1
+                                            ? ''
+                                            : 's'}
                                     </span>
                                 </div>
                                 <div className="flex items-center justify-between">
@@ -208,7 +212,9 @@ export function PrintOutstandingChecksDialog({
                                         Total Outstanding Amount:
                                     </span>
                                     <span className="text-base font-bold text-sky-600">
-                                        {formatCurrency(previewData.grand_total)}
+                                        {formatCurrency(
+                                            previewData.grand_total,
+                                        )}
                                     </span>
                                 </div>
                                 <div className="flex items-center justify-between">
@@ -216,16 +222,27 @@ export function PrintOutstandingChecksDialog({
                                         Months Included:
                                     </span>
                                     <span className="text-sm font-semibold">
-                                        {previewData.months.length} month{previewData.months.length === 1 ? '' : 's'}
+                                        {previewData.months.length} month
+                                        {previewData.months.length === 1
+                                            ? ''
+                                            : 's'}
                                     </span>
                                 </div>
 
                                 {previewData.months.length > 0 && (
-                                    <div className="mt-3 border-t pt-2 max-h-36 overflow-y-auto space-y-1 text-xs text-muted-foreground">
+                                    <div className="mt-3 max-h-36 space-y-1 overflow-y-auto border-t pt-2 text-xs text-muted-foreground">
                                         {previewData.months.map((m) => (
-                                            <div key={m.month_key} className="flex justify-between py-0.5">
-                                                <span>{m.month_label} ({m.items.length} checks)</span>
-                                                <span className="font-mono">{formatCurrency(m.subtotal)}</span>
+                                            <div
+                                                key={m.month_key}
+                                                className="flex justify-between py-0.5"
+                                            >
+                                                <span>
+                                                    {m.month_label} (
+                                                    {m.items.length} checks)
+                                                </span>
+                                                <span className="font-mono">
+                                                    {formatCurrency(m.subtotal)}
+                                                </span>
                                             </div>
                                         ))}
                                     </div>
@@ -242,14 +259,22 @@ export function PrintOutstandingChecksDialog({
                     <Button
                         variant="outline"
                         onClick={() => triggerPrint(true)}
-                        disabled={isLoading || !previewData || previewData.total_count === 0}
+                        disabled={
+                            isLoading ||
+                            !previewData ||
+                            previewData.total_count === 0
+                        }
                         title="Generate server PDF (for small datasets)"
                     >
                         Server PDF
                     </Button>
                     <Button
                         onClick={() => triggerPrint(false)}
-                        disabled={isLoading || !previewData || previewData.total_count === 0}
+                        disabled={
+                            isLoading ||
+                            !previewData ||
+                            previewData.total_count === 0
+                        }
                         className="gap-2"
                         title="Fast print/PDF via browser (recommended for large datasets)"
                     >

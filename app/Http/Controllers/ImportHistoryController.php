@@ -25,10 +25,25 @@ class ImportHistoryController extends Controller
         $type = $request->string('type')->toString();
         $status = $request->string('status')->toString();
         $search = $request->string('search')->toString();
+        $perPage = (int) $request->input('per_page', 15);
+        $sort = $request->string('sort')->toString() ?: 'created_at';
+        $direction = strtolower($request->string('direction')->toString()) === 'asc' ? 'asc' : 'desc';
 
-        $query = ImportJob::query()->with('user:id,name')->orderBy('created_at', 'desc');
+        if ($request->has('filters')) {
+            $filtersParam = $request->input('filters', []);
+            if (is_array($filtersParam)) {
+                if (!empty($filtersParam['type'])) {
+                    $type = is_array($filtersParam['type']) ? $filtersParam['type'][0] : $filtersParam['type'];
+                }
+                if (!empty($filtersParam['status'])) {
+                    $status = is_array($filtersParam['status']) ? $filtersParam['status'][0] : $filtersParam['status'];
+                }
+            }
+        }
 
-        if ($type !== '') {
+        $query = ImportJob::query()->with('user:id,name');
+
+        if ($type !== '' && $type !== 'all') {
             if ($type === 'bank_recon') {
                 $query->whereIn('type', ['bank_recon_internal', 'bank_recon_bank', 'internal', 'bank']);
             } elseif ($type === 'productions' || $type === 'productions_excel') {
@@ -42,7 +57,7 @@ class ImportHistoryController extends Controller
             }
         }
 
-        if ($status !== '') {
+        if ($status !== '' && $status !== 'all') {
             $query->where('status', $status);
         }
 
@@ -53,7 +68,21 @@ class ImportHistoryController extends Controller
             });
         }
 
-        $jobs = $query->paginate(20)->through(function (ImportJob $job) {
+        $allowedSorts = [
+            'id' => 'import_jobs.id',
+            'file_name' => 'import_jobs.file_name',
+            'type' => 'import_jobs.type',
+            'status' => 'import_jobs.status',
+            'created_at' => 'import_jobs.created_at',
+        ];
+
+        if (isset($allowedSorts[$sort])) {
+            $query->orderBy($allowedSorts[$sort], $direction);
+        } else {
+            $query->orderBy('import_jobs.created_at', 'desc');
+        }
+
+        $jobs = $query->paginate($perPage)->through(function (ImportJob $job) {
             $recordCount = 0;
             if (in_array($job->type, ['bank_recon_internal', 'internal'], true)) {
                 $recordCount = InternalDisbursements::where('import_job_id', $job->id)->count();
@@ -128,6 +157,15 @@ class ImportHistoryController extends Controller
                 'per_page' => $jobs->perPage(),
                 'current_page' => $jobs->currentPage(),
                 'last_page' => $jobs->lastPage(),
+            ],
+            'table_state' => [
+                'search' => $search,
+                'sort' => $sort,
+                'direction' => $direction,
+                'filters' => array_filter([
+                    'type' => $type,
+                    'status' => $status,
+                ]),
             ],
             'filters' => [
                 'type' => $type,

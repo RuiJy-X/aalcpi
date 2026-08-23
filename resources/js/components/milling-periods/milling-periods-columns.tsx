@@ -30,6 +30,8 @@ import {
 export type MillingPeriodColumnsOptions = {
     isEditing?: boolean;
     onCellChange?: CellChangeHandler;
+    onView?: (period: MillingPeriodRow) => void;
+    onEdit?: (period: MillingPeriodRow) => void;
 };
 
 function SortHeader({
@@ -52,7 +54,7 @@ function SortHeader({
 export function createMillingPeriodColumns(
     options: MillingPeriodColumnsOptions = {},
 ): ColumnDef<MillingPeriodRow>[] {
-    const { isEditing = false, onCellChange } = options;
+    const { isEditing = false, onCellChange, onView, onEdit } = options;
 
     return [
         {
@@ -153,42 +155,6 @@ export function createMillingPeriodColumns(
             ),
         },
         {
-            id: 'sugar_factor',
-            accessorKey: 'sugar_factor',
-            header: ({ column }) => (
-                <SortHeader label="Sugar Factor" column={column} />
-            ),
-            cell: ({ row }) => (
-                <EditableTextCell
-                    rowId={row.original.id}
-                    field="sugar_factor"
-                    isEditing={isEditing}
-                    value={row.original.sugar_factor}
-                    display={Number(row.original.sugar_factor)}
-                    onCellChange={onCellChange}
-                    inputType="number"
-                />
-            ),
-        },
-        {
-            id: 'mol_factor',
-            accessorKey: 'mol_factor',
-            header: ({ column }) => (
-                <SortHeader label="Molasses Factor" column={column} />
-            ),
-            cell: ({ row }) => (
-                <EditableTextCell
-                    rowId={row.original.id}
-                    field="mol_factor"
-                    isEditing={isEditing}
-                    value={row.original.mol_factor}
-                    display={Number(row.original.mol_factor)}
-                    onCellChange={onCellChange}
-                    inputType="number"
-                />
-            ),
-        },
-        {
             id: 'sugar_price',
             accessorKey: 'sugar_price',
             header: ({ column }) => (
@@ -247,11 +213,15 @@ export function createMillingPeriodColumns(
                             variant="secondary"
                             size="xs"
                             aria-label="Preview"
-                            onClick={() =>
-                                router.get(
-                                    millingPeriodShow(millingPeriod.id).url,
-                                )
-                            }
+                            onClick={() => {
+                                if (onView) {
+                                    onView(millingPeriod);
+                                } else {
+                                    router.get(
+                                        millingPeriodShow(millingPeriod.id).url,
+                                    );
+                                }
+                            }}
                         >
                             <Eye className="size-4" />
                         </Button>
@@ -259,11 +229,15 @@ export function createMillingPeriodColumns(
                             variant="blue"
                             size="xs"
                             aria-label="Edit"
-                            onClick={() =>
-                                router.get(
-                                    millingPeriodEdit(millingPeriod.id).url,
-                                )
-                            }
+                            onClick={() => {
+                                if (onEdit) {
+                                    onEdit(millingPeriod);
+                                } else {
+                                    router.get(
+                                        millingPeriodEdit(millingPeriod.id).url,
+                                    );
+                                }
+                            }}
                         >
                             <Pencil className="size-4" />
                         </Button>

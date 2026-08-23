@@ -44,16 +44,11 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import {
-    CircleCheck,
-    Clock,
-    Copy,
-    FileText,
-    Filter,
-    FolderSearch,
-    X,
-} from 'lucide-react';
+import { FolderSearch, X } from 'lucide-react';
 
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DataTableSearch } from '@/components/data-table/data-table-search';
 import { DateFilterStatusBanner } from './components/DateFilterStatusBanner';
 import { ImportedFilesModal } from './components/ImportedFilesModal';
 import type { FileAuditStatsType } from './bank-recon-types';
@@ -196,7 +191,13 @@ export default function Index({
         initialQueryStateRef.current,
     );
 
-    const selectedStatus = React.useMemo(() => {
+    const activeTab = React.useMemo(() => {
+        const dupFilter = table_state?.filters?.is_duplicate;
+        const dupVal = Array.isArray(dupFilter) ? dupFilter[0] : dupFilter;
+        if (dupVal === '1' || dupVal === 'true') {
+            return 'duplicates';
+        }
+
         const statusFilter = table_state?.filters?.status;
         if (!statusFilter) {
             return 'all';
@@ -204,7 +205,16 @@ export default function Index({
         return Array.isArray(statusFilter)
             ? (statusFilter[0] ?? 'all')
             : statusFilter;
-    }, [table_state?.filters?.status]);
+    }, [table_state?.filters?.is_duplicate, table_state?.filters?.status]);
+
+    const allCount = React.useMemo(() => {
+        return (
+            (kpiStats?.matched ?? 0) +
+            (kpiStats?.outstanding ?? 0) +
+            (kpiStats?.unrecorded ?? 0) +
+            (kpiStats?.mismatched ?? 0)
+        );
+    }, [kpiStats]);
 
     const selectedWeek = React.useMemo(() => {
         const weekFilter = table_state?.filters?.disbursement_week;
@@ -216,23 +226,16 @@ export default function Index({
             : weekFilter;
     }, [table_state?.filters?.disbursement_week]);
 
-    const initialShowDuplicates = React.useMemo(() => {
-        const dupFilter = table_state?.filters?.is_duplicate;
-        const value = Array.isArray(dupFilter) ? dupFilter[0] : dupFilter;
-        return value === '1' || value === 'true';
-    }, [table_state?.filters?.is_duplicate]);
-
-    const [showDuplicates, setShowDuplicates] = React.useState(
-        initialShowDuplicates,
+    const [searchValue, setSearchValue] = React.useState(
+        table_state?.search ?? '',
     );
 
     const buildQueryParams = React.useCallback(
         (
             state: DataTableQueryState,
-            status: string,
+            tab: string = activeTab,
             week: string = selectedWeek,
             period: DateRange | undefined = periodRange,
-            isDuplicate: boolean = showDuplicates,
         ) => {
             const query: Record<string, any> = {
                 page: state.pagination.pageIndex + 1,
@@ -273,16 +276,14 @@ export default function Index({
                 filters[filter.id] = String(filter.value);
             });
 
-            if (status !== 'all') {
-                filters.status = status;
+            if (tab === 'duplicates') {
+                filters.is_duplicate = '1';
+            } else if (tab !== 'all') {
+                filters.status = tab;
             }
 
             if (week !== 'all') {
                 filters.disbursement_week = week;
-            }
-
-            if (isDuplicate) {
-                filters.is_duplicate = '1';
             }
 
             if (Object.keys(filters).length > 0) {
@@ -306,7 +307,7 @@ export default function Index({
 
             return query;
         },
-        [selectedWeek, periodRange, showDuplicates],
+        [activeTab, selectedWeek, periodRange],
     );
 
     const handleClearAll = () => {
@@ -314,10 +315,9 @@ export default function Index({
         router.delete(bankReconciliationClear().url, {
             data: buildQueryParams(
                 latestQueryRef.current,
-                selectedStatus,
+                activeTab,
                 selectedWeek,
                 periodRange,
-                showDuplicates,
             ),
             preserveScroll: true,
             onSuccess: () => setClearOpen(false),
@@ -328,17 +328,42 @@ export default function Index({
     const handleQueryChange = React.useCallback(
         (state: DataTableQueryState) => {
             latestQueryRef.current = state;
-            const query = buildQueryParams(state, selectedStatus);
+            const query = buildQueryParams(state, activeTab);
             router.get(bankReconciliationIndex().url, query, {
                 preserveState: true,
                 preserveScroll: true,
                 replace: true,
             });
         },
-        [buildQueryParams, selectedStatus],
+        [buildQueryParams, activeTab],
     );
 
-    const applyStatusFilter = (nextStatus: string) => {
+    const handleSearchChange = React.useCallback(
+        (nextSearch: string) => {
+            if (nextSearch === (table_state?.search ?? '')) {
+                return;
+            }
+            setSearchValue(nextSearch);
+            const nextState: DataTableQueryState = {
+                ...latestQueryRef.current,
+                globalFilter: nextSearch,
+                pagination: {
+                    ...latestQueryRef.current.pagination,
+                    pageIndex: 0,
+                },
+            };
+            latestQueryRef.current = nextState;
+            const query = buildQueryParams(nextState, activeTab);
+            router.get(bankReconciliationIndex().url, query, {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            });
+        },
+        [buildQueryParams, activeTab, table_state?.search],
+    );
+
+    const applyTabFilter = (nextTab: string) => {
         const nextState: DataTableQueryState = {
             ...latestQueryRef.current,
             pagination: {
@@ -348,7 +373,7 @@ export default function Index({
         };
 
         latestQueryRef.current = nextState;
-        const query = buildQueryParams(nextState, nextStatus);
+        const query = buildQueryParams(nextState, nextTab);
 
         router.get(bankReconciliationIndex().url, query, {
             preserveState: true,
@@ -367,7 +392,7 @@ export default function Index({
         };
 
         latestQueryRef.current = nextState;
-        const query = buildQueryParams(nextState, selectedStatus, nextWeek);
+        const query = buildQueryParams(nextState, activeTab, nextWeek);
 
         router.get(bankReconciliationIndex().url, query, {
             preserveState: true,
@@ -390,7 +415,7 @@ export default function Index({
         latestQueryRef.current = nextState;
         const query = buildQueryParams(
             nextState,
-            selectedStatus,
+            activeTab,
             selectedWeek,
             nextPeriod,
         );
@@ -402,38 +427,9 @@ export default function Index({
         });
     };
 
-    const toggleDuplicateFilter = () => {
-        const nextValue = !showDuplicates;
-        setShowDuplicates(nextValue);
-
-        const nextState: DataTableQueryState = {
-            ...latestQueryRef.current,
-            pagination: {
-                ...latestQueryRef.current.pagination,
-                pageIndex: 0,
-            },
-        };
-
-        latestQueryRef.current = nextState;
-        const query = buildQueryParams(
-            nextState,
-            selectedStatus,
-            selectedWeek,
-            periodRange,
-            nextValue,
-        );
-
-        router.get(bankReconciliationIndex().url, query, {
-            preserveState: true,
-            preserveScroll: true,
-            replace: true,
-        });
-    };
-
     const hasActiveFilters =
-        selectedStatus !== 'all' ||
+        activeTab !== 'all' ||
         selectedWeek !== 'all' ||
-        showDuplicates ||
         Boolean(periodRange?.from) ||
         Boolean(latestQueryRef.current.globalFilter) ||
         Boolean(latestQueryRef.current.dateRange?.from) ||
@@ -447,7 +443,7 @@ export default function Index({
 
     const clearAllFilters = () => {
         setPeriodRange(undefined);
-        setShowDuplicates(false);
+        setSearchValue('');
         router.get(bankReconciliationIndex().url, {
             preserveState: true,
             preserveScroll: true,
@@ -458,153 +454,179 @@ export default function Index({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Bank Reconciliation" />
-            <div className="mx-2 mb-4 flex flex-wrap items-center gap-3">
-                <Filter className="flex items-center text-gray-500" />
-
-                {/* Month Quick Select */}
-                <div className="flex items-center gap-1.5 rounded-md border bg-white px-2.5 py-1 text-xs shadow-xs">
-                    <Calendar className="size-3.5 text-muted-foreground" />
-                    <span className="font-medium text-muted-foreground">
-                        Month:
-                    </span>
-                    <input
-                        type="month"
-                        value={fileAuditStats?.target_month || ''}
-                        onChange={(e) => {
-                            if (!e.target.value) {
-                                applyPeriodFilter(undefined);
-                                return;
-                            }
-                            const [y, m] = e.target.value
-                                .split('-')
-                                .map(Number);
-                            const from = new Date(y, m - 1, 1);
-                            const to = new Date(y, m, 0);
-                            applyPeriodFilter({ from, to });
-                        }}
-                        className="cursor-pointer bg-transparent text-xs font-medium focus:outline-hidden"
-                        title="Filter by month"
+            <div className="mb-8">
+                <div className="flex justify-between">
+                    <h1 className="flex flex-wrap items-center gap-2.5 text-3xl font-bold tracking-tight text-foreground">
+                        Bank Reconciliation
+                    </h1>
+                    <DateFilterStatusBanner
+                        fileAuditStats={fileAuditStats}
+                        selectedWeek={selectedWeek}
+                        activeTab={activeTab}
+                        onOpenFilesModal={() => setIsFilesModalOpen(true)}
                     />
                 </div>
-
-                <Select
-                    value={selectedWeek}
-                    onValueChange={(nextWeek) => applyWeekFilter(nextWeek)}
-                >
-                    <SelectTrigger className="w-32 bg-white">
-                        <SelectValue placeholder="Week" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All Weeks</SelectItem>
-                        {weekOptions.map((w) => (
-                            <SelectItem key={String(w)} value={String(w)}>
-                                Week {w}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-
-                <DatePickerWithRange
-                    className="w-64 bg-white"
-                    value={periodRange}
-                    onChange={(nextRange) => applyPeriodFilter(nextRange)}
-                />
-
-                <Select
-                    value={selectedStatus}
-                    onValueChange={(nextStatus) =>
-                        applyStatusFilter(nextStatus)
-                    }
-                >
-                    <SelectTrigger className="w-44 bg-white">
-                        <SelectValue placeholder="Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All Statuses</SelectItem>
-                        {statuses.map((status) => (
-                            <SelectItem key={status} value={status}>
-                                {formatStatusLabel(status)}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-
-                <Button
-                    variant={showDuplicates ? 'default' : 'outline'}
-                    onClick={toggleDuplicateFilter}
-                >
-                    {showDuplicates ? 'Showing Duplicates' : 'Show Duplicates'}
-                </Button>
-
-                {hasActiveFilters && (
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={clearAllFilters}
-                        className="gap-1.5 border border-slate-200 bg-red-200 text-foreground hover:bg-red-300 hover:text-foreground"
-                    >
-                        <X className="h-3.5 w-3.5" />
-                        Clear filters
-                    </Button>
-                )}
+                <p className="mt-1 text-sm text-muted-foreground">
+                    Track all spreadsheet uploads, monitor background
+                    processing, and safely revert specific import batches.
+                </p>
             </div>
-
-            {/* Date & File Status Tracker Banner */}
-            <DateFilterStatusBanner
-                fileAuditStats={fileAuditStats}
-                selectedWeek={selectedWeek}
-                selectedStatus={selectedStatus}
-                showDuplicates={showDuplicates}
-                onOpenFilesModal={() => setIsFilesModalOpen(true)}
-            />
-
-            <div className="mx-2 mb-2 grid grid-cols-2 gap-4 md:grid-cols-4">
-                <div className="rounded-xl border bg-card p-4 shadow-sm">
-                    <div className="flex items-center gap-2">
-                        <FileText className="size-4 text-slate-600" />
-                        <p className="text-sm font-medium text-muted-foreground">
-                            Total Records
-                        </p>
+            <div className="my-2 flex justify-end">
+                {/* Date / Month / Week / Duplicates Filter Controls */}
+                <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-600">
+                    {/* Month Quick Select */}
+                    <div className="flex items-center gap-1.5 rounded-sm border border-input bg-white px-2.5 py-2 shadow-xs">
+                        <span className="font-medium text-muted-foreground">
+                            Month:
+                        </span>
+                        <input
+                            type="month"
+                            value={fileAuditStats?.target_month || ''}
+                            onChange={(e) => {
+                                if (!e.target.value) {
+                                    applyPeriodFilter(undefined);
+                                    return;
+                                }
+                                const [y, m] = e.target.value
+                                    .split('-')
+                                    .map(Number);
+                                const from = new Date(y, m - 1, 1);
+                                const to = new Date(y, m, 0);
+                                applyPeriodFilter({ from, to });
+                            }}
+                            className="cursor-pointer bg-transparent text-xs font-medium focus:outline-hidden"
+                            title="Filter by month"
+                        />
                     </div>
-                    <p className="mt-1 truncate text-2xl font-bold text-foreground">
-                        {summaryStats.total_count}
-                    </p>
+
+                    <Select
+                        value={selectedWeek}
+                        onValueChange={(nextWeek) => applyWeekFilter(nextWeek)}
+                    >
+                        <SelectTrigger className="w-28 bg-white">
+                            <SelectValue placeholder="Week" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Weeks</SelectItem>
+                            {weekOptions.map((w) => (
+                                <SelectItem key={String(w)} value={String(w)}>
+                                    Week {w}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+
+                    <DatePickerWithRange
+                        className="w-60 bg-white"
+                        value={periodRange}
+                        onChange={(nextRange) => applyPeriodFilter(nextRange)}
+                    />
+
+                    {hasActiveFilters && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={clearAllFilters}
+                            className="gap-1.5 border border-slate-200 bg-red-200 text-foreground hover:bg-red-300 hover:text-foreground"
+                        >
+                            <X className="h-3.5 w-3.5" />
+                            Clear
+                        </Button>
+                    )}
                 </div>
-
-                <div className="rounded-xl border bg-card p-4 shadow-sm">
-                    <div className="flex items-center gap-2">
-                        <Clock className="size-4 text-sky-600" />
-                        <p className="text-sm font-medium text-muted-foreground">
-                            Outstanding
-                        </p>
-                    </div>
-                    <p className="mt-1 truncate text-2xl font-bold text-sky-600">
-                        {kpiStats.outstanding}
-                    </p>
-                </div>
-
-                <div className="rounded-xl border bg-card p-4 shadow-sm">
-                    <div className="flex items-center gap-2">
-                        <Copy className="size-4 text-orange-600" />
-                        <p className="text-sm font-medium text-muted-foreground">
-                            Duplicates
-                        </p>
-                    </div>
-                    <p className="mt-1 truncate text-2xl font-bold text-orange-600">
-                        {kpiStats.duplicates}
-                    </p>
-                </div>
-
-                <div className="rounded-xl border bg-card p-4 shadow-sm">
-                    <div className="flex items-center gap-2">
-                        <CircleCheck className="size-4 text-emerald-600" />
-                        <p className="text-sm font-medium text-muted-foreground">
-                            Matched
-                        </p>
-                    </div>
-                    <p className="mt-1 truncate text-2xl font-bold text-emerald-600">
-                        {kpiStats.matched}
-                    </p>
+            </div>
+            {/* Filter & Status Navigation Bar */}
+            <div className="mx-2 mb-4 space-y-3">
+                <div className="flex flex-col gap-3 border-b border-border/60 pb-3 sm:flex-row sm:items-center sm:justify-between">
+                    {/* Status Tabs Navigation */}
+                    <Tabs
+                        value={activeTab}
+                        onValueChange={(val) => applyTabFilter(val)}
+                        className="w-full sm:w-auto"
+                    >
+                        <TabsList variant="line" className="h-10">
+                            <TabsTrigger
+                                value="all"
+                                className="gap-2 text-xs font-semibold sm:text-sm"
+                            >
+                                All
+                                <Badge
+                                    variant="secondary"
+                                    className="px-1.5 py-0.5 text-xs font-bold"
+                                >
+                                    {allCount.toLocaleString()}
+                                </Badge>
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="Outstanding"
+                                className="gap-2 text-xs font-semibold sm:text-sm"
+                            >
+                                Outstanding
+                                <Badge
+                                    variant="outline"
+                                    className="border-sky-300 bg-sky-50 px-1.5 py-0.5 text-xs font-bold text-sky-800 dark:border-sky-800 dark:bg-sky-950/60 dark:text-sky-300"
+                                >
+                                    {(
+                                        kpiStats?.outstanding ?? 0
+                                    ).toLocaleString()}
+                                </Badge>
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="Unrecorded Bank Entry"
+                                className="gap-2 text-xs font-semibold sm:text-sm"
+                            >
+                                Unrecorded
+                                <Badge
+                                    variant="outline"
+                                    className="border-purple-300 bg-purple-50 px-1.5 py-0.5 text-xs font-bold text-purple-800 dark:border-purple-800 dark:bg-purple-950/60 dark:text-purple-300"
+                                >
+                                    {(
+                                        kpiStats?.unrecorded ?? 0
+                                    ).toLocaleString()}
+                                </Badge>
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="Matched"
+                                className="gap-2 text-xs font-semibold sm:text-sm"
+                            >
+                                Matched
+                                <Badge
+                                    variant="outline"
+                                    className="border-emerald-300 bg-emerald-50 px-1.5 py-0.5 text-xs font-bold text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
+                                >
+                                    {(kpiStats?.matched ?? 0).toLocaleString()}
+                                </Badge>
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="Amount Mismatch"
+                                className="gap-2 text-xs font-semibold sm:text-sm"
+                            >
+                                Mismatch
+                                <Badge
+                                    variant="outline"
+                                    className="border-rose-300 bg-rose-50 px-1.5 py-0.5 text-xs font-bold text-rose-800 dark:border-rose-800 dark:bg-rose-950/60 dark:text-rose-300"
+                                >
+                                    {(
+                                        kpiStats?.mismatched ?? 0
+                                    ).toLocaleString()}
+                                </Badge>
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="duplicates"
+                                className="gap-2 text-xs font-semibold sm:text-sm"
+                            >
+                                Duplicates
+                                <Badge
+                                    variant="outline"
+                                    className="border-amber-300 bg-amber-50 px-1.5 py-0.5 text-xs font-bold text-amber-800 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
+                                >
+                                    {(
+                                        kpiStats?.duplicates ?? 0
+                                    ).toLocaleString()}
+                                </Badge>
+                            </TabsTrigger>
+                        </TabsList>
+                    </Tabs>
                 </div>
             </div>
 
@@ -630,36 +652,38 @@ export default function Index({
             />
 
             <Container>
-                <ContainerHeader>
-                    Bank Reconciliation
-                    <ContainerHeaderEnd>
-                        <Button
-                            variant="outline"
-                            onClick={() => setIsFilesModalOpen(true)}
-                            className="gap-2"
-                        >
-                            <FolderSearch className="h-4 w-4 text-primary" />
-                            File Status (
-                            {fileAuditStats?.total_imported_files ?? 0}/
-                            {fileAuditStats?.total_expected_files ?? 5})
-                        </Button>
-                        <Button variant="outline" asChild className="gap-2">
-                            <Link href="/Imports/history?type=bank_recon">
-                                <History className="h-4 w-4" />
-                                Import History
-                            </Link>
-                        </Button>
-                        <PrintOutstandingChecksDialog
-                            defaultPeriodFrom={table_state?.period_from}
-                            defaultPeriodTo={table_state?.period_to}
+                <ContainerHeader className="border-b-0 pb-0">
+                    <ContainerHeaderEnd className="w-full flex-wrap justify-between gap-4">
+                        <DataTableSearch
+                            value={searchValue}
+                            onChange={handleSearchChange}
+                            placeholder="Search all columns..."
+                            className="w-full sm:w-72"
                         />
-                        <BankReconImportDialog />
-                        <Button
-                            variant="destructive"
-                            onClick={() => setClearOpen(true)}
-                        >
-                            Delete All
-                        </Button>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <Button
+                                variant="outline"
+                                onClick={() => setIsFilesModalOpen(true)}
+                                className="gap-2"
+                            >
+                                <FolderSearch className="h-4 w-4 text-primary" />
+                                File Status (
+                                {fileAuditStats?.total_imported_files ?? 0}/
+                                {fileAuditStats?.total_expected_files ?? 5})
+                            </Button>
+
+                            <PrintOutstandingChecksDialog
+                                defaultPeriodFrom={table_state?.period_from}
+                                defaultPeriodTo={table_state?.period_to}
+                            />
+                            <BankReconImportDialog />
+                            <Button
+                                variant="destructive"
+                                onClick={() => setClearOpen(true)}
+                            >
+                                Delete All
+                            </Button>
+                        </div>
                     </ContainerHeaderEnd>
                     <Dialog open={isClearOpen} onOpenChange={setClearOpen}>
                         <DialogContent>
@@ -671,13 +695,14 @@ export default function Index({
                                     This permanently deletes every
                                     reconciliation record matching your current
                                     filters
-                                    {selectedStatus !== 'all'
-                                        ? ` (status: ${formatStatusLabel(selectedStatus)})`
-                                        : ''}
+                                    {activeTab === 'duplicates'
+                                        ? ' (duplicates only)'
+                                        : activeTab !== 'all'
+                                          ? ` (status: ${formatStatusLabel(activeTab)})`
+                                          : ''}
                                     {selectedWeek !== 'all'
                                         ? ` (week: ${selectedWeek})`
                                         : ''}
-                                    {showDuplicates ? ' (duplicates only)' : ''}
                                     {periodRange?.from
                                         ? ` (period: ${format(periodRange.from, 'MMM d, yyyy')}${periodRange.to ? ` – ${format(periodRange.to, 'MMM d, yyyy')}` : ''})`
                                         : ''}

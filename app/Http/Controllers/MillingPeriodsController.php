@@ -126,17 +126,19 @@ class MillingPeriodsController extends Controller
             'crop_year' => ['required', 'string', 'max:255'],
             'start_date' => ['required', 'date'],
             'end_date' => ['required', 'date', 'after_or_equal:start_date'],
-            'sugar_factor' => ['required', 'numeric', 'min:0'],
-            'mol_factor' => ['required', 'numeric', 'min:0'],
+            'sugar_factor' => ['nullable', 'numeric', 'min:0'],
+            'mol_factor' => ['nullable', 'numeric', 'min:0'],
             'sugar_price' => ['nullable', 'numeric', 'min:0'],
             'mol_price' => ['nullable', 'numeric', 'min:0'],
         ]);
 
+        $validated['sugar_factor'] = $validated['sugar_factor'] ?? 1.0;
+        $validated['mol_factor'] = $validated['mol_factor'] ?? 0.0;
+
         $millingPeriod = MillingPeriod::create($validated);
 
-
         return redirect()
-            ->route('milling-periods.show', $millingPeriod->id)
+            ->back()
             ->with('success', 'Milling period created successfully.');
     }
 
@@ -186,17 +188,23 @@ class MillingPeriodsController extends Controller
             'crop_year' => ['required', 'string', 'max:255'],
             'start_date' => ['required', 'date'],
             'end_date' => ['required', 'date', 'after_or_equal:start_date'],
-            'sugar_factor' => ['required', 'numeric', 'min:0'],
-            'mol_factor' => ['required', 'numeric', 'min:0'],
+            'sugar_factor' => ['nullable', 'numeric', 'min:0'],
+            'mol_factor' => ['nullable', 'numeric', 'min:0'],
             'sugar_price' => ['nullable', 'numeric', 'min:0'],
             'mol_price' => ['nullable', 'numeric', 'min:0'],
         ]);
 
+        if (!isset($validated['sugar_factor'])) {
+            $validated['sugar_factor'] = $millingPeriod->sugar_factor ?? 1.0;
+        }
+        if (!isset($validated['mol_factor'])) {
+            $validated['mol_factor'] = $millingPeriod->mol_factor ?? 0.0;
+        }
+
         $millingPeriod->update($validated);
 
-
         return redirect()
-            ->route('milling-periods.show', $millingPeriod->id)
+            ->back()
             ->with('success', 'Milling period updated successfully.');
     }
 

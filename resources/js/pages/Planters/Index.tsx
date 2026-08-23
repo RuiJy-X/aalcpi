@@ -9,6 +9,7 @@ import * as React from 'react';
 import { format } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 import { DataTable } from '@/components/data-table/data-table';
+import { DataTableSearch } from '@/components/data-table/data-table-search';
 import { planterBulkDelete } from '@/components/data-table/bulk-delete';
 import { createPlanterColumns } from '@/components/data-table/planter-columns';
 import { TableEditToolbar } from '@/components/data-table/table-edit-toolbar';
@@ -40,6 +41,7 @@ import {
     PeriodFilterBar,
     formatPeriodLabel,
 } from '@/components/period-filter-bar';
+import { Badge } from '@/components/ui/badge';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -236,39 +238,89 @@ export default function Index({
         });
     };
 
+    const [searchValue, setSearchValue] = React.useState(
+        table_state?.search ?? '',
+    );
+
+    const handleSearchChange = React.useCallback(
+        (nextSearch: string) => {
+            if (nextSearch === (table_state?.search ?? '')) {
+                return;
+            }
+            setSearchValue(nextSearch);
+            const nextState: DataTableQueryState = {
+                ...latestQueryRef.current,
+                globalFilter: nextSearch,
+                pagination: {
+                    ...latestQueryRef.current.pagination,
+                    pageIndex: 0,
+                },
+            };
+            latestQueryRef.current = nextState;
+            router.get(plantersIndex().url, buildQueryParams(nextState), {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            });
+        },
+        [buildQueryParams, table_state?.search],
+    );
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Planters">
                 <title>Planters</title>
             </Head>
+            <div className="mb-8">
+                <div className="flex justify-between">
+                    <h1 className="flex flex-wrap items-center gap-2.5 text-3xl font-bold tracking-tight text-foreground">
+                        Planters
+                        <Badge>
+                            {stats.totalPlanters.toLocaleString()} planters
+                        </Badge>
+                    </h1>
+                </div>
+                <p className="mt-1 text-sm text-muted-foreground">
+                    View, manage, and edit planters. You can also register new
+                    planters and import planter data in bulk using the import
+                    feature.
+                </p>
+            </div>
 
             <PeriodFilterBar value={periodRange} onChange={applyPeriodFilter} />
 
-            <KpiOverview periodLabel={formatPeriodLabel(periodRange)}>
+            {/* <KpiOverview periodLabel={formatPeriodLabel(periodRange)}>
                 <PlanterStats stats={stats} />
-            </KpiOverview>
+            </KpiOverview> */}
 
             <Container>
                 <ContainerHeader>
-                    Planters Table
-                    <ContainerHeaderEnd>
-                        <TableEditToolbar
-                            isEditing={isEditing}
-                            isSaving={isSaving}
-                            disabled={planters.length === 0}
-                            onStart={startEditing}
-                            onCancel={cancelEditing}
-                            onSave={saveEdits}
+                    <ContainerHeaderEnd className="w-full justify-between gap-4">
+                        <DataTableSearch
+                            value={searchValue}
+                            onChange={handleSearchChange}
+                            placeholder="Search planters..."
+                            className="w-full sm:w-72"
                         />
-                        <ImportDialog config={plantersImportConfig} />
-                        <Button
-                            variant="outline"
-                            onClick={() => router.get(createPage().url)}
-                            disabled={isEditing}
-                        >
-                            <User />
-                            Register Planter
-                        </Button>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <TableEditToolbar
+                                isEditing={isEditing}
+                                isSaving={isSaving}
+                                disabled={planters.length === 0}
+                                onStart={startEditing}
+                                onCancel={cancelEditing}
+                                onSave={saveEdits}
+                            />
+                            <ImportDialog config={plantersImportConfig} />
+                            <Button
+                                variant="outline"
+                                onClick={() => router.get(createPage().url)}
+                                disabled={isEditing}
+                            >
+                                <User />
+                                Register Planter
+                            </Button>
+                        </div>
                     </ContainerHeaderEnd>
                 </ContainerHeader>
                 <DataTable

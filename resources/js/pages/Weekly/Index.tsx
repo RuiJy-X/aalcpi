@@ -22,6 +22,7 @@ import {
     PeriodFilterBar,
     formatPeriodLabel,
 } from '@/components/period-filter-bar';
+import { Badge } from '@/components/ui/badge';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -85,6 +86,21 @@ export default function Index({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Weekly Data" />
+            <div className="mb-8">
+                <div className="flex justify-between">
+                    <h1 className="flex flex-wrap items-center gap-2.5 text-3xl font-bold tracking-tight text-foreground">
+                        Weekly PDFs
+                        <Badge>
+                            {stats.totalDocuments.toLocaleString()} documents
+                        </Badge>
+                    </h1>
+                </div>
+                <p className="mt-1 text-sm text-muted-foreground">
+                    View, manage, and edit weekly PDFs. You can also register
+                    new weekly PDFs and import weekly data in bulk using the
+                    import feature.
+                </p>
+            </div>
 
             {isImporting && (
                 <div className="flex w-full bg-background/80">
@@ -95,14 +111,14 @@ export default function Index({
                 </div>
             )}
             <div className="flex flex-col">
-                <PeriodFilterBar
+                {/* <PeriodFilterBar
                     value={periodRange}
                     onChange={applyPeriodFilter}
                 />
 
                 <KpiOverview periodLabel={formatPeriodLabel(periodRange)}>
                     <WeeklyStats stats={stats} />
-                </KpiOverview>
+                </KpiOverview> */}
 
                 <Container className="w-full overflow-visible">
                     <ContainerHeader className="items-center gap-5 text-left">

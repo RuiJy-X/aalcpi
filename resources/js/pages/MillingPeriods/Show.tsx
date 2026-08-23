@@ -1,5 +1,5 @@
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
-import type { FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import {
     Container,
     ContainerHeader,
@@ -10,6 +10,9 @@ import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
+import { DatePickerWithRange } from '@/components/date-range';
+import type { DateRange } from 'react-day-picker';
+import { format } from 'date-fns';
 import {
     edit as millingPeriodEdit,
     index as millingPeriodIndex,
@@ -25,8 +28,6 @@ type MillingPeriodFormData = {
     crop_year: string;
     start_date: string;
     end_date: string;
-    sugar_factor: string;
-    mol_factor: string;
     sugar_price: string;
     mol_price: string;
 };
@@ -52,14 +53,23 @@ export default function Show({
         },
     ];
 
+    const [dateRange, setDateRange] = useState<DateRange | undefined>(
+        milling_period.start_date
+            ? {
+                  from: new Date(milling_period.start_date),
+                  to: milling_period.end_date
+                      ? new Date(milling_period.end_date)
+                      : undefined,
+              }
+            : undefined,
+    );
+
     const { data, setData, errors, processing, put } =
         useForm<MillingPeriodFormData>({
             week_no: String(milling_period.week_no ?? ''),
             crop_year: milling_period.crop_year ?? '',
             start_date: milling_period.start_date ?? '',
             end_date: milling_period.end_date ?? '',
-            sugar_factor: String(milling_period.sugar_factor ?? ''),
-            mol_factor: String(milling_period.mol_factor ?? ''),
             sugar_price: String(milling_period.sugar_price ?? ''),
             mol_price: String(milling_period.mol_price ?? ''),
         });
@@ -143,81 +153,41 @@ export default function Show({
                         )}
                     </Field>
 
-                    <Field>
-                        <Label htmlFor="start_date">Start Date</Label>
-                        <Input
-                            id="start_date"
-                            type="date"
-                            value={data.start_date}
-                            disabled={!isEditing}
-                            onChange={(event) =>
-                                setData('start_date', event.target.value)
-                            }
-                        />
-                        {errors.start_date && (
+                    <Field className="md:col-span-2">
+                        <Label>Period Date Range</Label>
+                        {isEditing ? (
+                            <DatePickerWithRange
+                                value={dateRange}
+                                onChange={(range) => {
+                                    setDateRange(range);
+                                    setData((prev) => ({
+                                        ...prev,
+                                        start_date: range?.from
+                                            ? format(range.from, 'yyyy-MM-dd')
+                                            : '',
+                                        end_date: range?.to
+                                            ? format(range.to, 'yyyy-MM-dd')
+                                            : range?.from
+                                              ? format(range.from, 'yyyy-MM-dd')
+                                              : '',
+                                    }));
+                                }}
+                                className="w-full"
+                            />
+                        ) : (
+                            <Input
+                                value={`${data.start_date || 'N/A'} - ${data.end_date || 'N/A'}`}
+                                disabled
+                            />
+                        )}
+                        {(errors.start_date || errors.end_date) && (
                             <p className="text-sm text-red-500">
-                                {errors.start_date}
+                                {errors.start_date || errors.end_date}
                             </p>
                         )}
                     </Field>
 
-                    <Field>
-                        <Label htmlFor="end_date">End Date</Label>
-                        <Input
-                            id="end_date"
-                            type="date"
-                            value={data.end_date}
-                            disabled={!isEditing}
-                            onChange={(event) =>
-                                setData('end_date', event.target.value)
-                            }
-                        />
-                        {errors.end_date && (
-                            <p className="text-sm text-red-500">
-                                {errors.end_date}
-                            </p>
-                        )}
-                    </Field>
 
-                    <Field>
-                        <Label htmlFor="sugar_factor">Sugar Factor</Label>
-                        <Input
-                            id="sugar_factor"
-                            type="number"
-                            step="any"
-                            min={0}
-                            value={Number(data.sugar_factor)}
-                            disabled={!isEditing}
-                            onChange={(event) =>
-                                setData('sugar_factor', event.target.value)
-                            }
-                        />
-                        {errors.sugar_factor && (
-                            <p className="text-sm text-red-500">
-                                {errors.sugar_factor}
-                            </p>
-                        )}
-                    </Field>
-
-                    <Field>
-                        <Label htmlFor="mol_factor">Molasses Factor</Label>
-                        <Input
-                            id="mol_factor"
-                            type="number"
-                            step="any"
-                            min={0}
-                            value={Number(data.mol_factor)}
-                            disabled={!isEditing}
-                            onChange={(event) =>
-                                setData('mol_factor', event.target.value)
-                            }
-                        />
-                        {errors.mol_factor && (
-                            <p className="text-sm text-red-500">
-                                {errors.mol_factor}
-                            </p>
-                        )}
-                    </Field>
 
                     <Field>
                         <Label htmlFor="sugar_price">Sugar Price</Label>

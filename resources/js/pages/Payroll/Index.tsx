@@ -35,6 +35,7 @@ import {
     create as payrollCreate,
 } from '@/routes/payroll';
 import { payrollBulkDelete } from '@/components/data-table/bulk-delete';
+import { DataTableSearch } from '@/components/data-table/data-table-search';
 import {
     Dialog,
     DialogContent,
@@ -59,6 +60,7 @@ const Index = ({ payrolls }: { payrolls: PayrollType[] }) => {
     // Date Range Filter state
     const [filterStartDate, setFilterStartDate] = useState<string>('');
     const [filterEndDate, setFilterEndDate] = useState<string>('');
+    const [searchQuery, setSearchQuery] = useState<string>('');
 
     // Export PDF Modal state
     const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
@@ -112,9 +114,20 @@ const Index = ({ payrolls }: { payrolls: PayrollType[] }) => {
                 }
             }
 
+            // Search query filter
+            if (searchQuery.trim()) {
+                const q = searchQuery.toLowerCase();
+                const matches =
+                    p.milling_period?.crop_year?.toLowerCase().includes(q) ||
+                    p.status?.toLowerCase().includes(q) ||
+                    String(p.gross_payroll ?? '').includes(q) ||
+                    String(p.net_payroll ?? '').includes(q);
+                if (!matches) return false;
+            }
+
             return true;
         });
-    }, [payrolls, activeTab, filterStartDate, filterEndDate]);
+    }, [payrolls, activeTab, filterStartDate, filterEndDate, searchQuery]);
 
     const payrollColumns = useMemo(
         () => createPayrollColumns(),
@@ -282,6 +295,13 @@ const Index = ({ payrolls }: { payrolls: PayrollType[] }) => {
                                 </Button>
                             )}
                         </div>
+
+                        <DataTableSearch
+                            value={searchQuery}
+                            onChange={setSearchQuery}
+                            placeholder="Search payrolls..."
+                            className="w-full sm:w-72"
+                        />
                     </div>
 
                     <DataTable

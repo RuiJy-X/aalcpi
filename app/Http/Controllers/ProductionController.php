@@ -27,6 +27,10 @@ class ProductionController extends Controller
         $direction = strtolower($request->string('direction')->toString()) === 'asc' ? 'asc' : 'desc';
         $search = $request->string('search')->toString();
         $filters = $request->input('filters', []);
+        $status = $request->string('status')->toString();
+        if ($status === '' && isset($filters['status'])) {
+            $status = is_array($filters['status']) ? ($filters['status'][0] ?? '') : (string) $filters['status'];
+        }
         $dateColumn = $request->string('date_column')->toString();
         $dateFrom = $request->string('date_from')->toString();
         $dateTo = $request->string('date_to')->toString();
@@ -98,8 +102,25 @@ class ProductionController extends Controller
             $baseQuery->where('productions.crop_year', $selectedCropYear);
         }
 
+        if ($status !== '' && $status !== 'all') {
+            if ($status === 'draft') {
+                $baseQuery->where(function ($q) {
+                    $q->where('productions.status', 'draft')
+                        ->orWhereNull('productions.status')
+                        ->orWhere('productions.status', '');
+                });
+            } elseif ($status === 'completed') {
+                $baseQuery->where('productions.status', 'completed');
+            } else {
+                $baseQuery->where('productions.status', $status);
+            }
+        }
+
         if (!empty($filters) && is_array($filters)) {
             foreach ($filters as $column => $value) {
+                if ($column === 'status') {
+                    continue;
+                }
                 if (!array_key_exists($column, $columnMap)) {
                     continue;
                 }
@@ -211,6 +232,16 @@ class ProductionController extends Controller
             'totalPlanterMolMoney' => round($totalPlanterMolMoney, 2),
         ];
 
+        $statusCounts = [
+            'all' => (clone $statsQuery)->count(),
+            'draft' => (clone $statsQuery)->where(function ($q) {
+                $q->where('status', 'draft')
+                    ->orWhereNull('status')
+                    ->orWhere('status', '');
+            })->count(),
+            'completed' => (clone $statsQuery)->where('status', 'completed')->count(),
+        ];
+
         return Inertia::render('Productions/Index', [
             'productions' => $paginatedProductions->items(),
             'pagination' => [
@@ -224,13 +255,16 @@ class ProductionController extends Controller
                 'sort' => $sort,
                 'direction' => $direction,
                 'filters' => $filters,
+                'status' => $status,
                 'period_from' => $periodFrom,
                 'period_to' => $periodTo,
             ],
             'crop_years' => $cropYears,
             'filters' => [
                 'crop_year' => $selectedCropYear,
+                'status' => $status,
             ],
+            'statusCounts' => $statusCounts,
             'stats' => $stats,
         ]);
 
