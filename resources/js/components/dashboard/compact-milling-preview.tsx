@@ -91,7 +91,7 @@ export const CompactMillingPreview: React.FC<CompactMillingPreviewProps> = ({
     return (
         <div
             className={cn(
-                'flex flex-col justify-between rounded-xl border border-slate-200/80 bg-white p-5 shadow-2xs transition-all hover:border-slate-300 min-w-0 w-full overflow-hidden',
+                'flex flex-col justify-between rounded-xl border border-slate-200/80 bg-white p-5 shadow-2xs transition-all hover:border-emerald-300 min-w-0 w-full overflow-hidden',
                 className,
             )}
         >
@@ -99,7 +99,7 @@ export const CompactMillingPreview: React.FC<CompactMillingPreviewProps> = ({
                 {/* Header */}
                 <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
                     <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white">
+                        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-emerald-700 text-white shadow-2xs">
                             <ShieldCheck className="size-4" />
                         </div>
                         <div className="min-w-0">
@@ -112,7 +112,7 @@ export const CompactMillingPreview: React.FC<CompactMillingPreviewProps> = ({
                         </div>
                     </div>
 
-                    <span className="shrink-0 rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700">
+                    <span className="shrink-0 rounded-md bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-800 border border-emerald-200/60">
                         {selectedCropYear === 'all' ? 'All Seasons' : selectedCropYear ? `CY ${selectedCropYear}` : 'Active Season'}
                     </span>
                 </div>
@@ -120,7 +120,7 @@ export const CompactMillingPreview: React.FC<CompactMillingPreviewProps> = ({
                 {displayPeriod ? (
                     <div className="mt-3.5 space-y-3 min-w-0">
                         {/* Active Period Highlight Card */}
-                        <div className="rounded-xl border border-slate-200/90 bg-slate-50/70 p-3.5 min-w-0">
+                        <div className="rounded-xl border border-emerald-100/80 bg-emerald-50/40 p-3.5 min-w-0">
                             <div className="flex flex-wrap items-center justify-between gap-2">
                                 <div className="flex items-center gap-2 min-w-0">
                                     {activePeriod?.id === displayPeriod.id ? (
@@ -132,7 +132,7 @@ export const CompactMillingPreview: React.FC<CompactMillingPreviewProps> = ({
                                         Milling Week {displayPeriod.week_no}
                                     </span>
                                     {activePeriod?.id === displayPeriod.id && (
-                                        <span className="rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-1.5 py-0.2 shrink-0">
+                                        <span className="rounded-full bg-emerald-200/70 text-emerald-900 text-[10px] font-extrabold px-1.5 py-0.2 shrink-0">
                                             Current
                                         </span>
                                     )}
@@ -178,7 +178,7 @@ export const CompactMillingPreview: React.FC<CompactMillingPreviewProps> = ({
                                             type="button"
                                             disabled={!hasPrev}
                                             onClick={handlePrev}
-                                            className="flex size-5 items-center justify-center rounded border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                                            className="flex size-5 items-center justify-center rounded border border-slate-200 bg-white text-slate-600 hover:bg-emerald-50 hover:text-emerald-800 disabled:opacity-30 disabled:pointer-events-none transition-colors"
                                             title="Previous week"
                                         >
                                             <ChevronLeft className="size-3" />
@@ -187,7 +187,7 @@ export const CompactMillingPreview: React.FC<CompactMillingPreviewProps> = ({
                                             type="button"
                                             disabled={!hasNext}
                                             onClick={handleNext}
-                                            className="flex size-5 items-center justify-center rounded border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                                            className="flex size-5 items-center justify-center rounded border border-slate-200 bg-white text-slate-600 hover:bg-emerald-50 hover:text-emerald-800 disabled:opacity-30 disabled:pointer-events-none transition-colors"
                                             title="Next week"
                                         >
                                             <ChevronRight className="size-3" />
@@ -201,7 +201,7 @@ export const CompactMillingPreview: React.FC<CompactMillingPreviewProps> = ({
                                         <select
                                             value={displayPeriod.id}
                                             onChange={(e) => setSelectedPeriodId(Number(e.target.value))}
-                                            className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-bold text-slate-900 shadow-2xs focus:border-slate-400 focus:outline-none"
+                                            className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-bold text-slate-900 shadow-2xs focus:border-emerald-500 focus:outline-none"
                                         >
                                             {periods.map((p) => (
                                                 <option key={p.id} value={p.id}>
@@ -223,8 +223,8 @@ export const CompactMillingPreview: React.FC<CompactMillingPreviewProps> = ({
                                                     className={cn(
                                                         'px-2 py-0.5 rounded-md text-[11px] font-bold shrink-0 transition-all border',
                                                         isSelected
-                                                            ? 'bg-slate-900 text-white border-slate-900 shadow-2xs'
-                                                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50',
+                                                            ? 'bg-emerald-700 text-white border-emerald-700 shadow-2xs'
+                                                            : 'bg-white text-slate-700 border-slate-200 hover:bg-emerald-50 hover:border-emerald-200',
                                                     )}
                                                 >
                                                     W{p.week_no}
@@ -251,7 +251,7 @@ export const CompactMillingPreview: React.FC<CompactMillingPreviewProps> = ({
 
                 <Link
                     href="/MillingPeriods"
-                    className="inline-flex items-center gap-1 font-semibold text-slate-700 hover:text-slate-900 transition-colors"
+                    className="inline-flex items-center gap-1 font-semibold text-emerald-700 hover:text-emerald-800 transition-colors"
                 >
                     <span>Milling Calendar</span>
                     <ArrowRight className="size-3" />

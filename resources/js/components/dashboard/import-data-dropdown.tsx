@@ -14,7 +14,6 @@ import {
     CalendarDays,
     BookOpen,
     Clipboard,
-    LandPlot,
     User,
     History,
     ChevronDown,
@@ -43,15 +42,15 @@ export const ImportDataDropdown: React.FC = () => {
             <DropdownMenuTrigger asChild>
                 <Button
                     variant="outline"
-                    className="flex items-center gap-2 rounded-xl border-slate-200 bg-white font-semibold text-slate-800 shadow-xs hover:bg-slate-50 hover:text-slate-900"
+                    className="flex items-center gap-2 rounded-xl border-slate-200 bg-white font-semibold text-slate-800 shadow-xs hover:bg-emerald-50/60 hover:border-emerald-300 hover:text-emerald-950 transition-all"
                 >
-                    <Upload className="size-4 text-emerald-600" />
+                    <Upload className="size-4 text-emerald-700" />
                     <span>Import Data</span>
                     <ChevronDown className="size-3.5 text-slate-400" />
                 </Button>
             </DropdownMenuTrigger>
 
-            <DropdownMenuContent align="end" className="w-64 rounded-xl p-1.5 shadow-lg border-slate-200">
+            <DropdownMenuContent align="end" className="w-64 rounded-xl p-1.5 shadow-lg border-slate-200 bg-white">
                 <DropdownMenuLabel className="px-2 py-1.5 text-xs font-bold text-slate-500 uppercase tracking-wider">
                     Module Ingestion
                 </DropdownMenuLabel>
@@ -60,9 +59,9 @@ export const ImportDataDropdown: React.FC = () => {
                     <DropdownMenuItem asChild>
                         <Link
                             href="/Weekly"
-                            className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
+                            className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-900 cursor-pointer"
                         >
-                            <CalendarDays className="size-4 text-teal-600 shrink-0" />
+                            <CalendarDays className="size-4 text-emerald-700 shrink-0" />
                             <div>
                                 <p className="font-semibold text-slate-900 leading-none">
                                     Weekly Statement PDF
@@ -79,7 +78,7 @@ export const ImportDataDropdown: React.FC = () => {
                     <DropdownMenuItem asChild>
                         <Link
                             href="/Productions"
-                            className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
+                            className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-900 cursor-pointer"
                         >
                             <BookOpen className="size-4 text-amber-600 shrink-0" />
                             <div>
@@ -98,7 +97,7 @@ export const ImportDataDropdown: React.FC = () => {
                     <DropdownMenuItem asChild>
                         <Link
                             href="/Attendance"
-                            className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
+                            className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-900 cursor-pointer"
                         >
                             <Clipboard className="size-4 text-orange-600 shrink-0" />
                             <div>
@@ -117,7 +116,7 @@ export const ImportDataDropdown: React.FC = () => {
                     <DropdownMenuItem asChild>
                         <Link
                             href="/BankReconciliation"
-                            className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
+                            className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-900 cursor-pointer"
                         >
                             <Banknote className="size-4 text-blue-600 shrink-0" />
                             <div>
@@ -136,9 +135,9 @@ export const ImportDataDropdown: React.FC = () => {
                     <DropdownMenuItem asChild>
                         <Link
                             href="/Planters"
-                            className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
+                            className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-900 cursor-pointer"
                         >
-                            <User className="size-4 text-emerald-600 shrink-0" />
+                            <User className="size-4 text-emerald-700 shrink-0" />
                             <div>
                                 <p className="font-semibold text-slate-900 leading-none">
                                     Planters Directory
@@ -156,7 +155,7 @@ export const ImportDataDropdown: React.FC = () => {
                 <DropdownMenuItem asChild>
                     <Link
                         href="/Imports/history"
-                        className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
+                        className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-slate-600 hover:bg-emerald-50 hover:text-emerald-900 cursor-pointer"
                     >
                         <History className="size-4 text-slate-500 shrink-0" />
                         <div>

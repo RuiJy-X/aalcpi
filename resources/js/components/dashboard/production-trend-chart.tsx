@@ -90,6 +90,7 @@ export const ProductionTrendChart: React.FC<ProductionTrendChartProps> = ({
     const width = 680;
     const height = 230;
     const padding = { top: 24, right: 28, bottom: 40, left: 56 };
+    const availableWidth = width - padding.left - padding.right;
 
     if (data.length === 0) {
         return (
@@ -99,12 +100,29 @@ export const ProductionTrendChart: React.FC<ProductionTrendChartProps> = ({
         );
     }
 
+    // Compute tight, centered bar cluster spacing
+    const numItems = data.length;
+    const maxBarWidth = 56;
+    const minBarWidth = 24;
+    const desiredGap = numItems <= 4 ? 22 : numItems <= 8 ? 16 : 10;
+    const naturalClusterWidth = numItems * maxBarWidth + (numItems - 1) * desiredGap;
+
+    let barWidth = maxBarWidth;
+    let itemSpacing = desiredGap;
+    let startX = padding.left;
+
+    if (naturalClusterWidth < availableWidth) {
+        // Center the cluster in the chart area so bars are nicely close together
+        startX = padding.left + (availableWidth - naturalClusterWidth) / 2;
+    } else {
+        const slotWidth = availableWidth / numItems;
+        barWidth = Math.max(minBarWidth, slotWidth * 0.72);
+        itemSpacing = slotWidth - barWidth;
+        startX = padding.left + (slotWidth - barWidth) / 2;
+    }
+
     const points = values.map((val, idx) => {
-        const x =
-            values.length === 1
-                ? (width - padding.left - padding.right) / 2 + padding.left
-                : padding.left +
-                  (idx / Math.max(values.length - 1, 1)) * (width - padding.left - padding.right);
+        const x = startX + idx * (barWidth + itemSpacing) + barWidth / 2;
         const y =
             padding.top +
             (1 - (val - minValue) / range) * (height - padding.top - padding.bottom);
@@ -112,6 +130,8 @@ export const ProductionTrendChart: React.FC<ProductionTrendChartProps> = ({
             x,
             y,
             val,
+            barX: x - barWidth / 2,
+            barWidth,
             label: data[idx].label || data[idx].crop_year,
             cropYear: data[idx].crop_year,
         };
@@ -128,7 +148,7 @@ export const ProductionTrendChart: React.FC<ProductionTrendChartProps> = ({
     return (
         <div
             className={cn(
-                'flex flex-col justify-between rounded-xl border border-slate-200/80 bg-white p-5 shadow-2xs transition-all hover:border-slate-300 min-w-0 w-full overflow-hidden',
+                'flex flex-col justify-between rounded-xl border border-slate-200/80 bg-white p-5 shadow-2xs transition-all hover:border-emerald-300 min-w-0 w-full overflow-hidden',
                 className,
             )}
         >
@@ -136,7 +156,7 @@ export const ProductionTrendChart: React.FC<ProductionTrendChartProps> = ({
                 {/* Header Controls */}
                 <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-slate-100 pb-3 mb-3">
                     <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white">
+                        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-emerald-700 text-white shadow-2xs">
                             <TrendingUp className="size-4" />
                         </div>
                         <div className="min-w-0">
@@ -158,8 +178,8 @@ export const ProductionTrendChart: React.FC<ProductionTrendChartProps> = ({
                                 className={cn(
                                     'flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-bold transition-all',
                                     chartType === 'line'
-                                        ? 'bg-white text-slate-900 shadow-2xs'
-                                        : 'text-slate-500 hover:text-slate-900',
+                                        ? 'bg-white text-emerald-800 shadow-2xs'
+                                        : 'text-slate-500 hover:text-emerald-700',
                                 )}
                             >
                                 <LineChart className="size-3" />
@@ -171,8 +191,8 @@ export const ProductionTrendChart: React.FC<ProductionTrendChartProps> = ({
                                 className={cn(
                                     'flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-bold transition-all',
                                     chartType === 'bar'
-                                        ? 'bg-white text-slate-900 shadow-2xs'
-                                        : 'text-slate-500 hover:text-slate-900',
+                                        ? 'bg-white text-emerald-800 shadow-2xs'
+                                        : 'text-slate-500 hover:text-emerald-700',
                                 )}
                             >
                                 <BarChart3 className="size-3" />
@@ -184,7 +204,7 @@ export const ProductionTrendChart: React.FC<ProductionTrendChartProps> = ({
                         <select
                             value={metricKey}
                             onChange={(e) => setMetricKey(e.target.value as TrendMetricKey)}
-                            className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-bold text-slate-900 shadow-2xs focus:border-slate-400 focus:outline-none"
+                            className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-bold text-slate-900 shadow-2xs focus:border-emerald-500 focus:outline-none"
                         >
                             {metricOptions.map((opt) => (
                                 <option key={opt.key} value={opt.key}>
@@ -199,13 +219,13 @@ export const ProductionTrendChart: React.FC<ProductionTrendChartProps> = ({
                 <div className="relative w-full overflow-hidden">
                     <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto block select-none">
                         <defs>
-                            <linearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                                <stop offset="0%" stopColor="#0f172a" stopOpacity="0.22" />
-                                <stop offset="100%" stopColor="#0f172a" stopOpacity="0.01" />
+                            <linearGradient id="emeraldGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stopColor="#148c1a" stopOpacity="0.25" />
+                                <stop offset="100%" stopColor="#148c1a" stopOpacity="0.01" />
                             </linearGradient>
-                            <linearGradient id="singleColGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                                <stop offset="0%" stopColor="#0f172a" stopOpacity="0.25" />
-                                <stop offset="100%" stopColor="#0f172a" stopOpacity="0.03" />
+                            <linearGradient id="singleColEmeraldGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stopColor="#148c1a" stopOpacity="0.30" />
+                                <stop offset="100%" stopColor="#148c1a" stopOpacity="0.03" />
                             </linearGradient>
                         </defs>
 
@@ -242,11 +262,11 @@ export const ProductionTrendChart: React.FC<ProductionTrendChartProps> = ({
                             <>
                                 {points.length > 1 ? (
                                     <>
-                                        <path d={areaPath} fill="url(#chartGradient)" />
+                                        <path d={areaPath} fill="url(#emeraldGradient)" />
                                         <path
                                             d={linePath}
                                             fill="none"
-                                            stroke="#0f172a"
+                                            stroke="#148c1a"
                                             strokeWidth="2.5"
                                             strokeLinecap="round"
                                             strokeLinejoin="round"
@@ -256,22 +276,22 @@ export const ProductionTrendChart: React.FC<ProductionTrendChartProps> = ({
                                     /* Single point representation: shaded column + dashed benchmark */
                                     <g>
                                         <rect
-                                            x={points[0].x - 30}
+                                            x={points[0].barX}
                                             y={points[0].y}
-                                            width={60}
+                                            width={points[0].barWidth}
                                             height={height - padding.bottom - points[0].y}
                                             rx={6}
-                                            fill="url(#singleColGradient)"
+                                            fill="url(#singleColEmeraldGradient)"
                                         />
                                         <line
                                             x1={padding.left}
                                             x2={width - padding.right}
                                             y1={points[0].y}
                                             y2={points[0].y}
-                                            stroke="#0f172a"
+                                            stroke="#148c1a"
                                             strokeDasharray="4 4"
                                             strokeWidth="1.5"
-                                            opacity="0.3"
+                                            opacity="0.4"
                                         />
                                     </g>
                                 )}
@@ -292,16 +312,16 @@ export const ProductionTrendChart: React.FC<ProductionTrendChartProps> = ({
                                                     cx={p.x}
                                                     cy={p.y}
                                                     r={12}
-                                                    fill="#0f172a"
-                                                    opacity="0.1"
+                                                    fill="#148c1a"
+                                                    opacity="0.15"
                                                 />
                                             )}
                                             <circle
                                                 cx={p.x}
                                                 cy={p.y}
                                                 r={isCurrentActive || isSelectedCY ? 6 : 4}
-                                                fill={isCurrentActive || isSelectedCY ? '#0f172a' : '#ffffff'}
-                                                stroke="#0f172a"
+                                                fill={isCurrentActive || isSelectedCY ? '#148c1a' : '#ffffff'}
+                                                stroke="#148c1a"
                                                 strokeWidth={isCurrentActive || isSelectedCY ? 2.5 : 2}
                                                 className="transition-all duration-150"
                                             />
@@ -312,12 +332,6 @@ export const ProductionTrendChart: React.FC<ProductionTrendChartProps> = ({
                         ) : (
                             <g>
                                 {points.map((p, idx) => {
-                                    const barWidth = Math.min(
-                                        44,
-                                        Math.max(24, (width - padding.left - padding.right) / (points.length * 2)),
-                                    );
-                                    const barX = p.x - barWidth / 2;
-                                    const barY = p.y;
                                     const barH = Math.max(4, height - padding.bottom - p.y);
                                     const isCurrentActive = activeIdx === idx;
                                     const isSelectedCY = selectedCropYear && p.cropYear === selectedCropYear;
@@ -325,13 +339,13 @@ export const ProductionTrendChart: React.FC<ProductionTrendChartProps> = ({
                                     return (
                                         <rect
                                             key={`bar-${idx}`}
-                                            x={barX}
-                                            y={barY}
-                                            width={barWidth}
+                                            x={p.barX}
+                                            y={p.y}
+                                            width={p.barWidth}
                                             height={barH}
                                             rx={4}
-                                            fill={isCurrentActive || isSelectedCY ? '#0f172a' : '#64748b'}
-                                            opacity={isCurrentActive || isSelectedCY ? 1 : 0.65}
+                                            fill={isCurrentActive || isSelectedCY ? '#148c1a' : '#64748b'}
+                                            opacity={isCurrentActive || isSelectedCY ? 1 : 0.45}
                                             className="cursor-pointer transition-all hover:opacity-100"
                                             onMouseEnter={() => setHoverIdx(idx)}
                                             onMouseLeave={() => setHoverIdx(null)}
@@ -359,16 +373,16 @@ export const ProductionTrendChart: React.FC<ProductionTrendChartProps> = ({
                                         textAnchor="middle"
                                         fontSize="10.5"
                                         fontWeight={isCurrentActive || isSelectedCY ? '800' : '500'}
-                                        fill={isCurrentActive || isSelectedCY ? '#0f172a' : '#64748b'}
+                                        fill={isCurrentActive || isSelectedCY ? '#148c1a' : '#64748b'}
                                     >
                                         {p.cropYear}
                                     </text>
                                     {(isCurrentActive || isSelectedCY) && (
                                         <circle
                                             cx={p.x}
-                                            cy={height - padding.bottom + 25}
+                                            cy={height - padding.bottom + 26}
                                             r={2}
-                                            fill="#0f172a"
+                                            fill="#148c1a"
                                         />
                                     )}
                                 </g>
@@ -380,18 +394,18 @@ export const ProductionTrendChart: React.FC<ProductionTrendChartProps> = ({
 
             {/* Footer Summary Tile */}
             {activeItem && (
-                <div className="mt-2.5 rounded-lg bg-slate-50 p-2.5 flex flex-wrap items-center justify-between gap-2 text-xs min-w-0">
+                <div className="mt-2.5 rounded-lg bg-emerald-50/70 border border-emerald-100/80 p-2.5 flex flex-wrap items-center justify-between gap-2 text-xs min-w-0">
                     <div className="flex items-center gap-1.5 min-w-0">
-                        <Info className="size-3.5 text-slate-500 shrink-0" />
-                        <span className="text-[11px] text-slate-700 truncate">
+                        <Info className="size-3.5 text-emerald-700 shrink-0" />
+                        <span className="text-[11px] text-emerald-900 truncate">
                             <strong>Crop Year {activeItem.crop_year}:</strong> {activeOption.label} ={' '}
-                            <span className="font-bold text-slate-900">
+                            <span className="font-bold text-emerald-950">
                                 {formatNum(Number(activeItem[metricKey] ?? 0))} {activeOption.unit}
                             </span>
                         </span>
                     </div>
 
-                    <div className="flex items-center gap-2.5 text-[10.5px] text-slate-500 shrink-0">
+                    <div className="flex items-center gap-2.5 text-[10.5px] text-emerald-800/80 shrink-0">
                         <span>Net: <strong>{formatNum(activeItem.net_cw)}t</strong></span>
                         <span>Sugar: <strong>{formatNum(activeItem.actual_lkg)} LKG</strong></span>
                         <span>Trucks: <strong>{activeItem.trucks}</strong></span>

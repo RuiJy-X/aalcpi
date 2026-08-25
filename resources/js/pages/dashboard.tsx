@@ -207,7 +207,7 @@ export default function Dashboard({
                             <Button
                                 size="sm"
                                 onClick={() => router.get(millingPeriodCreate().url)}
-                                className="bg-slate-900 hover:bg-slate-800 text-white font-medium shadow-2xs rounded-lg text-xs h-8"
+                                className="bg-emerald-700 hover:bg-emerald-800 text-white font-medium shadow-2xs rounded-lg text-xs h-8"
                             >
                                 <Plus className="mr-1 size-3.5" />
                                 Milling Week

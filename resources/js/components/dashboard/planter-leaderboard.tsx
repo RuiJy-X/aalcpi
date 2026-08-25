@@ -70,7 +70,7 @@ export const PlanterLeaderboard: React.FC<PlanterLeaderboardProps> = ({
     return (
         <div
             className={cn(
-                'flex flex-col justify-between rounded-xl border border-slate-200/80 bg-white p-5 shadow-2xs transition-all hover:border-slate-300 min-w-0 w-full overflow-hidden',
+                'flex flex-col justify-between rounded-xl border border-slate-200/80 bg-white p-5 shadow-2xs transition-all hover:border-emerald-300 min-w-0 w-full overflow-hidden',
                 className,
             )}
         >
@@ -78,7 +78,7 @@ export const PlanterLeaderboard: React.FC<PlanterLeaderboardProps> = ({
                 {/* Header */}
                 <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-slate-100 pb-3 mb-3">
                     <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
+                        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-800 shadow-2xs">
                             <Trophy className="size-4" />
                         </div>
                         <div className="min-w-0">
@@ -100,7 +100,7 @@ export const PlanterLeaderboard: React.FC<PlanterLeaderboardProps> = ({
                                 placeholder="Filter planter..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                className="w-28 sm:w-32 rounded-lg border border-slate-200 bg-slate-50 pl-7 pr-2 py-1 text-xs text-slate-900 placeholder-slate-400 focus:border-slate-400 focus:bg-white focus:outline-none"
+                                className="w-28 sm:w-32 rounded-lg border border-slate-200 bg-slate-50 pl-7 pr-2 py-1 text-xs text-slate-900 placeholder-slate-400 focus:border-emerald-500 focus:bg-white focus:outline-none"
                             />
                         </div>
 
@@ -108,7 +108,7 @@ export const PlanterLeaderboard: React.FC<PlanterLeaderboardProps> = ({
                         <select
                             value={metricKey}
                             onChange={(e) => setMetricKey(e.target.value as LeaderboardMetricKey)}
-                            className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-bold text-slate-900 shadow-2xs focus:border-slate-400 focus:outline-none"
+                            className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-bold text-slate-900 shadow-2xs focus:border-emerald-500 focus:outline-none"
                         >
                             {metricOptions.map((opt) => (
                                 <option key={opt.key} value={opt.key}>
@@ -127,17 +127,17 @@ export const PlanterLeaderboard: React.FC<PlanterLeaderboardProps> = ({
 
                         const rankStyles =
                             idx === 0
-                                ? 'bg-amber-500 text-white font-bold'
+                                ? 'bg-emerald-700 text-white font-bold'
                                 : idx === 1
-                                  ? 'bg-slate-700 text-white font-bold'
+                                  ? 'bg-emerald-600 text-white font-bold'
                                   : idx === 2
-                                    ? 'bg-amber-700 text-white font-bold'
+                                    ? 'bg-emerald-800 text-white font-bold'
                                     : 'bg-slate-100 text-slate-600 font-semibold';
 
                         return (
                             <div
                                 key={row.planter_id || idx}
-                                className="flex flex-col rounded-lg border border-slate-100 bg-slate-50/40 p-2.5 transition-all hover:bg-slate-50 min-w-0"
+                                className="flex flex-col rounded-lg border border-slate-100 bg-slate-50/40 p-2.5 transition-all hover:bg-emerald-50/40 hover:border-emerald-100 min-w-0"
                             >
                                 <div className="flex items-center justify-between gap-2.5 min-w-0">
                                     <div className="flex items-center gap-2 min-w-0">
@@ -171,7 +171,7 @@ export const PlanterLeaderboard: React.FC<PlanterLeaderboardProps> = ({
                                     <div
                                         className={cn(
                                             'h-full rounded-full transition-all duration-300',
-                                            idx === 0 ? 'bg-amber-500' : 'bg-slate-700',
+                                            idx === 0 ? 'bg-emerald-700' : 'bg-emerald-600/70',
                                         )}
                                         style={{ width: `${pct}%` }}
                                     />
@@ -196,7 +196,7 @@ export const PlanterLeaderboard: React.FC<PlanterLeaderboardProps> = ({
 
                 <Link
                     href="/Planters"
-                    className="inline-flex items-center gap-1 font-semibold text-slate-700 hover:text-slate-900 transition-colors"
+                    className="inline-flex items-center gap-1 font-semibold text-emerald-700 hover:text-emerald-800 transition-colors"
                 >
                     <span>Planters Directory</span>
                     <ArrowRight className="size-3" />

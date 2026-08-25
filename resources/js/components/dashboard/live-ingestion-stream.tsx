@@ -40,7 +40,7 @@ export const LiveIngestionStream: React.FC<LiveIngestionStreamProps> = ({
     return (
         <div
             className={cn(
-                'flex flex-col justify-between rounded-xl border border-slate-200/80 bg-white p-5 shadow-2xs transition-all hover:border-slate-300 min-w-0 w-full overflow-hidden',
+                'flex flex-col justify-between rounded-xl border border-slate-200/80 bg-white p-5 shadow-2xs transition-all hover:border-emerald-300 min-w-0 w-full overflow-hidden',
                 className,
             )}
         >
@@ -48,7 +48,7 @@ export const LiveIngestionStream: React.FC<LiveIngestionStreamProps> = ({
                 {/* Header */}
                 <div className="flex items-center justify-between gap-2.5 border-b border-slate-100 pb-3 mb-3">
                     <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white">
+                        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-emerald-700 text-white shadow-2xs">
                             <Clock3 className="size-4" />
                         </div>
                         <div className="min-w-0">
@@ -61,7 +61,7 @@ export const LiveIngestionStream: React.FC<LiveIngestionStreamProps> = ({
                         </div>
                     </div>
 
-                    <span className="flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700 shrink-0">
+                    <span className="flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-800 border border-emerald-200/60 shrink-0">
                         <span className="flex size-1.5 rounded-full bg-emerald-500 animate-pulse" />
                         Active
                     </span>
@@ -83,7 +83,7 @@ export const LiveIngestionStream: React.FC<LiveIngestionStreamProps> = ({
                         return (
                             <div
                                 key={`${item.type}-${idx}-${item.at}`}
-                                className="rounded-lg border border-slate-100 bg-slate-50/50 p-2.5 text-xs transition-colors hover:bg-slate-50 min-w-0"
+                                className="rounded-lg border border-slate-100 bg-slate-50/50 p-2.5 text-xs transition-colors hover:bg-emerald-50/40 hover:border-emerald-100 min-w-0"
                             >
                                 <div className="flex items-center justify-between gap-2 min-w-0">
                                     <span className="font-bold text-slate-900 truncate min-w-0 text-xs">
@@ -136,7 +136,7 @@ export const LiveIngestionStream: React.FC<LiveIngestionStreamProps> = ({
 
                 <Link
                     href="/Imports/history"
-                    className="inline-flex items-center gap-1 font-semibold text-slate-700 hover:text-slate-900 transition-colors"
+                    className="inline-flex items-center gap-1 font-semibold text-emerald-700 hover:text-emerald-800 transition-colors"
                 >
                     <span>Import History</span>
                     <ArrowRight className="size-3" />

@@ -47,13 +47,13 @@ export const MinimalKpiStrip: React.FC<MinimalKpiStripProps> = ({
             {canViewProd && (
                 <Link
                     href="/Productions"
-                    className="group flex flex-col justify-between rounded-xl border border-slate-200/80 bg-white p-4 shadow-2xs transition-all hover:border-slate-300 hover:shadow-xs min-w-0 overflow-hidden"
+                    className="group flex flex-col justify-between rounded-xl border border-slate-200/80 bg-white p-4 shadow-2xs transition-all hover:border-emerald-300 hover:shadow-xs min-w-0 overflow-hidden"
                 >
                     <div className="flex items-center justify-between gap-2">
                         <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider truncate">
                             Net Cane Weight
                         </span>
-                        <Scale className="size-4 text-slate-400 group-hover:text-slate-700 transition-colors shrink-0" />
+                        <Scale className="size-4 text-slate-400 group-hover:text-emerald-700 transition-colors shrink-0" />
                     </div>
 
                     <div className="my-2 min-w-0">
@@ -74,13 +74,13 @@ export const MinimalKpiStrip: React.FC<MinimalKpiStripProps> = ({
             {canViewProd && (
                 <Link
                     href="/Productions"
-                    className="group flex flex-col justify-between rounded-xl border border-slate-200/80 bg-white p-4 shadow-2xs transition-all hover:border-slate-300 hover:shadow-xs min-w-0 overflow-hidden"
+                    className="group flex flex-col justify-between rounded-xl border border-slate-200/80 bg-white p-4 shadow-2xs transition-all hover:border-emerald-300 hover:shadow-xs min-w-0 overflow-hidden"
                 >
                     <div className="flex items-center justify-between gap-2">
                         <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider truncate">
                             Sugar Production
                         </span>
-                        <Droplets className="size-4 text-slate-400 group-hover:text-slate-700 transition-colors shrink-0" />
+                        <Droplets className="size-4 text-slate-400 group-hover:text-emerald-700 transition-colors shrink-0" />
                     </div>
 
                     <div className="my-2 min-w-0">
@@ -101,13 +101,13 @@ export const MinimalKpiStrip: React.FC<MinimalKpiStripProps> = ({
             {canViewProd && (
                 <Link
                     href="/Productions"
-                    className="group flex flex-col justify-between rounded-xl border border-slate-200/80 bg-white p-4 shadow-2xs transition-all hover:border-slate-300 hover:shadow-xs min-w-0 overflow-hidden"
+                    className="group flex flex-col justify-between rounded-xl border border-slate-200/80 bg-white p-4 shadow-2xs transition-all hover:border-emerald-300 hover:shadow-xs min-w-0 overflow-hidden"
                 >
                     <div className="flex items-center justify-between gap-2">
                         <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider truncate">
                             Production Rows
                         </span>
-                        <CheckCircle2 className="size-4 text-slate-400 group-hover:text-emerald-600 transition-colors shrink-0" />
+                        <CheckCircle2 className="size-4 text-slate-400 group-hover:text-emerald-700 transition-colors shrink-0" />
                     </div>
 
                     <div className="my-2 min-w-0">
@@ -130,13 +130,13 @@ export const MinimalKpiStrip: React.FC<MinimalKpiStripProps> = ({
             {(canViewRecon || canViewPayroll) && (
                 <Link
                     href={canViewRecon ? '/BankReconciliation' : '/Payroll'}
-                    className="group flex flex-col justify-between rounded-xl border border-slate-200/80 bg-white p-4 shadow-2xs transition-all hover:border-slate-300 hover:shadow-xs min-w-0 overflow-hidden"
+                    className="group flex flex-col justify-between rounded-xl border border-slate-200/80 bg-white p-4 shadow-2xs transition-all hover:border-emerald-300 hover:shadow-xs min-w-0 overflow-hidden"
                 >
                     <div className="flex items-center justify-between gap-2">
                         <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider truncate">
                             Outstanding Checks
                         </span>
-                        <Banknote className="size-4 text-slate-400 group-hover:text-slate-700 transition-colors shrink-0" />
+                        <Banknote className="size-4 text-slate-400 group-hover:text-emerald-700 transition-colors shrink-0" />
                     </div>
 
                     <div className="my-2 min-w-0">
