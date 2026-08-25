@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Advancement;
 use App\Models\Attendance;
 use App\Models\BankStatement;
 use App\Models\Employee;
@@ -17,6 +18,7 @@ use App\Models\User;
 use App\Models\Weekly;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -26,26 +28,67 @@ class DashboardController extends Controller
 {
     public function index(Request $request): Response
     {
-        $cropYears = Production::query()
-            ->whereNotNull('crop_year')
-            ->distinct()
-            ->orderBy('crop_year', 'desc')
-            ->pluck('crop_year')
+        $today = Carbon::today();
+        $currentYear = (int) $today->format('Y');
+        $currentMonth = (int) $today->format('n');
+
+        // Sugarcane crop year usually starts September (month 9)
+        $activeSeasonStart = $currentMonth >= 9 ? $currentYear : $currentYear - 1;
+        $calendarCropYears = collect([
+            ($activeSeasonStart + 1).'-'.($activeSeasonStart + 2), // Upcoming season (e.g. 2026-2027)
+            $activeSeasonStart.'-'.($activeSeasonStart + 1),       // Current active season (e.g. 2025-2026)
+            ($activeSeasonStart - 1).'-'.$activeSeasonStart,       // Previous season (e.g. 2024-2025)
+            ($activeSeasonStart - 2).'-'.($activeSeasonStart - 1), // Past season (e.g. 2023-2024)
+        ]);
+
+        $dbCropYears = collect()
+            ->merge(MillingPeriod::query()->whereNotNull('crop_year')->pluck('crop_year'))
+            ->merge(Weekly::query()->whereNotNull('crop_year')->pluck('crop_year'))
+            ->merge(Production::query()->whereNotNull('crop_year')->pluck('crop_year'))
+            ->filter(fn ($cy) => is_string($cy) && trim($cy) !== '')
+            ->unique();
+
+        $cropYears = $dbCropYears
+            ->merge($calendarCropYears)
+            ->unique()
+            ->sort(fn ($a, $b) => strnatcasecmp($b, $a))
             ->values();
 
         $requestedCropYear = $request->input('crop_year');
-        $selectedCropYear = $cropYears->contains($requestedCropYear)
-            ? $requestedCropYear
-            : $cropYears->first();
+        $isAllCropYears = $requestedCropYear === 'all';
+
+        // Check if there is an active milling period today
+        $activePeriodCY = MillingPeriod::query()
+            ->whereDate('start_date', '<=', $today)
+            ->whereDate('end_date', '>=', $today)
+            ->value('crop_year');
+
+        // Select active crop year, requested crop year, or latest available
+        if ($isAllCropYears) {
+            $selectedCropYear = 'all';
+        } elseif ($requestedCropYear && $cropYears->contains($requestedCropYear)) {
+            $selectedCropYear = $requestedCropYear;
+        } elseif ($activePeriodCY && $cropYears->contains($activePeriodCY)) {
+            $selectedCropYear = $activePeriodCY;
+        } elseif ($dbCropYears->isNotEmpty()) {
+            $selectedCropYear = $dbCropYears->sort(fn ($a, $b) => strnatcasecmp($b, $a))->first();
+        } else {
+            $selectedCropYear = $cropYears->first();
+        }
+
+        $scopedCropYear = ($selectedCropYear && $selectedCropYear !== 'all') ? $selectedCropYear : null;
 
         $productionQuery = Production::query()->when(
-            $selectedCropYear,
-            fn ($query) => $query->where('crop_year', $selectedCropYear),
+            $scopedCropYear,
+            fn ($query) => $query->where('crop_year', $scopedCropYear),
         );
 
         $productionTotals = (clone $productionQuery)
             ->selectRaw(
-                'COALESCE(SUM(gross_cw), 0) as gross_cw,
+                'COUNT(*) as total_rows,
+                 SUM(CASE WHEN status = "draft" THEN 1 ELSE 0 END) as draft_count,
+                 SUM(CASE WHEN status = "completed" THEN 1 ELSE 0 END) as completed_count,
+                 COALESCE(SUM(gross_cw), 0) as gross_cw,
                  COALESCE(SUM(net_cw), 0) as net_cw,
                  COALESCE(SUM(trucks), 0) as trucks,
                  COALESCE(SUM(actual_lkg), 0) as actual_lkg,
@@ -54,6 +97,36 @@ class DashboardController extends Controller
                  COALESCE(SUM(pshr_net_mol), 0) as pshr_net_mol'
             )
             ->first();
+
+        $totalRows = (int) ($productionTotals->total_rows ?? 0);
+        $draftCount = (int) ($productionTotals->draft_count ?? 0);
+        $completedCount = (int) ($productionTotals->completed_count ?? 0);
+        $grossCw = (float) ($productionTotals->gross_cw ?? 0);
+        $netCw = (float) ($productionTotals->net_cw ?? 0);
+        $trucks = (int) ($productionTotals->trucks ?? 0);
+        $actualLkg = (float) ($productionTotals->actual_lkg ?? 0);
+        $pshrNetLkg = (float) ($productionTotals->pshr_net_lkg ?? 0);
+        $millShareLkg = max(0, $actualLkg - $pshrNetLkg);
+        $actualMol = (float) ($productionTotals->actual_mol ?? 0);
+        $pshrNetMol = (float) ($productionTotals->pshr_net_mol ?? 0);
+        $millShareMol = max(0, $actualMol - $pshrNetMol);
+        $percentComplete = $totalRows > 0 ? round(($completedCount / $totalRows) * 100) : 0;
+
+        $productionWorkflow = [
+            'total_rows' => $totalRows,
+            'draft_count' => $draftCount,
+            'completed_count' => $completedCount,
+            'percent_complete' => $percentComplete,
+            'gross_cw' => $grossCw,
+            'net_cw' => $netCw,
+            'trucks' => $trucks,
+            'actual_lkg' => $actualLkg,
+            'pshr_net_lkg' => $pshrNetLkg,
+            'mill_share_lkg' => $millShareLkg,
+            'actual_mol' => $actualMol,
+            'pshr_net_mol' => $pshrNetMol,
+            'mill_share_mol' => $millShareMol,
+        ];
 
         $entityCounts = [
             'planters' => (clone $productionQuery)
@@ -64,10 +137,11 @@ class DashboardController extends Controller
                 ->count('hacienda_code'),
         ];
 
-        $trendData = Production::query()
+        $trendRows = Production::query()
             ->whereNotNull('crop_year')
             ->selectRaw(
                 'crop_year,
+                 COUNT(*) as total_rows,
                  COALESCE(SUM(gross_cw), 0) as gross_cw,
                  COALESCE(SUM(net_cw), 0) as net_cw,
                  COALESCE(SUM(trucks), 0) as trucks,
@@ -77,15 +151,31 @@ class DashboardController extends Controller
                  COALESCE(SUM(pshr_net_mol), 0) as pshr_net_mol'
             )
             ->groupBy('crop_year')
-            ->orderBy('crop_year')
+            ->orderBy('crop_year', 'asc')
             ->get();
+
+        $trendData = $trendRows->map(function ($row) {
+            return [
+                'label' => (string) $row->crop_year,
+                'period_key' => (string) $row->crop_year,
+                'crop_year' => (string) $row->crop_year,
+                'total_rows' => (int) $row->total_rows,
+                'gross_cw' => (float) $row->gross_cw,
+                'net_cw' => (float) $row->net_cw,
+                'trucks' => (int) $row->trucks,
+                'actual_lkg' => (float) $row->actual_lkg,
+                'pshr_net_lkg' => (float) $row->pshr_net_lkg,
+                'actual_mol' => (float) $row->actual_mol,
+                'pshr_net_mol' => (float) $row->pshr_net_mol,
+            ];
+        })->values();
 
         $planterLeaderboard = Production::query()
             ->join('planters', 'productions.planter_id', '=', 'planters.id')
             ->leftJoin('haciendas', 'productions.hacienda_id', '=', 'haciendas.id')
             ->when(
-                $selectedCropYear,
-                fn ($query) => $query->where('productions.crop_year', $selectedCropYear),
+                $scopedCropYear,
+                fn ($query) => $query->where('productions.crop_year', $scopedCropYear),
             )
             ->selectRaw(
                 'productions.planter_id as planter_id,
@@ -104,10 +194,10 @@ class DashboardController extends Controller
 
         $millingPeriods = MillingPeriod::query()
             ->when(
-                $selectedCropYear,
-                fn ($query) => $query->where('crop_year', $selectedCropYear),
+                $scopedCropYear,
+                fn ($query) => $query->where('crop_year', $scopedCropYear),
             )
-            ->orderBy('start_date')
+            ->orderBy('week_no')
             ->get([
                 'id',
                 'week_no',
@@ -120,6 +210,142 @@ class DashboardController extends Controller
                 'mol_factor',
             ]);
 
+        $activeMillingPeriod = MillingPeriod::query()
+            ->when($scopedCropYear, fn ($q) => $q->where('crop_year', $scopedCropYear))
+            ->whereDate('start_date', '<=', $today)
+            ->whereDate('end_date', '>=', $today)
+            ->first([
+                'id',
+                'week_no',
+                'crop_year',
+                'start_date',
+                'end_date',
+                'sugar_price',
+                'mol_price',
+                'sugar_factor',
+                'mol_factor',
+            ]);
+
+        if (! $activeMillingPeriod && $millingPeriods->isNotEmpty()) {
+            $activeMillingPeriod = $millingPeriods->first();
+        }
+
+        $cropYearDateRange = $this->resolveCropYearDateRange($scopedCropYear);
+
+        // Bank Reconciliation detailed metrics (filtered by internal date_issued within crop year)
+        $unmatchedDisbursements = InternalDisbursements::query()
+            ->whereNull('bank_statement_id')
+            ->when($cropYearDateRange, function ($query) use ($cropYearDateRange) {
+                $query->where(function ($q) use ($cropYearDateRange) {
+                    $q->whereBetween('date_issued', [$cropYearDateRange['start'], $cropYearDateRange['end']])
+                        ->orWhere(function ($fallback) use ($cropYearDateRange) {
+                            $fallback->whereNull('date_issued')
+                                ->whereBetween('created_at', [
+                                    $cropYearDateRange['start'].' 00:00:00',
+                                    $cropYearDateRange['end'].' 23:59:59',
+                                ]);
+                        });
+                });
+            });
+
+        $outstandingChecksCount = $unmatchedDisbursements->count();
+        $outstandingChecksAmount = (float) $unmatchedDisbursements->sum('check_amount');
+
+        $unmatchedBankEntries = BankStatement::query()
+            ->whereDoesntHave('internalDisbursement')
+            ->when($cropYearDateRange, function ($query) use ($cropYearDateRange) {
+                $query->whereBetween('transaction_date', [$cropYearDateRange['start'], $cropYearDateRange['end']]);
+            });
+
+        $unrecordedBankCount = $unmatchedBankEntries->count();
+        $unrecordedBankAmount = (float) $unmatchedBankEntries->sum('debit');
+
+        $reconSnapshot = $this->bankReconSnapshot($cropYearDateRange);
+        $bankReconWorkflow = [
+            'total' => $reconSnapshot['total'],
+            'matched_count' => $reconSnapshot['matched'],
+            'match_rate' => $reconSnapshot['match_rate'],
+            'outstanding_count' => $outstandingChecksCount,
+            'outstanding_amount' => $outstandingChecksAmount,
+            'unrecorded_count' => $unrecordedBankCount,
+            'unrecorded_amount' => $unrecordedBankAmount,
+            'mismatch_count' => $reconSnapshot['mismatch'],
+        ];
+
+        // Payroll detailed metrics
+        $payrollDraftCount = Payroll::query()->where('status', 'draft')->count();
+        $payrollDraftAmount = (float) Payroll::query()->where('status', 'draft')->sum('net_pay');
+
+        $payrollPendingCount = Payroll::query()->where('status', 'pending')->count();
+        $payrollPendingAmount = (float) Payroll::query()->where('status', 'pending')->sum('net_pay');
+
+        $payrollPaidCount = Payroll::query()->where('status', 'paid')->count();
+        $payrollPaidAmount = (float) Payroll::query()->where('status', 'paid')->sum('net_pay');
+
+        $attendanceThisMonth = Attendance::query()
+            ->whereBetween('date', [
+                $today->copy()->startOfMonth()->toDateString(),
+                $today->copy()->endOfMonth()->toDateString(),
+            ])
+            ->count();
+
+        $activeAdvanceBalance = (float) Advancement::query()
+            ->whereIn('status', ['paid_out', 'partially_deducted'])
+            ->sum('remaining_balance');
+
+        $payrollWorkflow = [
+            'total_count' => $payrollDraftCount + $payrollPendingCount + $payrollPaidCount,
+            'draft_count' => $payrollDraftCount,
+            'draft_amount' => $payrollDraftAmount,
+            'pending_count' => $payrollPendingCount,
+            'pending_amount' => $payrollPendingAmount,
+            'paid_count' => $payrollPaidCount,
+            'paid_amount' => $payrollPaidAmount,
+            'attendance_this_month' => $attendanceThisMonth,
+            'active_advance_balance' => $activeAdvanceBalance,
+        ];
+
+        $failedImportsCount = ImportJob::query()
+            ->where('status', ImportJob::STATUS_FAILED)
+            ->where('created_at', '>=', now()->subDays(7))
+            ->count();
+
+        $actionQueue = [
+            [
+                'id' => 'failed_imports',
+                'permission' => 'import_history.view',
+                'level' => 'critical',
+                'count' => $failedImportsCount,
+                'amount' => null,
+                'title' => 'Failed Ingestion Jobs',
+                'description' => "{$failedImportsCount} file import error(s) in the last 7 days",
+                'action_label' => 'Inspect Logs',
+                'href' => '/Imports/history',
+            ],
+            [
+                'id' => 'draft_productions',
+                'permission' => 'productions.view',
+                'level' => 'info',
+                'count' => $draftCount,
+                'amount' => null,
+                'title' => 'Draft Production Rows',
+                'description' => "{$draftCount} production row(s) pending final review",
+                'action_label' => 'Review Productions',
+                'href' => '/Productions',
+            ],
+            [
+                'id' => 'pending_payrolls',
+                'permission' => 'payroll.view',
+                'level' => 'info',
+                'count' => $payrollPendingCount,
+                'amount' => $payrollPendingAmount,
+                'title' => 'Pending Payroll Batches',
+                'description' => "{$payrollPendingCount} payroll batch(es) awaiting manager approval (₱".number_format($payrollPendingAmount, 2).')',
+                'action_label' => 'Approve Payroll',
+                'href' => '/Payroll',
+            ],
+        ];
+
         return Inertia::render('dashboard', [
             'crop_years' => $cropYears,
             'filters' => [
@@ -130,8 +356,13 @@ class DashboardController extends Controller
             'trend_data' => $trendData,
             'leaderboard' => $planterLeaderboard,
             'milling_periods' => $millingPeriods,
-            'module_summaries' => $this->buildModuleSummaries($selectedCropYear),
-            'status_tracking' => $this->buildStatusTracking($selectedCropYear),
+            'production_workflow' => $productionWorkflow,
+            'bank_recon_workflow' => $bankReconWorkflow,
+            'payroll_workflow' => $payrollWorkflow,
+            'active_milling_period' => $activeMillingPeriod,
+            'action_queue' => $actionQueue,
+            'module_summaries' => $this->buildModuleSummaries($scopedCropYear),
+            'status_tracking' => $this->buildStatusTracking($scopedCropYear),
             'recent_activity' => $this->buildRecentActivity(),
         ]);
     }
@@ -196,7 +427,8 @@ class DashboardController extends Controller
 
         $userCount = User::query()->count();
 
-        $recon = $this->bankReconSnapshot();
+        $cropYearDateRange = $this->resolveCropYearDateRange($cropYear);
+        $recon = $this->bankReconSnapshot($cropYearDateRange);
 
         $importsRunning = ImportJob::query()
             ->whereIn('status', [ImportJob::STATUS_QUEUED, ImportJob::STATUS_RUNNING])
@@ -400,7 +632,8 @@ class DashboardController extends Controller
         $payrollDraft = Payroll::query()->where('status', 'draft')->count();
         $payrollTotal = $payrollPaid + $payrollPending + $payrollDraft;
 
-        $recon = $this->bankReconSnapshot();
+        $cropYearDateRange = $this->resolveCropYearDateRange($cropYear);
+        $recon = $this->bankReconSnapshot($cropYearDateRange);
 
         $imports = [
             'queued' => ImportJob::query()->where('status', ImportJob::STATUS_QUEUED)->count(),
@@ -466,6 +699,49 @@ class DashboardController extends Controller
     }
 
     /**
+     * Resolve start and end dates for a given crop year (e.g. '2025-2026').
+     *
+     * @return array{start: string, end: string}|null
+     */
+    private function resolveCropYearDateRange(?string $cropYear): ?array
+    {
+        if (! $cropYear || $cropYear === 'all') {
+            return null;
+        }
+
+        $startDate = null;
+        $endDate = null;
+
+        // Parse YYYY-YYYY format
+        if (preg_match('/^(\d{4})-(\d{4})$/', $cropYear, $matches)) {
+            $startYear = (int) $matches[1];
+            $endYear = (int) $matches[2];
+            // Default sugarcane crop year season: Sept 1 to August 31
+            $startDate = Carbon::createFromDate($startYear, 9, 1)->toDateString();
+            $endDate = Carbon::createFromDate($endYear, 8, 31)->toDateString();
+        }
+
+        // Expand with actual defined milling period dates if they extend beyond standard bounds
+        $minMillingStart = MillingPeriod::query()->where('crop_year', $cropYear)->whereNotNull('start_date')->min('start_date');
+        $maxMillingEnd = MillingPeriod::query()->where('crop_year', $cropYear)->whereNotNull('end_date')->max('end_date');
+
+        if ($minMillingStart) {
+            $startDate = $startDate ? min($startDate, $minMillingStart) : $minMillingStart;
+        }
+
+        if ($maxMillingEnd) {
+            $endDate = $endDate ? max($endDate, $maxMillingEnd) : $maxMillingEnd;
+        }
+
+        if ($startDate && $endDate) {
+            return ['start' => $startDate, 'end' => $endDate];
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  array{start: string, end: string}|null  $cropYearDateRange
      * @return array{
      *     total: int,
      *     matched: int,
@@ -475,7 +751,7 @@ class DashboardController extends Controller
      *     match_rate: float
      * }
      */
-    private function bankReconSnapshot(): array
+    private function bankReconSnapshot(?array $cropYearDateRange = null): array
     {
         $empty = [
             'total' => 0,
@@ -488,8 +764,16 @@ class DashboardController extends Controller
 
         try {
             if (Schema::hasTable('reconciliation_workspace')) {
-                $rows = ReconciliationWorkspace::query()
-                    ->selectRaw('status, COUNT(*) as c')
+                $query = ReconciliationWorkspace::query();
+
+                if ($cropYearDateRange) {
+                    $query->where(function ($q) use ($cropYearDateRange) {
+                        $q->whereBetween('internal_date_issued', [$cropYearDateRange['start'], $cropYearDateRange['end']])
+                            ->orWhereBetween('transaction_date', [$cropYearDateRange['start'], $cropYearDateRange['end']]);
+                    });
+                }
+
+                $rows = $query->selectRaw('status, COUNT(*) as c')
                     ->groupBy('status')
                     ->pluck('c', 'status');
 
@@ -513,9 +797,28 @@ class DashboardController extends Controller
             }
 
             // Fallback when the workspace view is unavailable.
-            $internal = InternalDisbursements::query()->count();
-            $bank = BankStatement::query()->count();
-            $linked = InternalDisbursements::query()
+            $internalQuery = InternalDisbursements::query()
+                ->when($cropYearDateRange, function ($query) use ($cropYearDateRange) {
+                    $query->where(function ($q) use ($cropYearDateRange) {
+                        $q->whereBetween('date_issued', [$cropYearDateRange['start'], $cropYearDateRange['end']])
+                            ->orWhere(function ($fallback) use ($cropYearDateRange) {
+                                $fallback->whereNull('date_issued')
+                                    ->whereBetween('created_at', [
+                                        $cropYearDateRange['start'].' 00:00:00',
+                                        $cropYearDateRange['end'].' 23:59:59',
+                                    ]);
+                            });
+                    });
+                });
+
+            $bankQuery = BankStatement::query()
+                ->when($cropYearDateRange, function ($query) use ($cropYearDateRange) {
+                    $query->whereBetween('transaction_date', [$cropYearDateRange['start'], $cropYearDateRange['end']]);
+                });
+
+            $internal = $internalQuery->count();
+            $bank = $bankQuery->count();
+            $linked = (clone $internalQuery)
                 ->whereNotNull('bank_statement_id')
                 ->count();
 
