@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Printer, Loader2 } from 'lucide-react';
+import { Printer, Loader2, FileSpreadsheet } from 'lucide-react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import {
@@ -137,6 +137,22 @@ export function PrintOutstandingChecksDialog({
         window.open(`${route}?${params.toString()}`, '_blank');
     };
 
+    const handleExportExcel = () => {
+        const params = new URLSearchParams();
+        params.append('tab', 'Outstanding');
+        const fromStr = dateRange?.from
+            ? format(dateRange.from, 'yyyy-MM-dd')
+            : '';
+        const toStr = dateRange?.to
+            ? format(dateRange.to, 'yyyy-MM-dd')
+            : fromStr;
+
+        if (fromStr) params.append('date_from', fromStr);
+        if (toStr) params.append('date_to', toStr);
+
+        window.open(`/BankReconciliation/export?${params.toString()}`, '_blank');
+    };
+
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
@@ -256,6 +272,20 @@ export function PrintOutstandingChecksDialog({
                     <DialogClose asChild>
                         <Button variant="secondary">Cancel</Button>
                     </DialogClose>
+                    <Button
+                        variant="outline"
+                        onClick={handleExportExcel}
+                        disabled={
+                            isLoading ||
+                            !previewData ||
+                            previewData.total_count === 0
+                        }
+                        className="gap-1.5 text-emerald-700 hover:text-emerald-800 dark:text-emerald-400"
+                        title="Export outstanding checks to Excel"
+                    >
+                        <FileSpreadsheet className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                        Export Excel
+                    </Button>
                     <Button
                         variant="outline"
                         onClick={() => triggerPrint(true)}

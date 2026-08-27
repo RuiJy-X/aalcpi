@@ -26,9 +26,27 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->ensureStorageDirectoriesExist();
         $this->configureDefaults();
         $this->configureAuthorization();
         DatabaseConfigurationService::loadActiveConnection();
+    }
+
+    protected function ensureStorageDirectoriesExist(): void
+    {
+        $directories = [
+            storage_path('fonts'),
+            storage_path('framework/cache'),
+            storage_path('framework/views'),
+            storage_path('framework/sessions'),
+            storage_path('app/temp'),
+        ];
+
+        foreach ($directories as $directory) {
+            if (! is_dir($directory)) {
+                @mkdir($directory, 0755, true);
+            }
+        }
     }
 
     protected function configureDefaults(): void

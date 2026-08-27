@@ -752,20 +752,31 @@ class BankReconciliationController extends Controller
             'date_to' => 'nullable|date',
         ]);
 
-        $data = $this->buildOutstandingChecksData($request);
+        try {
+            $data = $this->buildOutstandingChecksData($request);
 
-        $pdf = Pdf::loadView('pdfs.outstanding_checks', [
-            'dateFrom' => $data['date_from'],
-            'dateTo' => $data['date_to'],
-            'months' => $data['months'],
-            'grandTotal' => $data['grand_total'],
-            'totalCount' => $data['total_count'],
-        ])
-            ->setPaper('a4', 'portrait')
-            ->setOption('isFontSubsettingEnabled', true)
-            ->setOption('isRemoteEnabled', false);
+            $pdf = Pdf::loadView('pdfs.outstanding_checks', [
+                'dateFrom' => $data['date_from'],
+                'dateTo' => $data['date_to'],
+                'months' => $data['months'],
+                'grandTotal' => $data['grand_total'],
+                'totalCount' => $data['total_count'],
+            ])
+                ->setPaper('a4', 'portrait')
+                ->setOption('isFontSubsettingEnabled', false)
+                ->setOption('isRemoteEnabled', false);
 
-        return $pdf->stream('outstanding_checks_report.pdf');
+            return $pdf->stream('outstanding_checks_report.pdf');
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to generate outstanding checks PDF: '.$e->getMessage(), [
+                'exception' => $e,
+            ]);
+
+            return response()->json([
+                'message' => 'Failed to generate PDF. You can use the "Print Report" browser option as a fast alternative.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -792,87 +803,133 @@ class BankReconciliationController extends Controller
     }
 
     /**
-     * Export the reconciliation workspace records into a multi-sheet Excel file (.xlsx)
-     * containing 6 sheets: All, Outstanding, Unrecorded, Matched, Mismatch, Duplicates
-     * and including dataset completion file audit statistics.
+     * Export reconciliation records into an Excel file (.xlsx) matching the PDF report format.
+     * Context-aware: exports whatever tab, month/date range, and filters are currently active on the page.
      */
     public function export(Request $request)
     {
         @ini_set('memory_limit', '512M');
         @set_time_limit(300);
 
-        $periodFrom = $request->string('period_from')->toString();
-        $periodTo = $request->string('period_to')->toString();
-        $disbursementWeek = $request->string('disbursement_week')->toString();
-        $search = $request->string('search')->toString();
-        $dateColumn = $request->string('date_column')->toString();
+        // 1. Resolve active tab
+        $tab = $request->string('tab')->toString();
+        if ($tab === '') {
+            if ($request->boolean('is_duplicate') || ($request->input('filters.is_duplicate') === '1' || $request->input('filters.is_duplicate') === 'true')) {
+                $tab = 'duplicates';
+            } elseif ($request->filled('status')) {
+                $tab = $request->string('status')->toString();
+            } elseif ($request->filled('filters.status')) {
+                $statusFilter = $request->input('filters.status');
+                $tab = is_array($statusFilter) ? ($statusFilter[0] ?? 'all') : (string) $statusFilter;
+            } else {
+                $tab = 'all';
+            }
+        }
+
+        // 2. Resolve Report Title
+        $reportTitles = [
+            'Outstanding' => 'OUTSTANDING CHECKS',
+            'Matched' => 'MATCHED CHECKS',
+            'Amount Mismatch' => 'AMOUNT MISMATCH CHECKS',
+            'Unrecorded Bank Entry' => 'UNRECORDED BANK ENTRIES',
+            'duplicates' => 'DUPLICATE CHECKS',
+            'all' => 'ALL RECONCILIATION CHECKS',
+        ];
+        $reportTitle = $reportTitles[$tab] ?? (strtoupper(str_replace('_', ' ', $tab)).' CHECKS');
+
+        // 3. Resolve Date Range Label
         $dateFrom = $request->string('date_from')->toString();
         $dateTo = $request->string('date_to')->toString();
+        $periodFrom = $request->string('period_from')->toString();
+        $periodTo = $request->string('period_to')->toString();
 
-        $driver = Schema::getConnection()->getDriverName();
-        $likeOperator = $driver === 'pgsql' ? 'ilike' : 'like';
-        $useCaseInsensitiveLike = $driver === 'sqlite';
-        $applyLike = function ($query, string $column, string $value, string $boolean = 'and') use ($likeOperator, $useCaseInsensitiveLike) {
-            if ($useCaseInsensitiveLike) {
-                $grammar = method_exists($query, 'getQuery') ? $query->getQuery()->getGrammar() : $query->getGrammar();
-                $wrapped = $grammar->wrap($column);
-                $query->whereRaw('lower('.$wrapped.') like ?', [strtolower($value)], $boolean);
+        $effectiveFrom = $periodFrom !== '' ? $periodFrom : $dateFrom;
+        $effectiveTo = $periodTo !== '' ? $periodTo : $dateTo;
 
-                return;
+        if ($effectiveFrom !== '') {
+            $fromFormatted = Carbon::parse($effectiveFrom)->format('F j, Y');
+            $toFormatted = $effectiveTo !== '' ? Carbon::parse($effectiveTo)->format('F j, Y') : $fromFormatted;
+            $dateRangeLabel = $effectiveFrom === $effectiveTo
+                ? $fromFormatted
+                : "{$fromFormatted} - {$toFormatted}";
+        } else {
+            $dateRangeLabel = 'For All Dates';
+        }
+
+        // 4. Build Filtered Query
+        $baseQuery = $this->buildFilteredQuery($request);
+
+        if ($tab === 'duplicates') {
+            $baseQuery->where('reconciliation_workspace.is_duplicate', true);
+        } elseif ($tab !== 'all' && $tab !== '') {
+            $baseQuery->where('reconciliation_workspace.status', $tab);
+        }
+
+        // 5. Fetch lightweight records
+        $records = $baseQuery->select([
+            'reconciliation_workspace.ref_no',
+            'reconciliation_workspace.description',
+            'reconciliation_workspace.internal_amount',
+            'reconciliation_workspace.bank_amount',
+            'reconciliation_workspace.internal_date_issued',
+            'reconciliation_workspace.transaction_date',
+            'reconciliation_workspace.status',
+        ])
+            ->orderByRaw('COALESCE(reconciliation_workspace.internal_date_issued, reconciliation_workspace.transaction_date) ASC')
+            ->orderBy('reconciliation_workspace.ref_no', 'asc')
+            ->toBase()
+            ->get();
+
+        // 6. Group by Month
+        $grouped = [];
+        foreach ($records as $record) {
+            $rawDate = $record->internal_date_issued ?: $record->transaction_date;
+            $dateObj = $rawDate ? Carbon::parse($rawDate) : null;
+            $monthKey = $dateObj ? $dateObj->format('Y-m') : 'Unknown';
+            $monthLabel = $dateObj ? $dateObj->format('F Y') : 'Unknown Date';
+
+            if (! isset($grouped[$monthKey])) {
+                $grouped[$monthKey] = [
+                    'month_key' => $monthKey,
+                    'month_label' => $monthLabel,
+                    'items' => [],
+                    'subtotal' => 0.0,
+                ];
             }
 
-            $query->where($column, $likeOperator, $value, $boolean);
-        };
+            $amount = (float) ($record->internal_amount !== null ? $record->internal_amount : ($record->bank_amount ?? 0));
 
-        $baseQuery = ReconciliationWorkspace::query();
+            $grouped[$monthKey]['items'][] = [
+                'no' => count($grouped[$monthKey]['items']) + 1,
+                'date' => '',
+                'raw_date' => (string) ($rawDate ?? ''),
+                'payee_name' => $record->description ?? '',
+                'check_no' => $record->ref_no ?? '',
+                'amount' => $amount,
+                'date_cleared' => '',
+                'status' => $record->status ?? '',
+            ];
 
-        if ($periodFrom !== '') {
-            $periodToResolved = $periodTo !== '' ? $periodTo : $periodFrom;
-            $baseQuery->where(function ($query) use ($periodFrom, $periodToResolved) {
-                $query->whereBetween('reconciliation_workspace.internal_date_issued', [$periodFrom, $periodToResolved])
-                    ->orWhereBetween('reconciliation_workspace.transaction_date', [$periodFrom, $periodToResolved]);
-            });
+            $grouped[$monthKey]['subtotal'] += $amount;
         }
 
-        if ($disbursementWeek !== '' && $disbursementWeek !== 'all') {
-            $baseQuery->where('reconciliation_workspace.disbursement_week', $disbursementWeek);
-        }
+        $monthsList = array_values($grouped);
+        $grandTotal = array_sum(array_column($monthsList, 'subtotal'));
+        $totalCount = count($records);
 
-        if ($search !== '') {
-            $like = '%'.$search.'%';
-            $baseQuery->where(function ($query) use ($applyLike, $like) {
-                $applyLike($query, 'reconciliation_workspace.ref_no', $like, 'or');
-                $applyLike($query, 'reconciliation_workspace.description', $like, 'or');
-            });
-        }
-
-        if ($dateColumn !== '' && $dateFrom !== '') {
-            $toDate = $dateTo !== '' ? $dateTo : $dateFrom;
-            $baseQuery->whereBetween('reconciliation_workspace.'.$dateColumn, [$dateFrom, $toDate]);
-        }
-
-        $allRecords = $baseQuery->orderBy('reconciliation_workspace.transaction_date', 'desc')->get();
-
-        $sheetsData = [
-            'All' => $allRecords,
-            'Outstanding' => $allRecords->where('status', 'Outstanding')->values(),
-            'Unrecorded' => $allRecords->where('status', 'Unrecorded Bank Entry')->values(),
-            'Matched' => $allRecords->where('status', 'Matched')->values(),
-            'Mismatch' => $allRecords->where('status', 'Amount Mismatch')->values(),
-            'Duplicates' => $allRecords->where('is_duplicate', true)->values(),
-        ];
-
-        $fileAuditStats = $this->buildFileAuditStats($periodFrom, $periodTo);
-
-        $cycleName = $fileAuditStats['target_month'] ?? now()->format('Y-m');
-        $fileName = 'Bank_Reconciliation_'.str_replace([' ', '-', '–', ','], '_', $fileAuditStats['period_label'] ?? $cycleName).'.xlsx';
+        // 7. Dynamic File Name
+        $sanitizedTitle = str_replace([' ', '/', '\\'], '_', ucwords(strtolower($reportTitle)));
+        $sanitizedPeriod = str_replace([' ', ',', '–', '-'], '_', $dateRangeLabel);
+        $fileName = "{$sanitizedTitle}_{$sanitizedPeriod}.xlsx";
 
         return Excel::download(
-            new BankReconciliationExport($sheetsData, $fileAuditStats, [
-                'period_from' => $periodFrom,
-                'period_to' => $periodTo,
-                'generated_at' => now()->format('F d, Y h:i A'),
-            ]),
+            new BankReconciliationExport(
+                $reportTitle,
+                $dateRangeLabel,
+                $monthsList,
+                $grandTotal,
+                $totalCount
+            ),
             $fileName
         );
     }

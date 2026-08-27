@@ -453,6 +453,9 @@ export default function Index({
 
     const handleExportExcel = () => {
         const params = new URLSearchParams();
+        if (activeTab) {
+            params.append('tab', activeTab);
+        }
         if (table_state?.period_from) {
             params.append('period_from', table_state.period_from);
         }

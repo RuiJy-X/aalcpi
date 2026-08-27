@@ -24,6 +24,8 @@ class NativeAppServiceProvider implements ProvidesPhpIni
      */
     public function boot(): void
     {
+        $this->ensureStorageDirectoriesExist();
+
         // Keep the local NativePHP SQLite schema + roles ready even when a
         // remote Postgres connection was previously active (migrations only
         // hit the default connection, which may have been pgsql).
@@ -142,6 +144,23 @@ class NativeAppServiceProvider implements ProvidesPhpIni
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to seed desktop users: '.$e->getMessage());
+        }
+    }
+
+    protected function ensureStorageDirectoriesExist(): void
+    {
+        $directories = [
+            storage_path('fonts'),
+            storage_path('framework/cache'),
+            storage_path('framework/views'),
+            storage_path('framework/sessions'),
+            storage_path('app/temp'),
+        ];
+
+        foreach ($directories as $directory) {
+            if (! is_dir($directory)) {
+                @mkdir($directory, 0755, true);
+            }
         }
     }
 }

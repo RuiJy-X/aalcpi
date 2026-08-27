@@ -96,9 +96,9 @@
                 <th style="width: 6.5%;" class="text-right">Daily Rate</th>
                 <th style="width: 3.5%;">Days</th>
                 <th style="width: 7%;" class="text-right">Basic Pay</th>
-                <th style="width: 6.5%;" class="text-right">Adv Payout</th>
+                {{-- <th style="width: 6.5%;" class="text-right">Adv Payout</th> --}}
                 <th style="width: 7%;" class="text-right">Total Earn</th>
-                <th style="width: 6.5%;" class="text-right">Adv Deduct</th>
+                {{-- <th style="width: 6.5%;" class="text-right">Adv Deduct</th> --}}
                 <th style="width: 5%;" class="text-right">SSS</th>
                 <th style="width: 5%;" class="text-right">Pag-IBIG</th>
                 <th style="width: 5%;" class="text-right">PhilHealth</th>
@@ -117,8 +117,8 @@
                     $dailyRate = (float) data_get($p, 'daily_rate', 0);
                     $daysWorked = (int) data_get($p, 'days_worked', 0);
                     $basicPay = (float) data_get($p, 'gross_earnings', data_get($p, 'basic_pay', 0));
-                    $advPayout = (float) data_get($p, 'cash_advance_payout', 0);
-                    $advDeduct = (float) data_get($p, 'cash_advance_deduction', 0);
+                    // $advPayout = (float) data_get($p, 'cash_advance_payout', 0);
+                    // $advDeduct = (float) data_get($p, 'cash_advance_deduction', 0);
                     $totalEarnings = (float) data_get($p, 'total_earnings', data_get($p, 'gross_pay', 0));
                     $sssContrib = (float) data_get($p, 'sss_contribution', data_get($p, 'sss_loan', 0));
                     $pagibigContrib = (float) data_get($p, 'pagibig_contribution', 0);
@@ -135,9 +135,9 @@
                     <td class="text-right">{{ number_format($dailyRate, 2) }}</td>
                     <td class="text-center">{{ $daysWorked }}</td>
                     <td class="text-right">{{ number_format($basicPay, 2) }}</td>
-                    <td class="text-right">{{ $advPayout > 0 ? number_format($advPayout, 2) : '' }}</td>
+                    {{-- <td class="text-right">{{ $advPayout > 0 ? number_format($advPayout, 2) : '' }}</td> --}}
                     <td class="text-right">{{ $totalEarnings > 0 ? number_format($totalEarnings, 2) : '' }}</td>
-                    <td class="text-right">{{ $advDeduct > 0 ? '' . number_format($advDeduct, 2) : '' }}</td>
+                    {{-- <td class="text-right">{{ $advDeduct > 0 ? '' . number_format($advDeduct, 2) : '' }}</td> --}}
                     <td class="text-right">-{{ number_format($sssContrib, 2) }}</td>
                     <td class="text-right">-{{ number_format($pagibigContrib, 2) }}</td>
                     <td class="text-right">-{{ number_format($philhealthContrib, 2) }}</td>
@@ -162,9 +162,9 @@
                 <td class="text-right">—</td>
                 <td class="text-center">{{ data_get($totals, 'total_days_worked', 0) }}</td>
                 <td class="text-right">{{ number_format((float)data_get($totals, 'total_basic', 0), 2) }}</td>
-                <td class="text-right">{{ number_format((float)array_sum(array_column($payrolls, 'cash_advance_payout')), 2) }}</td>
+                {{-- <td class="text-right">{{ number_format((float)array_sum(array_column($payrolls, 'cash_advance_payout')), 2) }}</td> --}}
                 <td class="text-right">{{ number_format((float)data_get($totals, 'total_gross', 0), 2) }}</td>
-                <td class="text-right">-{{ number_format((float)array_sum(array_column($payrolls, 'cash_advance_deduction')), 2) }}</td>
+                {{-- <td class="text-right">-{{ number_format((float)array_sum(array_column($payrolls, 'cash_advance_deduction')), 2) }}</td> --}}
                 <td class="text-right">-{{ number_format((float)data_get($totals, 'total_sss_contrib', 0), 2) }}</td>
                 <td class="text-right">-{{ number_format((float)data_get($totals, 'total_pagibig_contrib', 0), 2) }}</td>
                 <td class="text-right">-{{ number_format((float)data_get($totals, 'total_philhealth_contrib', 0), 2) }}</td>

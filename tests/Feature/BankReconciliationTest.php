@@ -380,72 +380,98 @@ test('bank reconciliation fileAuditStats accurately tracks 1 monthly bank statem
     expect($fileAuditStats['is_complete'])->toBeFalse();
 });
 
-test('authorized user can export multi-sheet bank reconciliation excel', function () {
+test('authorized user can export context-aware bank reconciliation excel matching pdf format', function () {
     $user = User::factory()->create();
     $user->assignRole(Permissions::SUPER_ADMIN_ROLE);
 
-    // Create a bank statement and an internal disbursement
-    BankStatement::query()->create([
-        'tdate' => '2026-08-15',
-        'checkno' => 'CHK-EXP-001',
-        'debit' => 2500.00,
+    // 1. Matched entry
+    $bankMatched = BankStatement::query()->create([
+        'tdate' => '2026-08-05',
+        'checkno' => 'CHK-MATCH-01',
+        'debit' => 2000.00,
         'running_balance' => 45000.00,
         'bank_date' => '2026-08-01',
         'is_duplicate' => false,
     ]);
 
     InternalDisbursements::query()->create([
-        'payee_name' => 'Export Payee',
-        'check_no' => 'CHK-EXP-002',
-        'check_amount' => 1200.00,
+        'payee_name' => 'Matched Payee',
+        'check_no' => 'CHK-MATCH-01',
+        'check_amount' => 2000.00,
+        'bank_statement_id' => $bankMatched->id,
+        'date_issued' => '2026-08-05',
+        'disbursement_week' => 1,
+        'is_duplicate' => false,
+    ]);
+
+    // 2. Outstanding entry
+    InternalDisbursements::query()->create([
+        'payee_name' => 'Outstanding Payee',
+        'check_no' => 'CHK-OUT-01',
+        'check_amount' => 1500.00,
         'date_issued' => '2026-08-10',
         'disbursement_week' => 2,
         'is_duplicate' => false,
     ]);
 
-    $response = $this->actingAs($user)
+    // Test A: Exporting with tab=Matched should have MATCHED CHECKS title and 1 record
+    $matchedResponse = $this->actingAs($user)
         ->get(route('bank_reconciliation.export', [
+            'tab' => 'Matched',
             'period_from' => '2026-08-01',
             'period_to' => '2026-08-31',
         ]));
 
-    $response->assertOk()
+    $matchedResponse->assertOk()
         ->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 
-    $filePath = $response->getFile()->getPathname();
+    $filePath = $matchedResponse->getFile()->getPathname();
     $reader = new Xlsx;
     $spreadsheet = $reader->load($filePath);
-    $sheetNames = $spreadsheet->getSheetNames();
+    $sheet = $spreadsheet->getActiveSheet();
 
-    expect($sheetNames)->toBe(['All', 'Outstanding', 'Unrecorded', 'Matched', 'Mismatch', 'Duplicates']);
+    expect($sheet->getCell('A1')->getValue())->toBe('LA CARLOTA MILL DISTRICT MULTI-PURPOSE COOPERATIVE, INC');
+    expect($sheet->getCell('A2')->getValue())->toBe('MATCHED CHECKS');
 
-    $sheet = $spreadsheet->getSheetByName('All');
-    expect($sheet)->not->toBeNull();
+    // Test B: Exporting with tab=Outstanding should have OUTSTANDING CHECKS title
+    $outstandingResponse = $this->actingAs($user)
+        ->get(route('bank_reconciliation.export', [
+            'tab' => 'Outstanding',
+            'period_from' => '2026-08-01',
+            'period_to' => '2026-08-31',
+        ]));
 
-    // Check table headers row
+    $outstandingResponse->assertOk();
+    $outSpreadsheet = (new Xlsx)->load($outstandingResponse->getFile()->getPathname());
+    $outSheet = $outSpreadsheet->getActiveSheet();
+
+    expect($outSheet->getCell('A1')->getValue())->toBe('LA CARLOTA MILL DISTRICT MULTI-PURPOSE COOPERATIVE, INC');
+    expect($outSheet->getCell('A2')->getValue())->toBe('OUTSTANDING CHECKS');
+
+    // Find table header row
     $headerRow = null;
-    for ($r = 1; $r <= 20; $r++) {
-        if ($sheet->getCell("A{$r}")->getValue() === 'Status') {
+    for ($r = 1; $r <= 15; $r++) {
+        if ($outSheet->getCell("A{$r}")->getValue() === 'No.') {
             $headerRow = $r;
             break;
         }
     }
 
     expect($headerRow)->not->toBeNull();
-    expect($sheet->getCell("B{$headerRow}")->getValue())->toBe('Check No');
-    expect($sheet->getCell("C{$headerRow}")->getValue())->toBe('Duplicate Check?');
-    expect($sheet->getCell("D{$headerRow}")->getValue())->toBe('Payee / Description');
-    expect($sheet->getCell("E{$headerRow}")->getValue())->toBe('Internal Source');
-    expect($sheet->getCell("F{$headerRow}")->getValue())->toBe('Internal Date Issued');
-    expect($sheet->getCell("G{$headerRow}")->getValue())->toBe('Disbursement Week');
-    expect($sheet->getCell("H{$headerRow}")->getValue())->toBe('Internal Amount');
-    expect($sheet->getCell("I{$headerRow}")->getValue())->toBe('Bank Source');
-    expect($sheet->getCell("J{$headerRow}")->getValue())->toBe('Bank Date');
-    expect($sheet->getCell("K{$headerRow}")->getValue())->toBe('Transaction Date');
-    expect($sheet->getCell("L{$headerRow}")->getValue())->toBe('Bank Amount');
-    expect($sheet->getCell("M{$headerRow}")->getValue())->toBe('Variance');
-    expect($sheet->getCell("N{$headerRow}")->getValue())->toBe('Days Outstanding');
+    expect($outSheet->getCell("B{$headerRow}")->getValue())->toBe('Date');
+    expect($outSheet->getCell("C{$headerRow}")->getValue())->toBe("Payee's Name");
+    expect($outSheet->getCell("D{$headerRow}")->getValue())->toBe('Check Number');
+    expect($outSheet->getCell("E{$headerRow}")->getValue())->toBe('Amount');
+    expect($outSheet->getCell("F{$headerRow}")->getValue())->toBe('Date Cleared');
+    expect($outSheet->getCell("G{$headerRow}")->getValue())->toBe('Status');
 
-    // Verify font is not bold
-    expect($sheet->getStyle("A{$headerRow}")->getFont()->getBold())->toBeFalse();
+    // Verify first data row
+    $dataRow = $headerRow + 1;
+    expect($outSheet->getCell("A{$dataRow}")->getValue())->toBe(1);
+    expect($outSheet->getCell("B{$dataRow}")->getValue())->toBe('');
+    expect($outSheet->getCell("C{$dataRow}")->getValue())->toBe('Outstanding Payee');
+    expect($outSheet->getCell("D{$dataRow}")->getValue())->toBe('CHK-OUT-01');
+    expect($outSheet->getCell("E{$dataRow}")->getValue())->toEqual(1500);
+    expect($outSheet->getCell("F{$dataRow}")->getValue())->toBe('');
+    expect($outSheet->getCell("G{$dataRow}")->getValue())->toBe('Outstanding');
 });
