@@ -201,12 +201,6 @@
                                 <td style="border: none; padding: 3px 6px;">Overtime / Holiday Pay</td>
                                 <td style="border: none; padding: 3px 6px;" class="text-right">₱{{ number_format($overtimePay, 2) }}</td>
                             </tr>
-                            @if($cashAdvancePayout > 0)
-                            <tr>
-                                <td style="border: none; padding: 3px 6px;" class="emerald-text font-bold">+ Cash Advance Payout</td>
-                                <td style="border: none; padding: 3px 6px;" class="text-right emerald-text font-bold">₱{{ number_format($cashAdvancePayout, 2) }}</td>
-                            </tr>
-                            @endif
                             <tr style="border-top: 1px solid #cbd5e1; font-weight: bold;">
                                 <td style="border: none; padding: 4px 6px;" class="emerald-text">TOTAL GROSS EARNINGS</td>
                                 <td style="border: none; padding: 4px 6px;" class="text-right emerald-text">₱{{ number_format($grossPay, 2) }}</td>

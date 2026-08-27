@@ -280,14 +280,6 @@
                 <td class="text-right">PHP{{ number_format($holiday_pay, 2) }}</td>
             </tr>
             @endif
-            @if($cash_advance_payout > 0)
-            <tr>
-                <td>Cash Advance Payout Issued</td>
-                <td class="text-center">—</td>
-                <td class="text-right">—</td>
-                <td class="text-right">PHP{{ number_format($cash_advance_payout, 2) }}</td>
-            </tr>
-            @endif
             <tr class="font-bold">
                 <td colspan="3" class="text-right">TOTAL GROSS EARNINGS</td>
                 <td class="text-right">PHP{{ number_format($gross_pay, 2) }}</td>

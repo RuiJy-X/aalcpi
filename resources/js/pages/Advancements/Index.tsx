@@ -78,11 +78,11 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 const statusBadges: Record<string, { label: string; class: string }> = {
     pending_payout: {
-        label: 'Pending Payout',
-        class: 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300',
+        label: 'Active / Repaying',
+        class: 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950/60 dark:text-blue-300',
     },
     paid_out: {
-        label: 'Paid Out (Repaying)',
+        label: 'Active / Repaying',
         class: 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950/60 dark:text-blue-300',
     },
     partially_deducted: {
@@ -139,11 +139,10 @@ export default function AdvancementsIndexPage({
     const tabCounts = useMemo(() => {
         return {
             all: advancements.length,
-            pending: advancements.filter((i) => i.status === 'pending_payout').length,
-            repaying: advancements.filter((i) =>
-                ['paid_out', 'partially_deducted'].includes(i.status),
+            active: advancements.filter((i) =>
+                ['paid_out', 'partially_deducted', 'pending_payout'].includes(i.status) && i.remaining_balance > 0,
             ).length,
-            repaid: advancements.filter((i) => i.status === 'deducted').length,
+            repaid: advancements.filter((i) => i.status === 'deducted' || (i.remaining_balance <= 0 && i.status !== 'cancelled')).length,
             cancelled: advancements.filter((i) => i.status === 'cancelled').length,
         };
     }, [advancements]);
@@ -152,14 +151,12 @@ export default function AdvancementsIndexPage({
     const filteredAdvancements = useMemo(() => {
         return advancements.filter((item) => {
             // Status Tab filter
-            if (activeTab === 'pending' && item.status !== 'pending_payout')
-                return false;
             if (
-                activeTab === 'repaying' &&
-                !['paid_out', 'partially_deducted'].includes(item.status)
+                activeTab === 'active' &&
+                (!['paid_out', 'partially_deducted', 'pending_payout'].includes(item.status) || item.remaining_balance <= 0)
             )
                 return false;
-            if (activeTab === 'repaid' && item.status !== 'deducted')
+            if (activeTab === 'repaid' && item.status !== 'deducted' && item.remaining_balance > 0)
                 return false;
             if (activeTab === 'cancelled' && item.status !== 'cancelled')
                 return false;
@@ -182,7 +179,7 @@ export default function AdvancementsIndexPage({
     const handleCancelAdvancement = async (id: number) => {
         if (
             !confirm(
-                'Are you sure you want to cancel this pending cash advance?',
+                'Are you sure you want to cancel this cash advance?',
             )
         ) {
             return;
@@ -344,39 +341,45 @@ export default function AdvancementsIndexPage({
             {
                 id: 'actions',
                 header: () => <div className="text-right text-xs">Actions</div>,
-                cell: ({ row }) => (
-                    <div className="flex items-center justify-end gap-1 whitespace-nowrap">
-                        <Button
-                            size="xs"
-                            variant="outline"
-                            asChild
-                            className="h-7 text-xs"
-                        >
-                            <Link
-                                href={
-                                    employeeShow(row.original.employee_id).url
-                                }
-                            >
-                                <ExternalLink className="mr-1 h-3 w-3" />
-                                Profile
-                            </Link>
-                        </Button>
+                cell: ({ row }) => {
+                    const canCancel =
+                        ['pending_payout', 'paid_out'].includes(row.original.status) &&
+                        Number(row.original.remaining_balance) === Number(row.original.amount);
 
-                        {row.original.status === 'pending_payout' && (
+                    return (
+                        <div className="flex items-center justify-end gap-1 whitespace-nowrap">
                             <Button
                                 size="xs"
-                                variant="ghost"
-                                onClick={() =>
-                                    handleCancelAdvancement(row.original.id)
-                                }
-                                className="h-7 text-xs text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:hover:bg-rose-950/40"
+                                variant="outline"
+                                asChild
+                                className="h-7 text-xs"
                             >
-                                <Trash2 className="mr-1 h-3 w-3" />
-                                Cancel
+                                <Link
+                                    href={
+                                        employeeShow(row.original.employee_id).url
+                                    }
+                                >
+                                    <ExternalLink className="mr-1 h-3 w-3" />
+                                    Profile
+                                </Link>
                             </Button>
-                        )}
-                    </div>
-                ),
+
+                            {canCancel && (
+                                <Button
+                                    size="xs"
+                                    variant="ghost"
+                                    onClick={() =>
+                                        handleCancelAdvancement(row.original.id)
+                                    }
+                                    className="h-7 text-xs text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:hover:bg-rose-950/40"
+                                >
+                                    <Trash2 className="mr-1 h-3 w-3" />
+                                    Cancel
+                                </Button>
+                            )}
+                        </div>
+                    );
+                },
             },
         ],
         [],
@@ -396,9 +399,7 @@ export default function AdvancementsIndexPage({
                             </h1>
                         </div>
                         <p className="mt-0.5 text-sm font-normal text-muted-foreground">
-                            Manage employee cash advance payouts, date-matched
-                            cutoffs, repayment tracking, and audit transaction
-                            logs.
+                            Manage employee cash advances, repayment schedules, and payroll deduction tracking.
                         </p>
                     </div>
                     <ContainerHeaderEnd>
@@ -431,36 +432,33 @@ export default function AdvancementsIndexPage({
                             </p>
                         </div>
 
-                        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 shadow-xs">
-                            <div className="flex items-center justify-between text-xs font-bold tracking-wider text-amber-700 uppercase dark:text-amber-300">
-                                <span>Pending Payout</span>
-                                <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                        <div className="rounded-xl border border-blue-500/30 bg-blue-500/10 p-4 shadow-xs">
+                            <div className="flex items-center justify-between text-xs font-bold tracking-wider text-blue-700 uppercase dark:text-blue-300">
+                                <span>Active Advancements</span>
+                                <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                             </div>
-                            <div className="mt-2 text-2xl font-extrabold text-amber-800 dark:text-amber-200">
-                                ₱
-                                {totals.pending_payout.toLocaleString('en-PH', {
-                                    minimumFractionDigits: 2,
-                                })}
+                            <div className="mt-2 text-2xl font-extrabold text-blue-800 dark:text-blue-200">
+                                {tabCounts.active} Active
                             </div>
-                            <p className="mt-1 text-[11px] text-amber-700/80 dark:text-amber-300/80">
-                                Queued for upcoming payroll payout
+                            <p className="mt-1 text-[11px] text-blue-700/80 dark:text-blue-300/80">
+                                Currently undergoing payroll repayments
                             </p>
                         </div>
 
-                        <div className="rounded-xl border border-blue-500/30 bg-blue-500/10 p-4 shadow-xs">
-                            <div className="flex items-center justify-between text-xs font-bold tracking-wider text-blue-700 uppercase dark:text-blue-300">
-                                <span>Outstanding Repayment</span>
-                                <RotateCcw className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 shadow-xs">
+                            <div className="flex items-center justify-between text-xs font-bold tracking-wider text-amber-700 uppercase dark:text-amber-300">
+                                <span>Outstanding Balance</span>
+                                <RotateCcw className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                             </div>
-                            <div className="mt-2 text-2xl font-extrabold text-blue-800 dark:text-blue-200">
+                            <div className="mt-2 text-2xl font-extrabold text-amber-800 dark:text-amber-200">
                                 ₱
                                 {totals.outstanding_repayment.toLocaleString(
                                     'en-PH',
                                     { minimumFractionDigits: 2 },
                                 )}
                             </div>
-                            <p className="mt-1 text-[11px] text-blue-700/80 dark:text-blue-300/80">
-                                Currently being deducted from payrolls
+                            <p className="mt-1 text-[11px] text-amber-700/80 dark:text-amber-300/80">
+                                Total unpaid balance remaining
                             </p>
                         </div>
 
@@ -502,27 +500,15 @@ export default function AdvancementsIndexPage({
                                     </Badge>
                                 </TabsTrigger>
                                 <TabsTrigger
-                                    value="pending"
+                                    value="active"
                                     className="gap-2 text-xs font-semibold sm:text-sm"
                                 >
-                                    Pending Payout
-                                    <Badge
-                                        variant="outline"
-                                        className="py-0.2 border-amber-300 bg-amber-50 px-1.5 text-xs text-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
-                                    >
-                                        {tabCounts.pending}
-                                    </Badge>
-                                </TabsTrigger>
-                                <TabsTrigger
-                                    value="repaying"
-                                    className="gap-2 text-xs font-semibold sm:text-sm"
-                                >
-                                    Repaying
+                                    Active / Repaying
                                     <Badge
                                         variant="outline"
                                         className="py-0.2 border-blue-300 bg-blue-50 px-1.5 text-xs text-blue-800 dark:bg-blue-950/60 dark:text-blue-300"
                                     >
-                                        {tabCounts.repaying}
+                                        {tabCounts.active}
                                     </Badge>
                                 </TabsTrigger>
                                 <TabsTrigger

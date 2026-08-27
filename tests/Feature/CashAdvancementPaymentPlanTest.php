@@ -41,14 +41,12 @@ class CashAdvancementPaymentPlanTest extends TestCase
         $adv = Advancement::where('employee_id', $employee->id)->first();
         $this->assertNotNull($adv);
         $this->assertEquals(5000.00, (float) $adv->amount);
+        $this->assertEquals('paid_out', $adv->status);
         $this->assertEquals('months', $adv->repayment_term_type);
         $this->assertEquals(5, $adv->repayment_terms);
         $this->assertEquals(500.00, (float) $adv->installment_amount);
 
-        // 2. Mark payout as paid out (simulate payroll payout)
-        $adv->update(['status' => 'paid_out']);
-
-        // 3. Test Payroll Audit Service for next cutoff
+        // 2. Test Payroll Audit Service for next cutoff
         $auditService = app(PayrollAuditService::class);
         $periodStart = Carbon::parse('2026-08-16');
         $periodEnd = Carbon::parse('2026-08-31');
@@ -124,5 +122,54 @@ class CashAdvancementPaymentPlanTest extends TestCase
         $this->assertEquals(3000.00, (float) $adv->amount);
         $this->assertEquals('fixed_amount', $adv->repayment_term_type);
         $this->assertEquals(750.00, (float) $adv->installment_amount);
+    }
+
+    public function test_cash_advance_is_not_added_to_gross_earnings_but_deducted_from_net_pay(): void
+    {
+        $employee = Employee::factory()->create([
+            'name' => 'No Payout Earnings Employee',
+            'daily_rate' => 500.00,
+        ]);
+
+        // Attendance: 10 days = 5000.00 basic pay
+        for ($day = 1; $day <= 10; $day++) {
+            \App\Models\Attendance::create([
+                'employee_id' => $employee->id,
+                'date' => "2026-08-" . str_pad((string) $day, 2, '0', STR_PAD_LEFT),
+                'time_in' => '08:00:00',
+                'time_out' => '17:00:00',
+                'working_time' => 8.00,
+            ]);
+        }
+
+        // Cash advance granted on 2026-08-05 for 2000.00 with 500.00 cutoff installment
+        Advancement::create([
+            'employee_id' => $employee->id,
+            'amount' => 2000.00,
+            'remaining_balance' => 2000.00,
+            'advancement_date' => '2026-08-05',
+            'status' => 'paid_out',
+            'repayment_term_type' => 'fixed_amount',
+            'installment_amount' => 500.00,
+        ]);
+
+        $auditService = app(PayrollAuditService::class);
+        $audit = $auditService->auditBatch(
+            Carbon::parse('2026-08-01'),
+            Carbon::parse('2026-08-15')
+        );
+
+        $empAudit = collect($audit['ready'])->firstWhere('employee_id', $employee->id);
+        $this->assertNotNull($empAudit);
+
+        // Earnings must NOT include the 2000 advance
+        $this->assertEquals(5000.00, (float) $empAudit['basic_pay']);
+        $this->assertEquals(5000.00, (float) $empAudit['gross_earnings']);
+        $this->assertEquals(5000.00, (float) $empAudit['total_earnings']);
+        $this->assertEquals(0.00, (float) $empAudit['cash_advance_payout']);
+
+        // Repayment must be deducted
+        $this->assertEquals(500.00, (float) $empAudit['cash_advance_deduction']);
+        $this->assertEquals(4500.00, (float) $empAudit['net_amount']);
     }
 }

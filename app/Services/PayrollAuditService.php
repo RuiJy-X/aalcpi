@@ -112,14 +112,6 @@ class PayrollAuditService
                 $hourlyRate = $dailyRate / 8.00;
             }
 
-            // Cash Advancement Payouts (Date-matched for current cutoff)
-            $pendingAdvancements = Advancement::where('employee_id', $employee->id)
-                ->where('status', 'pending_payout')
-                ->whereDate('advancement_date', '>=', $periodStart)
-                ->whereDate('advancement_date', '<=', $periodEnd)
-                ->get();
-            $cashAdvancePayout = (float) $pendingAdvancements->sum('amount');
-
             // Auto-detect registered holidays within period date range
             $detectedHolidaysCount = Holiday::whereBetween('date', [
                 $periodStart->toDateString(),
@@ -133,7 +125,7 @@ class PayrollAuditService
             $basicPay = round($dailyRate * $daysWorked, 2);
             $overtimePay = round($totalOvertimeHours * $hourlyRate, 2);
             $grossEarnings = $basicPay;
-            $totalEarnings = round($basicPay + $overtimePay + $holidayPay + $cashAdvancePayout, 2);
+            $totalEarnings = round($basicPay + $overtimePay + $holidayPay, 2);
 
             $sssContrib = (float) ($employee->sss_contribution ?? 0);
             $sssLoan = (float) ($employee->sss_loan ?? 0);
@@ -147,10 +139,11 @@ class PayrollAuditService
                 2
             );
 
-            // Cash Advancement Repayment Deductions (Next payroll carrying unpaid remaining_balance)
+            // Cash Advancement Repayment Deductions (Any active advancement with unpaid remaining_balance)
             $repayableAdvancements = Advancement::where('employee_id', $employee->id)
-                ->whereIn('status', ['paid_out', 'partially_deducted'])
+                ->where('status', '!=', 'cancelled')
                 ->where('remaining_balance', '>', 0)
+                ->whereDate('advancement_date', '<=', $periodEnd)
                 ->get();
 
             $totalTargetDeduction = (float) $repayableAdvancements->sum(function ($adv) {
@@ -184,7 +177,7 @@ class PayrollAuditService
                 'overtime_pay' => $overtimePay,
                 'holidays' => $holidaysCount,
                 'holiday_pay' => $holidayPay,
-                'cash_advance_payout' => $cashAdvancePayout,
+                'cash_advance_payout' => 0.00,
                 'cash_advance_deduction' => $cashAdvanceDeduction,
                 'total_earnings' => $totalEarnings,
                 'sss_contribution' => $sssContrib,
@@ -195,7 +188,7 @@ class PayrollAuditService
                 'withholding_tax' => $withholdingTax,
                 'total_deductions' => $totalDeductions,
                 'net_amount' => $netAmount,
-                'pending_advancement_ids' => $pendingAdvancements->pluck('id')->toArray(),
+                'pending_advancement_ids' => [],
                 'repayable_advancement_ids' => $repayableAdvancements->pluck('id')->toArray(),
                 'tin' => $employee->tin,
                 'sss_no' => $employee->sss_no,

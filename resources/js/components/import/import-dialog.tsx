@@ -29,6 +29,10 @@ import {
 } from './import-config';
 import { ImportSummaryModal, type ImportSummaryData } from './import-summary-modal';
 import {
+    ImportAuditPreviewStep,
+    type PreImportAnalysisResult,
+} from './import-audit-preview-step';
+import {
     registerJobPoll,
     markJobModalShown,
     unregisterJobPoll,
@@ -138,12 +142,18 @@ export function ImportDialog({ config }: { config: ImportConfig }) {
     const [isSavingMapping, setIsSavingMapping] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [cropYear, setCropYear] = useState('');
-    const [step, setStep] = useState<'select' | 'mapping'>('select');
+    const [step, setStep] = useState<'select' | 'mapping' | 'audit'>('select');
     const [headers, setHeaders] = useState<string[]>([]);
     const [signature, setSignature] = useState('');
     const [mapping, setMapping] = useState<Record<string, string>>({});
     const [extraFields, setExtraFields] = useState<Record<string, string>>({});
     const [error, setError] = useState<string | null>(null);
+
+    // Audit and Duplicate Analysis State
+    const [analysisResult, setAnalysisResult] = useState<PreImportAnalysisResult | null>(null);
+    const [resolutions, setResolutions] = useState<Record<string, 'update' | 'keep_both' | 'replace'>>({});
+    const [savedMappingId, setSavedMappingId] = useState<number | null>(null);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
 
     const canMap = Boolean(
         config.mappingType &&
@@ -185,6 +195,10 @@ export function ImportDialog({ config }: { config: ImportConfig }) {
         setError(null);
         setIsPreviewing(false);
         setIsSavingMapping(false);
+        setAnalysisResult(null);
+        setResolutions({});
+        setSavedMappingId(null);
+        setIsAnalyzing(false);
     };
 
     const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -195,10 +209,17 @@ export function ImportDialog({ config }: { config: ImportConfig }) {
         setMapping({});
         setExtraFields({});
         setError(null);
+        setAnalysisResult(null);
+        setResolutions({});
+        setSavedMappingId(null);
     };
 
-    const submitImport = (mappingId?: number) => {
-        if (!selectedFile) return;
+    const submitImport = (
+        mappingId?: number,
+        analysisToken?: string,
+        duplicateResolutions?: Record<string, string>,
+    ) => {
+        if (!selectedFile && !analysisToken) return;
         if (config.requireCropYear && cropYear.trim() === '') return;
 
         if (canMap && !mappingId) {
@@ -206,14 +227,17 @@ export function ImportDialog({ config }: { config: ImportConfig }) {
             return;
         }
 
-        const payload: {
-            file: File;
-            crop_year?: string;
-            mapping_id?: number;
-            [key: string]: unknown;
-        } = {
-            file: selectedFile,
-        };
+        const payload: Record<string, unknown> = {};
+
+        if (analysisToken) {
+            payload.analysis_token = analysisToken;
+        } else if (selectedFile) {
+            payload.file = selectedFile;
+        }
+
+        if (duplicateResolutions && Object.keys(duplicateResolutions).length > 0) {
+            payload.duplicate_resolutions = duplicateResolutions;
+        }
 
         if (config.requireCropYear) {
             payload.crop_year = cropYear.trim();
@@ -231,7 +255,7 @@ export function ImportDialog({ config }: { config: ImportConfig }) {
         });
 
         router.post(config.route, payload as any, {
-            forceFormData: true,
+            forceFormData: !analysisToken,
             preserveScroll: true,
             onStart: () => setIsImporting(true),
             onFinish: () => setIsImporting(false),
@@ -364,14 +388,47 @@ export function ImportDialog({ config }: { config: ImportConfig }) {
                 },
             );
 
-            submitImport(response.mapping_id);
+            setSavedMappingId(response.mapping_id);
+
+            // If an analysis route is configured, run duplicate analysis and show audit modal
+            if (config.analyzeRoute) {
+                setIsAnalyzing(true);
+                const formData = new FormData();
+                formData.append('file', selectedFile);
+                if (config.requireCropYear) {
+                    formData.append('crop_year', cropYear.trim());
+                }
+                formData.append('mapping_id', String(response.mapping_id));
+                (config.extraFields ?? []).forEach((field) => {
+                    const value = extraFields[field.key];
+                    if (value !== undefined && value !== '') {
+                        formData.append(field.key, value);
+                    }
+                });
+
+                const analysis = await postFormData<PreImportAnalysisResult>(
+                    config.analyzeRoute,
+                    formData,
+                );
+
+                setAnalysisResult(analysis);
+                const initialRes: Record<string, 'update' | 'keep_both' | 'replace'> = {};
+                (analysis.possible_duplicates ?? []).forEach((dup) => {
+                    initialRes[dup.row_id] = dup.default_action ?? 'update';
+                });
+                setResolutions(initialRes);
+                setStep('audit');
+            } else {
+                submitImport(response.mapping_id);
+            }
         } catch (err) {
             const error = err as Error;
             setError(
-                `Failed to save the mapping: ${error.message || 'Unknown error'}`,
+                `Failed to process mapping and analysis: ${error.message || 'Unknown error'}`,
             );
         } finally {
             setIsSavingMapping(false);
+            setIsAnalyzing(false);
         }
     };
 
@@ -394,17 +451,49 @@ export function ImportDialog({ config }: { config: ImportConfig }) {
                     Import Data
                 </Button>
             </DialogTrigger>
-            <DialogContent className="bg-card sm:max-w-2xl">
+            <DialogContent
+                className={`bg-card ${
+                    step === 'audit'
+                        ? 'sm:max-w-3xl max-h-[90vh] flex flex-col'
+                        : 'sm:max-w-2xl'
+                }`}
+            >
                 <DialogHeader>
                     <DialogTitle>
-                        {step === 'mapping' ? 'Map Columns' : 'Import Data'}
+                        {step === 'audit'
+                            ? 'Pre-Import Audit & Duplicate Review'
+                            : step === 'mapping'
+                            ? 'Map Columns'
+                            : 'Import Data'}
                     </DialogTitle>
                     <DialogDescription>
-                        {step === 'mapping'
+                        {step === 'audit'
+                            ? 'Review database matching, exact duplicates to skip, and resolve potential updates.'
+                            : step === 'mapping'
                             ? 'Match each database field to a column from the file.'
                             : 'Import data and add it to the database'}
                     </DialogDescription>
                 </DialogHeader>
+
+                {step === 'audit' && analysisResult && (
+                    <div className="flex-1 overflow-y-auto pr-1">
+                        <ImportAuditPreviewStep
+                            analysis={analysisResult}
+                            resolutions={resolutions}
+                            onResolutionsChange={setResolutions}
+                            onConfirm={() =>
+                                submitImport(
+                                    savedMappingId ?? undefined,
+                                    analysisResult.analysis_token,
+                                    resolutions,
+                                )
+                            }
+                            onBack={() => setStep('mapping')}
+                            isSubmitting={isImporting}
+                        />
+                    </div>
+                )}
+
                 {step === 'select' && (
                     <>
                         {config.headerGuide &&
@@ -510,7 +599,7 @@ export function ImportDialog({ config }: { config: ImportConfig }) {
                                             key={target.key}
                                             className="grid grid-cols-1 gap-3 md:grid-cols-2 md:items-center"
                                         >
-                                            <div className="text-sm font-medium">
+                                             <div className="text-sm font-medium">
                                                 {target.label}
                                                 {target.required && (
                                                     <span className="ml-1 text-red-500">
@@ -579,44 +668,50 @@ export function ImportDialog({ config }: { config: ImportConfig }) {
                         {error}
                     </p>
                 )}
-                <DialogFooter>
-                    {step === 'mapping' ? (
-                        <Button
-                            variant="outline"
-                            onClick={() => setStep('select')}
-                        >
-                            Back
-                        </Button>
-                    ) : null}
-                    <DialogClose asChild>
-                        <Button variant="outline">Cancel</Button>
-                    </DialogClose>
-                    {step === 'mapping' ? (
-                        <Button
-                            onClick={handleSaveMapping}
-                            disabled={isImporting || isSavingMapping}
-                        >
-                            {isSavingMapping ? 'Saving...' : 'Save & Import'}
-                        </Button>
-                    ) : (
-                        <Button
-                            onClick={handlePreview}
-                            disabled={
-                                !selectedFile ||
-                                isImporting ||
-                                isPreviewing ||
-                                (config.requireCropYear &&
-                                    cropYear.trim() === '')
-                            }
-                        >
-                            {isPreviewing
-                                ? 'Checking...'
-                                : canMap
-                                  ? 'Continue'
-                                  : 'Import'}
-                        </Button>
-                    )}
-                </DialogFooter>
+                {step !== 'audit' && (
+                    <DialogFooter>
+                        {step === 'mapping' ? (
+                            <Button
+                                variant="outline"
+                                onClick={() => setStep('select')}
+                            >
+                                Back
+                            </Button>
+                        ) : null}
+                        <DialogClose asChild>
+                            <Button variant="outline">Cancel</Button>
+                        </DialogClose>
+                        {step === 'mapping' ? (
+                            <Button
+                                onClick={handleSaveMapping}
+                                disabled={isImporting || isSavingMapping || isAnalyzing}
+                            >
+                                {isSavingMapping || isAnalyzing
+                                    ? 'Analyzing...'
+                                    : config.analyzeRoute
+                                    ? 'Save & Review Audit'
+                                    : 'Save & Import'}
+                            </Button>
+                        ) : (
+                            <Button
+                                onClick={handlePreview}
+                                disabled={
+                                    !selectedFile ||
+                                    isImporting ||
+                                    isPreviewing ||
+                                    (config.requireCropYear &&
+                                        cropYear.trim() === '')
+                                }
+                            >
+                                {isPreviewing
+                                    ? 'Checking...'
+                                    : canMap
+                                      ? 'Continue'
+                                      : 'Import'}
+                            </Button>
+                        )}
+                    </DialogFooter>
+                )}
             </DialogContent>
         </Dialog>
         <ImportSummaryModal

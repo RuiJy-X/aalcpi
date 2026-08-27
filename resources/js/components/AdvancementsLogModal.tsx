@@ -32,11 +32,11 @@ interface Props {
 
 const statusBadges: Record<string, { label: string; class: string }> = {
     pending_payout: {
-        label: 'Pending Payout',
-        class: 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300',
+        label: 'Active / Repaying',
+        class: 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950/60 dark:text-blue-300',
     },
     paid_out: {
-        label: 'Paid Out (Queued Repayment)',
+        label: 'Active / Repaying',
         class: 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950/60 dark:text-blue-300',
     },
     partially_deducted: {
@@ -78,7 +78,7 @@ export function AdvancementsLogModal({ isOpen, onClose }: Props) {
     }, [isOpen]);
 
     const handleCancelAdvancement = async (id: number) => {
-        if (!confirm('Are you sure you want to cancel this pending advancement request?')) {
+        if (!confirm('Are you sure you want to cancel this cash advance?')) {
             return;
         }
 
@@ -155,6 +155,10 @@ export function AdvancementsLogModal({ isOpen, onClose }: Props) {
                                             label: adv.status,
                                             class: '',
                                         };
+                                        const canCancel =
+                                            ['pending_payout', 'paid_out'].includes(adv.status) &&
+                                            Number(adv.remaining_balance) === Number(adv.amount);
+
                                         return (
                                             <tr key={adv.id} className="hover:bg-muted/30">
                                                 <td className="p-2.5 font-medium whitespace-nowrap">
@@ -188,7 +192,7 @@ export function AdvancementsLogModal({ isOpen, onClose }: Props) {
                                                     </Badge>
                                                 </td>
                                                 <td className="p-2.5 text-right whitespace-nowrap">
-                                                    {adv.status === 'pending_payout' && (
+                                                    {canCancel && (
                                                         <Button
                                                             size="xs"
                                                             variant="ghost"

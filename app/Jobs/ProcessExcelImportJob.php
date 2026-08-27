@@ -108,6 +108,7 @@ class ProcessExcelImportJob implements ShouldQueue
                         $this->options['composite_molasses_price'] ?? null,
                         $this->importJobId,
                         $this->path,
+                        $this->options['duplicate_resolutions'] ?? [],
                     ),
                     $fullPath,
                 );

@@ -122,17 +122,8 @@ export default function Show({ payroll }: { payroll: PayrollDetailType }) {
     const deductions = parseFloat(String(payroll.deductions || 0));
     const netPay = parseFloat(String(payroll.net_pay || 0));
     const basicPay = parseFloat(String(payroll.basic_pay || 0));
-    const cashAdvancePayout = parseFloat(
-        String(payroll.cash_advance_payout || 0),
-    );
     const cashAdvanceDeduction = parseFloat(
         String(payroll.cash_advance_deduction || 0),
-    );
-    const overtimePay = parseFloat(
-        String(
-            payroll.overtime_pay ??
-                Math.max(0, grossPay - basicPay - cashAdvancePayout),
-        ),
     );
     const overtimeHours = parseFloat(String(payroll.overtime_hours ?? 0));
 
@@ -147,6 +138,13 @@ export default function Show({ payroll }: { payroll: PayrollDetailType }) {
         ),
     );
     const holidaysCount = Number(payroll.holidays ?? 0);
+
+    const overtimePay = parseFloat(
+        String(
+            payroll.overtime_pay ??
+                Math.max(0, grossPay - basicPay - holidayPay),
+        ),
+    );
 
     const sssContrib = parseFloat(String((payroll as any).sss_contribution ?? (payroll as any).sss_loan ?? employee?.sss_contribution ?? employee?.sss_loan ?? 0));
     const pagibigContrib = parseFloat(String((payroll as any).pagibig_contribution ?? employee?.pagibig_contribution ?? 0));
@@ -402,20 +400,6 @@ export default function Show({ payroll }: { payroll: PayrollDetailType }) {
                                     }
                                     value={formatCurrency(holidayPay)}
                                     isEarnings={holidayPay > 0}
-                                />
-                                <DetailRow
-                                    label="Cash Advance Payout (+)"
-                                    value={formatCurrency(
-                                        payroll.cash_advance_payout,
-                                    )}
-                                    isEarnings={
-                                        parseFloat(
-                                            String(
-                                                payroll.cash_advance_payout ??
-                                                    0,
-                                            ),
-                                        ) > 0
-                                    }
                                 />
                                 <div className="flex justify-between border-t border-border pt-2 text-sm font-bold text-foreground sm:text-base">
                                     <span>Total Gross Earnings:</span>

@@ -86,8 +86,14 @@ class ImportHistoryController extends Controller
             $recordCount = 0;
             if (in_array($job->type, ['bank_recon_internal', 'internal'], true)) {
                 $recordCount = InternalDisbursements::where('import_job_id', $job->id)->count();
+                if ($recordCount === 0 && isset($job->context['rows_saved'])) {
+                    $recordCount = (int) $job->context['rows_saved'];
+                }
             } elseif (in_array($job->type, ['bank_recon_bank', 'bank'], true)) {
                 $recordCount = BankStatement::where('import_job_id', $job->id)->count();
+                if ($recordCount === 0 && isset($job->context['rows_saved'])) {
+                    $recordCount = (int) $job->context['rows_saved'];
+                }
             } elseif (in_array($job->type, ['planters', 'planters_excel'], true)) {
                 $recordCount = Planter::where('import_job_id', $job->id)->count();
             } elseif (in_array($job->type, ['productions', 'productions_excel'], true)) {

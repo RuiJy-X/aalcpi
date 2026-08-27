@@ -51,11 +51,11 @@ interface AdvancementRecord {
 
 const statusBadges: Record<string, { label: string; class: string }> = {
     pending_payout: {
-        label: 'Pending Payout',
-        class: 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300',
+        label: 'Active / Repaying',
+        class: 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950/60 dark:text-blue-300',
     },
     paid_out: {
-        label: 'Paid Out (Repaying)',
+        label: 'Active / Repaying',
         class: 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950/60 dark:text-blue-300',
     },
     partially_deducted: {
@@ -314,23 +314,13 @@ export default function Show({
                                 </Badge>
                             </div>
                         </div>
-                        <div className="grid w-full grid-cols-1 gap-3 border-t border-border pt-2 text-left sm:w-auto sm:grid-cols-4 sm:border-t-0 sm:pt-0 sm:text-right">
+                        <div className="grid w-full grid-cols-1 gap-3 border-t border-border pt-2 text-left sm:w-auto sm:grid-cols-3 sm:border-t-0 sm:pt-0 sm:text-right">
                             <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3">
                                 <p className="text-xs font-bold text-emerald-700 uppercase dark:text-emerald-400">
                                     Daily Rate
                                 </p>
                                 <p className="text-base font-extrabold text-emerald-700 sm:text-lg dark:text-emerald-300">
                                     {formatCurrency(employee.daily_rate)}
-                                </p>
-                            </div>
-                            <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3">
-                                <p className="text-xs font-bold text-amber-700 uppercase dark:text-amber-300">
-                                    Adv Payout Queued (+)
-                                </p>
-                                <p className="text-base font-extrabold text-amber-800 sm:text-lg dark:text-amber-200">
-                                    {pendingPayoutVal > 0
-                                        ? formatCurrency(pendingPayoutVal)
-                                        : '—'}
                                 </p>
                             </div>
                             <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-3">
@@ -408,15 +398,6 @@ export default function Show({
                                 </span>
                             </div>
                             <div className="space-y-1">
-                                <DetailRow
-                                    label="Upcoming Advancement Payout (Queued)"
-                                    value={
-                                        pendingPayoutVal > 0
-                                            ? formatCurrency(pendingPayoutVal)
-                                            : 'No Pending Payout'
-                                    }
-                                    isEarnings={pendingPayoutVal > 0}
-                                />
                                 <DetailRow
                                     label="Advancement Loan Balance (Unpaid)"
                                     value={

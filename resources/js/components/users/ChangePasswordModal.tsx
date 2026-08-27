@@ -12,29 +12,29 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { KeyRound, Eye, EyeOff, Lock, Check } from 'lucide-react';
-import { update as updatePasswordRoute } from '@/routes/user-password';
+import { update as userUpdate } from '@/routes/users';
+import type { UserRow } from '@/components/types/usertypes';
 
 type Props = {
+    user: UserRow;
     open: boolean;
     onOpenChange: (open: boolean) => void;
 };
 
-export function ChangePasswordModal({ open, onOpenChange }: Props) {
-    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+export function ChangePasswordModal({ user, open, onOpenChange }: Props) {
     const [showNewPassword, setShowNewPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-    const { data, setData, put, processing, errors, reset, clearErrors } = useForm({
-        current_password: '',
-        password: '',
-        password_confirmation: '',
-    });
+    const { data, setData, patch, processing, errors, reset, clearErrors } =
+        useForm({
+            password: '',
+            password_confirmation: '',
+        });
 
     const handleOpenChange = (nextOpen: boolean) => {
         if (!nextOpen) {
             reset();
             clearErrors();
-            setShowCurrentPassword(false);
             setShowNewPassword(false);
             setShowConfirmPassword(false);
         }
@@ -43,7 +43,7 @@ export function ChangePasswordModal({ open, onOpenChange }: Props) {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        put(updatePasswordRoute().url, {
+        patch(userUpdate(user.id).url, {
             preserveScroll: true,
             onSuccess: () => {
                 reset();
@@ -62,47 +62,27 @@ export function ChangePasswordModal({ open, onOpenChange }: Props) {
                             <KeyRound className="h-5 w-5" />
                         </div>
                         <div>
-                            <DialogTitle className="text-lg font-bold">Change Password</DialogTitle>
+                            <DialogTitle className="text-lg font-bold">
+                                Change Password
+                            </DialogTitle>
                             <DialogDescription className="text-xs">
-                                Enter your current password and set a new secure password.
+                                Set a new password for{' '}
+                                <span className="font-semibold text-foreground">
+                                    {user?.name}
+                                </span>{' '}
+                                (@{user?.username}).
                             </DialogDescription>
                         </div>
                     </div>
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-                    {/* Current Password */}
-                    <div className="space-y-1.5">
-                        <Label htmlFor="modal-current-password" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                            Current Password
-                        </Label>
-                        <div className="relative">
-                            <Input
-                                id="modal-current-password"
-                                type={showCurrentPassword ? 'text' : 'password'}
-                                value={data.current_password}
-                                onChange={(e) => setData('current_password', e.target.value)}
-                                placeholder="Enter current password"
-                                className="pl-9 pr-10"
-                                required
-                            />
-                            <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                            <button
-                                type="button"
-                                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                                className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground"
-                            >
-                                {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                            </button>
-                        </div>
-                        {errors.current_password && (
-                            <p className="text-xs font-medium text-destructive">{errors.current_password}</p>
-                        )}
-                    </div>
-
                     {/* New Password */}
                     <div className="space-y-1.5">
-                        <Label htmlFor="modal-new-password" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        <Label
+                            htmlFor="modal-new-password"
+                            className="text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+                        >
                             New Password
                         </Label>
                         <div className="relative">
@@ -110,28 +90,41 @@ export function ChangePasswordModal({ open, onOpenChange }: Props) {
                                 id="modal-new-password"
                                 type={showNewPassword ? 'text' : 'password'}
                                 value={data.password}
-                                onChange={(e) => setData('password', e.target.value)}
-                                placeholder="Enter new password"
+                                onChange={(e) =>
+                                    setData('password', e.target.value)
+                                }
+                                placeholder="Enter new password (min. 8 characters)"
                                 className="pl-9 pr-10"
                                 required
                             />
-                            <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Lock className="absolute top-2.5 left-3 h-4 w-4 text-muted-foreground" />
                             <button
                                 type="button"
-                                onClick={() => setShowNewPassword(!showNewPassword)}
-                                className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground"
+                                onClick={() =>
+                                    setShowNewPassword(!showNewPassword)
+                                }
+                                className="absolute top-2.5 right-3 text-muted-foreground hover:text-foreground"
                             >
-                                {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                {showNewPassword ? (
+                                    <EyeOff size={16} />
+                                ) : (
+                                    <Eye size={16} />
+                                )}
                             </button>
                         </div>
                         {errors.password && (
-                            <p className="text-xs font-medium text-destructive">{errors.password}</p>
+                            <p className="text-xs font-medium text-destructive">
+                                {errors.password}
+                            </p>
                         )}
                     </div>
 
                     {/* Confirm New Password */}
                     <div className="space-y-1.5">
-                        <Label htmlFor="modal-confirm-password" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        <Label
+                            htmlFor="modal-confirm-password"
+                            className="text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+                        >
                             Confirm New Password
                         </Label>
                         <div className="relative">
@@ -139,22 +132,35 @@ export function ChangePasswordModal({ open, onOpenChange }: Props) {
                                 id="modal-confirm-password"
                                 type={showConfirmPassword ? 'text' : 'password'}
                                 value={data.password_confirmation}
-                                onChange={(e) => setData('password_confirmation', e.target.value)}
+                                onChange={(e) =>
+                                    setData(
+                                        'password_confirmation',
+                                        e.target.value,
+                                    )
+                                }
                                 placeholder="Confirm new password"
                                 className="pl-9 pr-10"
                                 required
                             />
-                            <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Lock className="absolute top-2.5 left-3 h-4 w-4 text-muted-foreground" />
                             <button
                                 type="button"
-                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground"
+                                onClick={() =>
+                                    setShowConfirmPassword(!showConfirmPassword)
+                                }
+                                className="absolute top-2.5 right-3 text-muted-foreground hover:text-foreground"
                             >
-                                {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                {showConfirmPassword ? (
+                                    <EyeOff size={16} />
+                                ) : (
+                                    <Eye size={16} />
+                                )}
                             </button>
                         </div>
                         {errors.password_confirmation && (
-                            <p className="text-xs font-medium text-destructive">{errors.password_confirmation}</p>
+                            <p className="text-xs font-medium text-destructive">
+                                {errors.password_confirmation}
+                            </p>
                         )}
                     </div>
 

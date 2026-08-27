@@ -411,28 +411,6 @@ export default function GenerateBatchPage({
                 },
             },
             {
-                accessorKey: 'cash_advance_payout',
-                header: ({ column }) => (
-                    <div className="text-right">
-                        <SortHeader label="Adv Payout (+)" column={column} />
-                    </div>
-                ),
-                cell: ({ row }) => {
-                    const val = (row.original as any).cash_advance_payout ?? 0;
-                    if (!val || val <= 0)
-                        return (
-                            <div className="text-right font-mono text-xs text-muted-foreground/40">
-                                —
-                            </div>
-                        );
-                    return (
-                        <div className="text-right text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                            {formatCurrency(val)}
-                        </div>
-                    );
-                },
-            },
-            {
                 accessorKey: 'cash_advance_deduction',
                 header: ({ column }) => (
                     <div className="text-right">

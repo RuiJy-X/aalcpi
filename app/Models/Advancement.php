@@ -63,7 +63,6 @@ class Advancement extends Model
 
         if ($this->payout_payroll_id === $payrollId) {
             $data['payout_payroll_id'] = null;
-            $data['status'] = 'pending_payout';
             $updated = true;
         }
 
@@ -78,18 +77,13 @@ class Advancement extends Model
 
             $data['remaining_balance'] = $newRemaining;
             $data['deduction_payroll_id'] = null;
-
-            if ($newRemaining >= (float) $this->amount) {
-                $data['status'] = ! empty($this->payout_payroll_id) && $this->payout_payroll_id !== $payrollId ? 'paid_out' : 'pending_payout';
-            } else {
-                $data['status'] = 'partially_deducted';
-            }
+            $data['status'] = $newRemaining >= (float) $this->amount ? 'paid_out' : 'partially_deducted';
 
             $deductionRecord->delete();
             $updated = true;
         } elseif ($this->deduction_payroll_id === $payrollId) {
             $data['deduction_payroll_id'] = null;
-            $data['status'] = ! empty($this->payout_payroll_id) && $this->payout_payroll_id !== $payrollId ? 'paid_out' : 'pending_payout';
+            $data['status'] = (float) $this->remaining_balance >= (float) $this->amount ? 'paid_out' : 'partially_deducted';
             $updated = true;
         }
 

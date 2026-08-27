@@ -83,33 +83,46 @@ class UserController extends Controller
         $user = User::findOrFail($id);
 
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($user->id)],
-            'username' => ['required', 'string', 'max:255', Rule::unique('users', 'username')->ignore($user->id)],
-            'password' => ['nullable', 'min:8'],
-            'roles' => ['nullable', 'array'],
+            'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'email' => ['sometimes', 'required', 'email', Rule::unique('users', 'email')->ignore($user->id)],
+            'username' => ['sometimes', 'required', 'string', 'max:255', Rule::unique('users', 'username')->ignore($user->id)],
+            'password' => ['sometimes', 'nullable', 'string', 'min:8', 'confirmed'],
+            'roles' => ['sometimes', 'nullable', 'array'],
             'roles.*' => ['string', 'exists:roles,name'],
-            'permissions' => ['nullable', 'array'],
+            'permissions' => ['sometimes', 'nullable', 'array'],
             'permissions.*' => ['string', Rule::in(Permissions::all())],
         ]);
 
-        $this->assertCanAssignRoles($request->user(), $validated['roles'] ?? []);
-        $this->assertNotStrippingLastSuperAdmin($user, $validated['roles'] ?? []);
-        $this->assertNotStrippingOwnRoles($request->user(), $user, $validated['roles'] ?? []);
+        if ($request->has('roles')) {
+            $this->assertCanAssignRoles($request->user(), $validated['roles'] ?? []);
+            $this->assertNotStrippingLastSuperAdmin($user, $validated['roles'] ?? []);
+            $this->assertNotStrippingOwnRoles($request->user(), $user, $validated['roles'] ?? []);
+        }
 
-        $payload = [
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'username' => $validated['username'],
-        ];
-
+        $payload = [];
+        if ($request->has('name')) {
+            $payload['name'] = $validated['name'];
+        }
+        if ($request->has('email')) {
+            $payload['email'] = $validated['email'];
+        }
+        if ($request->has('username')) {
+            $payload['username'] = $validated['username'];
+        }
         if (! empty($validated['password'])) {
             $payload['password'] = Hash::make($validated['password']);
         }
 
-        $user->update($payload);
-        $user->syncRoles($validated['roles'] ?? []);
-        $user->syncPermissions($validated['permissions'] ?? []);
+        if (! empty($payload)) {
+            $user->update($payload);
+        }
+
+        if ($request->has('roles')) {
+            $user->syncRoles($validated['roles'] ?? []);
+        }
+        if ($request->has('permissions')) {
+            $user->syncPermissions($validated['permissions'] ?? []);
+        }
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
         return redirect()->back()->with('success', 'User updated successfully!');

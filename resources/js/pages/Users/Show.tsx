@@ -217,15 +217,17 @@ export default function Show({
 
                         {/* Actions */}
                         <div className="flex items-center gap-2 self-start sm:self-center">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => setChangePasswordOpen(true)}
-                                className="h-10 px-4 font-medium"
-                            >
-                                <KeyRound className="mr-2 h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                                Change Password
-                            </Button>
+                            {can('users.update') && (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setChangePasswordOpen(true)}
+                                    className="h-10 px-4 font-medium"
+                                >
+                                    <KeyRound className="mr-2 h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                                    Change Password
+                                </Button>
+                            )}
 
                             {can('users.update') && (
                                 <>
@@ -557,16 +559,18 @@ export default function Show({
                                             <p className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
                                                 Password Protection
                                             </p>
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    setChangePasswordOpen(true)
-                                                }
-                                                className="flex items-center gap-1 text-xs font-semibold text-[#1F4B32] hover:underline dark:text-emerald-400"
-                                            >
-                                                <KeyRound className="h-3 w-3" />
-                                                Change
-                                            </button>
+                                            {can('users.update') && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        setChangePasswordOpen(true)
+                                                    }
+                                                    className="flex items-center gap-1 text-xs font-semibold text-[#1F4B32] hover:underline dark:text-emerald-400"
+                                                >
+                                                    <KeyRound className="h-3 w-3" />
+                                                    Change
+                                                </button>
+                                            )}
                                         </div>
                                         <p className="mt-1 font-mono text-sm text-muted-foreground">
                                             •••••••• (Server Encrypted)
@@ -743,6 +747,7 @@ export default function Show({
             </div>
 
             <ChangePasswordModal
+                user={user}
                 open={changePasswordOpen}
                 onOpenChange={setChangePasswordOpen}
             />

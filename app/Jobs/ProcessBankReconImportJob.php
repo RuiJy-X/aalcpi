@@ -4,9 +4,7 @@ namespace App\Jobs;
 
 use App\Imports\BankStatementsImport;
 use App\Imports\InternalDisbursementsImport;
-use App\Models\BankStatement;
 use App\Models\ImportJob;
-use App\Models\InternalDisbursements;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -40,6 +38,8 @@ class ProcessBankReconImportJob implements ShouldQueue
 
     protected array $mapping;
 
+    protected array $duplicateResolutions;
+
     public function __construct(
         int $jobId,
         string $type,
@@ -47,7 +47,8 @@ class ProcessBankReconImportJob implements ShouldQueue
         ?string $dateIssued = null,
         ?int $disbursementWeek = null,
         ?string $bankDate = null,
-        array $mapping = []
+        array $mapping = [],
+        array $duplicateResolutions = []
     ) {
         $this->jobId = $jobId;
         $this->type = $type;
@@ -56,6 +57,7 @@ class ProcessBankReconImportJob implements ShouldQueue
         $this->disbursementWeek = $disbursementWeek;
         $this->bankDate = $bankDate;
         $this->mapping = $mapping;
+        $this->duplicateResolutions = $duplicateResolutions;
     }
 
     public function handle()
@@ -64,11 +66,15 @@ class ProcessBankReconImportJob implements ShouldQueue
         $importJob?->markRunning();
 
         try {
-            $this->replacePriorBatch();
-
             if ($this->type === 'bank') {
                 Excel::import(
-                    new BankStatementsImport($this->jobId, $this->filePath, $this->bankDate, $this->mapping),
+                    new BankStatementsImport(
+                        $this->jobId,
+                        $this->filePath,
+                        $this->bankDate,
+                        $this->mapping,
+                        $this->duplicateResolutions
+                    ),
                     $this->filePath,
                     'local'
                 );
@@ -77,9 +83,10 @@ class ProcessBankReconImportJob implements ShouldQueue
                     new InternalDisbursementsImport(
                         $this->jobId,
                         $this->filePath,
-                        $this->dateIssued,
-                        $this->disbursementWeek,
+                        (string) ($this->dateIssued ?? ''),
+                        (int) ($this->disbursementWeek ?? 1),
                         $this->mapping,
+                        $this->duplicateResolutions
                     ),
                     $this->filePath,
                     'local'
@@ -115,37 +122,5 @@ class ProcessBankReconImportJob implements ShouldQueue
         }
 
         $importJob->markFailed($exception?->getMessage() ?: 'Bank reconciliation import failed or timed out.');
-    }
-
-    /**
-     * Re-importing the same file for the same batch (same date_issued +
-     * disbursement_week for internal, same bank_date month for bank)
-     * should replace that batch, not stack another 5,000 rows on top of
-     * the last upload. Delete whatever already exists for this exact
-     * batch key before the importer inserts anything new.
-     */
-    private function replacePriorBatch(): void
-    {
-        if ($this->type === 'bank') {
-            if (! $this->bankDate) {
-                return;
-            }
-
-            $existingIds = BankStatement::where('bank_date', $this->bankDate)->pluck('id');
-
-            if ($existingIds->isEmpty()) {
-                return;
-            }
-
-            // Detach internal disbursements pointing at bank rows we're
-            // about to delete, so the delete doesn't leave dangling FKs.
-            InternalDisbursements::whereIn('bank_statement_id', $existingIds)
-                ->update(['bank_statement_id' => null]);
-
-            BankStatement::whereIn('id', $existingIds)->delete();
-        }
-        // Internal ledgers intentionally do NOT delete prior batches so that
-        // duplicate records (same check_no across files/batches) are retained
-        // and tracked via is_duplicate = true.
     }
 }

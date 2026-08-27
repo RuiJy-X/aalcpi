@@ -38,7 +38,7 @@ class NativeAppServiceProvider implements ProvidesPhpIni
         Log::info('PHP binary: '.PHP_BINARY);
         Log::info('Extensions: '.implode(', ', get_loaded_extensions()));
 
-        Window::open()->width(800)->height(600)->maximized();
+        Window::open()->width(800)->height(600)->maximized()->zoomFactor(0.8);
     }
 
     /**

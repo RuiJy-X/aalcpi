@@ -47,15 +47,12 @@ class PayrollController extends Controller
             ->latest('period_end')
             ->get()
             ->map(function (Payroll $record) {
-                $payout = (float) ($record->cash_advance_payout ?? 0);
-                if ($payout <= 0) {
-                    $payout = (float) Advancement::where('payout_payroll_id', $record->id)->sum('amount');
-                }
-
                 $deduction = (float) ($record->cash_advance_deduction ?? 0);
                 if ($deduction <= 0) {
                     $deduction = (float) Advancement::where('deduction_payroll_id', $record->id)->sum('amount');
                 }
+
+                $holidayPay = (float) ($record->holiday_pay ?? round((float) ($record->employee?->daily_rate ?? 0) * (int) $record->holidays, 2));
 
                 return [
                     'id' => $record->id,
@@ -73,12 +70,12 @@ class PayrollController extends Controller
                     'hours_worked' => $record->hours_worked,
                     'hourly_rate' => $record->hourly_rate,
                     'basic_pay' => (float) $record->basic_pay,
-                    'overtime_pay' => (float) ($record->overtime_pay ?? max(0, (float) $record->gross_pay - (float) $record->basic_pay - $payout)),
+                    'overtime_pay' => (float) ($record->overtime_pay ?? max(0, (float) $record->gross_pay - (float) $record->basic_pay - $holidayPay)),
                     'overtime_hours' => (float) ($record->overtime_hours ?? 0),
                     'holidays' => $record->holidays,
-                    'holiday_pay' => (float) ($record->holiday_pay ?? round((float) ($record->employee?->daily_rate ?? 0) * (int) $record->holidays, 2)),
+                    'holiday_pay' => $holidayPay,
                     'gross_pay' => (float) $record->gross_pay,
-                    'cash_advance_payout' => $payout,
+                    'cash_advance_payout' => 0.00,
                     'cash_advance_deduction' => $deduction,
                     'sss_loan' => (float) ($record->sss_loan ?? $record->employee?->sss_contribution ?? $record->employee?->sss_loan ?? 0),
                     'pagibig_loan' => (float) ($record->pagibig_loan ?? $record->employee?->pagibig_loan ?? 0),
@@ -274,7 +271,7 @@ class PayrollController extends Controller
                 'holidays' => $empData['holidays'] ?? 0,
                 'holiday_pay' => $empData['holiday_pay'] ?? 0.00,
                 'gross_pay' => $empData['total_earnings'],
-                'cash_advance_payout' => $empData['cash_advance_payout'] ?? 0.00,
+                'cash_advance_payout' => 0.00,
                 'cash_advance_deduction' => $empData['cash_advance_deduction'] ?? 0.00,
                 'sss_loan' => $empData['sss_contribution'] ?? $empData['sss_loan'] ?? 0.00,
                 'pagibig_loan' => $empData['pagibig_loan'] ?? 0.00,
@@ -289,13 +286,6 @@ class PayrollController extends Controller
                 $payrollRecord = $existingDraft;
             } else {
                 $payrollRecord = Payroll::create($payrollData);
-            }
-
-            // Link Advancement Payouts to this draft payroll without prematurely setting status to paid_out
-            if (! empty($empData['pending_advancement_ids'])) {
-                Advancement::whereIn('id', $empData['pending_advancement_ids'])->update([
-                    'payout_payroll_id' => $payrollRecord->id,
-                ]);
             }
 
             $savedCount++;
@@ -327,7 +317,6 @@ class PayrollController extends Controller
         $payrollRecord = Payroll::with('employee')->findOrFail($id);
         $employee = $payrollRecord->employee;
 
-        $cashAdvancePayout = (float) (($payrollRecord->cash_advance_payout ?? 0) > 0 ? $payrollRecord->cash_advance_payout : Advancement::where('payout_payroll_id', $payrollRecord->id)->sum('amount'));
         $cashAdvanceDeduction = (float) (($payrollRecord->cash_advance_deduction ?? 0) > 0 ? $payrollRecord->cash_advance_deduction : Advancement::where('deduction_payroll_id', $payrollRecord->id)->sum('amount'));
 
         $payroll = [
@@ -340,9 +329,9 @@ class PayrollController extends Controller
             'period_end' => $payrollRecord->period_end?->toDateString(),
             'days_worked' => $payrollRecord->days_worked ?? 0,
             'basic_pay' => (float) $payrollRecord->basic_pay,
-            'cash_advance_payout' => $cashAdvancePayout,
+            'cash_advance_payout' => 0.00,
             'cash_advance_deduction' => $cashAdvanceDeduction,
-            'overtime_pay' => max(0, (float) $payrollRecord->gross_pay - (float) $payrollRecord->basic_pay - $cashAdvancePayout),
+            'overtime_pay' => (float) ($payrollRecord->overtime_pay ?? max(0, (float) $payrollRecord->gross_pay - (float) $payrollRecord->basic_pay - (float) ($payrollRecord->holiday_pay ?? 0))),
             'gross_pay' => (float) $payrollRecord->gross_pay,
             'sss_loan' => (float) ($payrollRecord->sss_loan ?? $employee?->sss_contribution ?? $employee?->sss_loan ?? 0),
             'pagibig_loan' => (float) ($payrollRecord->pagibig_loan ?? $employee?->pagibig_loan ?? 0),
@@ -369,12 +358,11 @@ class PayrollController extends Controller
         $employee = $payrollRecord->employee;
 
         $advancements = Advancement::where('employee_id', $payrollRecord->employee_id)
-            ->whereIn('status', ['pending_payout', 'paid_out', 'partially_deducted'])
-            ->whereNotIn('status', ['cancelled', 'deducted', 'fully_repaid'])
+            ->where('status', '!=', 'cancelled')
+            ->where('remaining_balance', '>', 0)
             ->latest('advancement_date')
             ->get();
 
-        $cashAdvancePayout = (float) (($payrollRecord->cash_advance_payout ?? 0) > 0 ? $payrollRecord->cash_advance_payout : Advancement::where('payout_payroll_id', $payrollRecord->id)->sum('amount'));
         $cashAdvanceDeduction = (float) (($payrollRecord->cash_advance_deduction ?? 0) > 0 ? $payrollRecord->cash_advance_deduction : Advancement::where('deduction_payroll_id', $payrollRecord->id)->sum('amount'));
 
         $soaNumber = 'SOA-'.($employee?->employee_code ?? ('EMP-'.str_pad((string) $payrollRecord->employee_id, 3, '0', STR_PAD_LEFT))).'-'.now()->format('Ymd');
@@ -400,10 +388,10 @@ class PayrollController extends Controller
             'total_hours' => $payrollRecord->total_hours ?? 0,
             'basic_pay' => (float) $payrollRecord->basic_pay,
             'overtime_hours' => (float) ($payrollRecord->overtime_hours ?? 0),
-            'overtime_pay' => max(0, (float) $payrollRecord->gross_pay - (float) $payrollRecord->basic_pay - $cashAdvancePayout),
+            'overtime_pay' => (float) ($payrollRecord->overtime_pay ?? max(0, (float) $payrollRecord->gross_pay - (float) $payrollRecord->basic_pay - (float) ($payrollRecord->holiday_pay ?? 0))),
             'holidays' => (int) ($payrollRecord->holidays ?? 0),
             'holiday_pay' => (float) ($payrollRecord->holiday_pay ?? 0),
-            'cash_advance_payout' => $cashAdvancePayout,
+            'cash_advance_payout' => 0.00,
             'gross_pay' => (float) $payrollRecord->gross_pay,
             'sss_contribution' => (float) ($employee?->sss_contribution ?? 0),
             'sss_loan' => (float) ($payrollRecord->sss_loan ?? $employee?->sss_loan ?? 0),
@@ -459,7 +447,7 @@ class PayrollController extends Controller
                     'daily_rate' => (float) ($emp?->daily_rate ?? ($p->hourly_rate * 8)),
                     'days_worked' => (int) $p->days_worked,
                     'gross_earnings' => (float) $p->basic_pay,
-                    'cash_advance_payout' => (float) (($p->cash_advance_payout ?? 0) > 0 ? $p->cash_advance_payout : Advancement::where('payout_payroll_id', $p->id)->sum('amount')),
+                    'cash_advance_payout' => 0.00,
                     'total_earnings' => (float) $p->gross_pay,
                     'cash_advance_deduction' => (float) (($p->cash_advance_deduction ?? 0) > 0 ? $p->cash_advance_deduction : Advancement::where('deduction_payroll_id', $p->id)->sum('amount')),
                     'pagibig_contribution' => (float) ($emp?->pagibig_contribution ?? 200),
@@ -750,12 +738,12 @@ class PayrollController extends Controller
                 'hours_worked' => $payroll->hours_worked,
                 'hourly_rate' => $payroll->hourly_rate,
                 'basic_pay' => (float) $payroll->basic_pay,
-                'overtime_pay' => (float) ($payroll->overtime_pay ?? max(0, (float) $payroll->gross_pay - (float) $payroll->basic_pay - (float) (($payroll->cash_advance_payout ?? 0) > 0 ? $payroll->cash_advance_payout : Advancement::where('payout_payroll_id', $payroll->id)->sum('amount')))),
+                'overtime_pay' => (float) ($payroll->overtime_pay ?? max(0, (float) $payroll->gross_pay - (float) $payroll->basic_pay - (float) ($payroll->holiday_pay ?? 0))),
                 'overtime_hours' => (float) ($payroll->overtime_hours ?? 0),
                 'holidays' => $payroll->holidays,
                 'holiday_pay' => (float) ($payroll->holiday_pay ?? round((float) ($payroll->employee?->daily_rate ?? 0) * (int) $payroll->holidays, 2)),
                 'gross_pay' => (float) $payroll->gross_pay,
-                'cash_advance_payout' => (float) (($payroll->cash_advance_payout ?? 0) > 0 ? $payroll->cash_advance_payout : Advancement::where('payout_payroll_id', $payroll->id)->sum('amount')),
+                'cash_advance_payout' => 0.00,
                 'cash_advance_deduction' => (float) (($payroll->cash_advance_deduction ?? 0) > 0 ? $payroll->cash_advance_deduction : Advancement::where('deduction_payroll_id', $payroll->id)->sum('amount')),
                 'sss_loan' => (float) ($payroll->sss_loan ?? $payroll->employee?->sss_loan ?? 0),
                 'pagibig_loan' => (float) ($payroll->pagibig_loan ?? $payroll->employee?->pagibig_loan ?? 0),
@@ -864,16 +852,12 @@ class PayrollController extends Controller
             return;
         }
 
-        // When status becomes 'paid' -> commit payout and repayment deductions
+        // When status becomes 'paid' -> commit repayment deductions
         if ($newStatus === 'paid') {
-            Advancement::where('payout_payroll_id', $payroll->id)
-                ->where('status', 'pending_payout')
-                ->update(['status' => 'paid_out']);
-
             $deductionPool = (float) ($payroll->cash_advance_deduction ?? 0);
             if ($deductionPool > 0) {
                 $repayables = Advancement::where('employee_id', $payroll->employee_id)
-                    ->whereIn('status', ['paid_out', 'partially_deducted'])
+                    ->where('status', '!=', 'cancelled')
                     ->where('remaining_balance', '>', 0)
                     ->orderBy('advancement_date', 'asc')
                     ->get();
@@ -921,9 +905,7 @@ class PayrollController extends Controller
 
                         $adv->update([
                             'remaining_balance' => $revertedBal,
-                            'status' => $revertedBal >= (float) $adv->amount
-                                ? (! empty($adv->payout_payroll_id) ? 'paid_out' : 'pending_payout')
-                                : 'partially_deducted',
+                            'status' => $revertedBal >= (float) $adv->amount ? 'paid_out' : 'partially_deducted',
                             'deduction_payroll_id' => null,
                         ]);
                     }
@@ -935,7 +917,7 @@ class PayrollController extends Controller
                     $revertedBal = round((float) $adv->remaining_balance + (float) ($payroll->cash_advance_deduction ?? 0), 2);
                     $adv->update([
                         'remaining_balance' => min((float) $adv->amount, $revertedBal),
-                        'status' => ! empty($adv->payout_payroll_id) ? 'paid_out' : 'pending_payout',
+                        'status' => $revertedBal >= (float) $adv->amount ? 'paid_out' : 'partially_deducted',
                         'deduction_payroll_id' => null,
                     ]);
                 });

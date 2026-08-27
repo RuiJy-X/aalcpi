@@ -345,6 +345,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('/view/{productionId}/status', [ProductionController::class, 'updateStatus'])
             ->middleware('permission:productions.update')
             ->name('update-status');
+        Route::post('/analyze', [ProductionController::class, 'analyze'])
+            ->middleware('permission:productions.import')
+            ->name('analyze');
         Route::post('/import', [ProductionController::class, 'import'])
             ->middleware('permission:productions.import')
             ->name('import');
@@ -443,6 +446,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->name('destroy-by-crop-year-week');
     });
 
+    Route::post('/bank-reconciliation-import/analyze', [BankReconciliationImportController::class, 'analyze'])
+        ->middleware('permission:bank_reconciliation.create')
+        ->name('bank-reconciliation-import.analyze');
     Route::post('/bank-reconciliation-import/import', [BankReconciliationImportController::class, 'import'])
         ->middleware('permission:bank_reconciliation.create')
         ->name('bank-reconciliation-import.import');

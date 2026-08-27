@@ -213,7 +213,7 @@ class JanToAug2026Seeder extends Seeder
                 'amount' => $advData['amount'],
                 'remaining_balance' => $advData['amount'],
                 'advancement_date' => $advData['advancement_date'],
-                'status' => 'pending_payout',
+                'status' => 'paid_out',
                 'repayment_term_type' => $advData['repayment_term_type'],
                 'repayment_terms' => $advData['repayment_terms'],
                 'installment_amount' => $advData['installment_amount'],

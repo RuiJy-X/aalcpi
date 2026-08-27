@@ -216,11 +216,10 @@ export function RecordAdvancementModal({
                     <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-foreground space-y-1">
                         <div className="flex items-center gap-1.5 font-bold text-emerald-700 dark:text-emerald-300">
                             <Info className="h-4 w-4 shrink-0" />
-                            Rule: Date-Matched Payout & Flexible Repayment Plan
+                            Rule: Direct Cash Advance & Payroll Repayment Deductions
                         </div>
                         <p className="text-muted-foreground leading-relaxed">
-                            This cash advance will be added to the payroll matching{' '}
-                            <strong>Advancement Date</strong>. Repayments will deduct across payrolls based on your selected plan.
+                            This cash advance is disbursed directly to the employee outside payroll. Repayments will be automatically deducted from payroll cutoffs on or after <strong>Advancement Date</strong> based on your selected repayment plan.
                         </p>
                     </div>
 

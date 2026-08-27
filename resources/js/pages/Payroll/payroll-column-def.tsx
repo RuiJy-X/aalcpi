@@ -412,26 +412,6 @@ export function createPayrollColumns(): ColumnDef<PayrollType>[] {
             },
         },
         {
-            accessorKey: 'cash_advance_payout',
-            header: ({ column }) => (
-                <div className="text-right">
-                    <SortHeader label="Adv Payout (+)" column={column} />
-                </div>
-            ),
-            cell: ({ row }) => {
-                const val = parseFloat(
-                    String(row.original.cash_advance_payout ?? 0),
-                );
-                return (
-                    <div
-                        className={`text-right font-bold ${val > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}`}
-                    >
-                        {formatCurrency(val)}
-                    </div>
-                );
-            },
-        },
-        {
             accessorKey: 'cash_advance_deduction',
             header: ({ column }) => (
                 <div className="text-right">

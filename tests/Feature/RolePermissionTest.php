@@ -3,6 +3,7 @@
 use App\Models\User;
 use App\Support\Permissions;
 use Database\Seeders\RolePermissionSeeder;
+use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
 
 beforeEach(function () {
@@ -172,3 +173,42 @@ test('admin can remove role from another user', function () {
 
     expect($otherUser->fresh()->roles)->toBeEmpty();
 });
+
+test('admin can update another user password without affecting admin password', function () {
+    $admin = User::factory()->create([
+        'password' => Hash::make('admin-secret-123'),
+    ]);
+    $admin->assignRole(Permissions::SUPER_ADMIN_ROLE);
+
+    $otherUser = User::factory()->create([
+        'password' => Hash::make('old-employee-pass'),
+    ]);
+    $otherUser->assignRole('employee');
+
+    $response = $this->actingAs($admin)
+        ->patch(route('users.update', $otherUser->id), [
+            'password' => 'new-employee-pass123',
+            'password_confirmation' => 'new-employee-pass123',
+        ]);
+
+    $response
+        ->assertSessionHasNoErrors()
+        ->assertRedirect();
+
+    expect(Hash::check('new-employee-pass123', $otherUser->fresh()->password))->toBeTrue();
+    expect(Hash::check('admin-secret-123', $admin->fresh()->password))->toBeTrue();
+});
+
+test('admin updating user password requires password confirmation', function () {
+    $admin = makeUserWithRole(Permissions::SUPER_ADMIN_ROLE);
+    $otherUser = makeUserWithRole('employee');
+
+    $response = $this->actingAs($admin)
+        ->patch(route('users.update', $otherUser->id), [
+            'password' => 'new-employee-pass123',
+            'password_confirmation' => 'different-password',
+        ]);
+
+    $response->assertSessionHasErrors('password');
+});
+

@@ -15,6 +15,9 @@ import {
     Users,
     FileText,
     TrendingUp,
+    RefreshCw,
+    Trash2,
+    Copy,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -33,6 +36,13 @@ export type ImportAuditContext = {
     rows_read?: number;
     rows_saved?: number;
     rows_skipped?: number;
+    new_rows_count?: number;
+    exact_duplicates_count?: number;
+    invalid_rows_count?: number;
+    possible_duplicates_count?: number;
+    updated_count?: number;
+    replaced_count?: number;
+    kept_both_count?: number;
     warnings?: string[];
     duplicate_count?: number;
     error?: string;
@@ -75,6 +85,12 @@ export function ImportSummaryModal({ isOpen, onClose, summary }: ImportSummaryMo
     const rowsSkipped = ctx.rows_skipped ?? 0;
     const warnings = ctx.warnings ?? [];
     const duplicateCount = ctx.duplicate_count ?? 0;
+    const exactDuplicatesCount = ctx.exact_duplicates_count ?? 0;
+    const invalidRowsCount = ctx.invalid_rows_count ?? Math.max(0, rowsSkipped - exactDuplicatesCount);
+    const updatedCount = ctx.updated_count ?? 0;
+    const replacedCount = ctx.replaced_count ?? 0;
+    const keptBothCount = ctx.kept_both_count ?? 0;
+    const newRowsCount = ctx.new_rows_count ?? 0;
     const errorMsg = ctx.error || summary.message;
 
     const formatTypeName = (type: string) => {
@@ -100,7 +116,7 @@ export function ImportSummaryModal({ isOpen, onClose, summary }: ImportSummaryMo
                         Import Transparency & Audit Summary
                     </DialogTitle>
                     <DialogDescription className="text-xs">
-                        Audit report detailing processed records, target parameters, extracted fields, and processing log.
+                        Audit report detailing processed records, duplicate resolutions, target parameters, and log.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -172,48 +188,94 @@ export function ImportSummaryModal({ isOpen, onClose, summary }: ImportSummaryMo
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         <div className="p-3 rounded-lg bg-muted/50 border text-center space-y-1">
                             <span className="text-[11px] font-medium text-muted-foreground uppercase flex items-center justify-center gap-1">
-                                <Layers className="h-3.5 w-3.5" /> Start Row
-                            </span>
-                            <p className="text-lg font-bold text-foreground">Row {headingRow}</p>
-                        </div>
-
-                        <div className="p-3 rounded-lg bg-muted/50 border text-center space-y-1">
-                            <span className="text-[11px] font-medium text-muted-foreground uppercase flex items-center justify-center gap-1">
                                 <ListFilter className="h-3.5 w-3.5" /> Processed
                             </span>
                             <p className="text-lg font-bold text-foreground">{rowsRead.toLocaleString()}</p>
+                            <span className="text-[9px] text-muted-foreground block">From Row {headingRow}</span>
                         </div>
 
                         <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-center space-y-1">
                             <span className="text-[11px] font-medium text-emerald-700 dark:text-emerald-300 uppercase flex items-center justify-center gap-1">
-                                <CheckCircle2 className="h-3.5 w-3.5" /> Saved Records
+                                <CheckCircle2 className="h-3.5 w-3.5" /> Saved / Updated
                             </span>
                             <p className="text-lg font-bold text-emerald-700 dark:text-emerald-300">
                                 {rowsSaved.toLocaleString()}
                             </p>
+                            <span className="text-[9px] text-emerald-600 dark:text-emerald-400 block">In Database</span>
+                        </div>
+
+                        <div className="p-3 rounded-lg bg-slate-500/10 border border-slate-500/20 text-center space-y-1">
+                            <span className="text-[11px] font-medium text-muted-foreground uppercase flex items-center justify-center gap-1">
+                                <Layers className="h-3.5 w-3.5" /> Exact Duplicates
+                            </span>
+                            <p className="text-lg font-bold text-muted-foreground">
+                                {exactDuplicatesCount.toLocaleString()}
+                            </p>
+                            <span className="text-[9px] text-muted-foreground block">Auto-skipped</span>
                         </div>
 
                         <div
                             className={`p-3 rounded-lg border text-center space-y-1 ${
-                                rowsSkipped > 0
+                                invalidRowsCount > 0
                                     ? 'bg-amber-500/10 border-amber-500/30'
                                     : 'bg-muted/50'
                             }`}
                         >
                             <span className="text-[11px] font-medium text-muted-foreground uppercase flex items-center justify-center gap-1">
-                                <AlertCircle className="h-3.5 w-3.5" /> Skipped
+                                <AlertCircle className="h-3.5 w-3.5" /> Invalid Rows
                             </span>
                             <p
                                 className={`text-lg font-bold ${
-                                    rowsSkipped > 0
+                                    invalidRowsCount > 0
                                         ? 'text-amber-700 dark:text-amber-300'
                                         : 'text-foreground'
                                 }`}
                             >
-                                {rowsSkipped.toLocaleString()}
+                                {invalidRowsCount.toLocaleString()}
                             </p>
+                            <span className="text-[9px] text-muted-foreground block">Skipped</span>
                         </div>
                     </div>
+
+                    {/* Duplicate Resolution Audit Breakdown */}
+                    {(exactDuplicatesCount > 0 || updatedCount > 0 || replacedCount > 0 || keptBothCount > 0) && (
+                        <div className="p-3 rounded-xl border bg-muted/30 space-y-2 text-xs">
+                            <p className="font-semibold text-foreground flex items-center gap-1.5">
+                                <Info className="h-3.5 w-3.5 text-primary" />
+                                Duplicate Handling & Resolution Audit:
+                            </p>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                <div className="p-2 rounded bg-background border text-center">
+                                    <span className="text-[10px] text-muted-foreground block">Exact Duplicates</span>
+                                    <strong className="text-foreground">{exactDuplicatesCount} (Skipped)</strong>
+                                </div>
+                                {updatedCount > 0 && (
+                                    <div className="p-2 rounded bg-background border text-center">
+                                        <span className="text-[10px] text-muted-foreground block flex items-center justify-center gap-1">
+                                            <RefreshCw className="h-2.5 w-2.5" /> Updated
+                                        </span>
+                                        <strong className="text-foreground">{updatedCount}</strong>
+                                    </div>
+                                )}
+                                {keptBothCount > 0 && (
+                                    <div className="p-2 rounded bg-background border text-center">
+                                        <span className="text-[10px] text-muted-foreground block flex items-center justify-center gap-1">
+                                            <Copy className="h-2.5 w-2.5" /> Kept Both
+                                        </span>
+                                        <strong className="text-foreground">{keptBothCount}</strong>
+                                    </div>
+                                )}
+                                {replacedCount > 0 && (
+                                    <div className="p-2 rounded bg-background border text-center">
+                                        <span className="text-[10px] text-destructive block flex items-center justify-center gap-1">
+                                            <Trash2 className="h-2.5 w-2.5" /> Replaced
+                                        </span>
+                                        <strong className="text-destructive">{replacedCount}</strong>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Production Specific Summary Stats */}
                     {isProduction && (ctx.planters_created != null || ctx.haciendas_created != null || ctx.total_net_cw != null) && (
@@ -295,7 +357,7 @@ export function ImportSummaryModal({ isOpen, onClose, summary }: ImportSummaryMo
                         <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-800 dark:text-amber-200 flex items-center gap-2">
                             <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
                             <span>
-                                <strong>{duplicateCount} record(s)</strong> share existing identifiers and have been updated/flagged.
+                                <strong>{duplicateCount} record(s)</strong> share check numbers across the system and have duplicate flags enabled.
                             </span>
                         </div>
                     )}

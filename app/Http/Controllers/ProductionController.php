@@ -8,11 +8,13 @@ use App\Models\ImportJob;
 use App\Models\ImportMapping;
 use App\Models\Planter;
 use App\Models\Production;
+use App\Services\Imports\ProductionDuplicateAnalyzer;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
 class ProductionController extends Controller
@@ -340,12 +342,13 @@ class ProductionController extends Controller
         ]);
     }
 
-    public function import(Request $request)
+    public function analyze(Request $request, ProductionDuplicateAnalyzer $analyzer)
     {
         $validated = $request->validate([
-            'file' => ['required', 'file'],
+            'file' => ['required', 'file', 'mimes:xlsx,xls,csv'],
             'crop_year' => ['required', 'regex:/^\d{4}-\d{4}$/'],
-            'mapping_id' => ['required', 'integer', 'exists:import_mappings,id'],
+            'mapping_id' => ['nullable', 'integer', 'exists:import_mappings,id'],
+            'mapping' => ['nullable', 'array'],
             'composite_sugar_price' => ['nullable', 'numeric'],
             'composite_molasses_price' => ['nullable', 'numeric'],
         ]);
@@ -353,31 +356,90 @@ class ProductionController extends Controller
         $file = $validated['file'];
         $cropYear = $validated['crop_year'];
 
-        $mapping = ImportMapping::query()
-            ->where('id', $validated['mapping_id'])
-            ->where('import_type', 'productions')
-            ->first();
-
-        $compositeSugarPrice = $validated['composite_sugar_price'] ?? null;
-        $compositeMolassesPrice = $validated['composite_molasses_price'] ?? null;
-
-        if (! $mapping) {
-            return back()->with('error', 'Import mapping not found for productions.');
+        $mapping = [];
+        if (! empty($validated['mapping_id'])) {
+            $mappingModel = ImportMapping::where('id', $validated['mapping_id'])
+                ->where('import_type', 'productions')
+                ->first();
+            $mapping = $mappingModel->mapping ?? [];
+        } elseif (! empty($validated['mapping'])) {
+            $mapping = $validated['mapping'];
         }
 
-        $storedPath = $file->store('imports', 'local');
+        $storedPath = $file->store('imports/productions/temp', 'local');
+
+        $result = $analyzer->analyze(
+            $storedPath,
+            [
+                'crop_year' => $cropYear,
+                'composite_sugar_price' => $validated['composite_sugar_price'] ?? null,
+                'composite_molasses_price' => $validated['composite_molasses_price'] ?? null,
+                'mapping_id' => $validated['mapping_id'] ?? null,
+            ],
+            $mapping
+        );
+
+        if (Storage::disk('local')->exists($storedPath)) {
+            Storage::disk('local')->delete($storedPath);
+        }
+
+        return response()->json($result);
+    }
+
+    public function import(Request $request, ProductionDuplicateAnalyzer $analyzer)
+    {
+        $validated = $request->validate([
+            'file' => ['nullable', 'file'],
+            'analysis_token' => ['nullable', 'string'],
+            'crop_year' => ['nullable', 'regex:/^\d{4}-\d{4}$/'],
+            'mapping_id' => ['nullable', 'integer', 'exists:import_mappings,id'],
+            'duplicate_resolutions' => ['nullable', 'array'],
+            'composite_sugar_price' => ['nullable', 'numeric'],
+            'composite_molasses_price' => ['nullable', 'numeric'],
+        ]);
+
+        $analysisToken = $validated['analysis_token'] ?? null;
+        $cachedAnalysis = $analysisToken ? $analyzer->getCachedAnalysis($analysisToken) : null;
+
+        $cropYear = $validated['crop_year'] ?? ($cachedAnalysis['batch_context']['crop_year'] ?? null);
+        if (! $cropYear) {
+            return back()->with('error', 'Crop year is required for productions import.');
+        }
+
+        $mappingId = $validated['mapping_id'] ?? ($cachedAnalysis['batch_context']['mapping_id'] ?? null);
+        $mappingModel = $mappingId ? ImportMapping::where('id', $mappingId)->first() : null;
+        $mapping = $mappingModel->mapping ?? [];
+
+        $compositeSugarPrice = $validated['composite_sugar_price'] ?? ($cachedAnalysis['batch_context']['composite_sugar_price'] ?? null);
+        $compositeMolassesPrice = $validated['composite_molasses_price'] ?? ($cachedAnalysis['batch_context']['composite_molasses_price'] ?? null);
+
+        $storedPath = null;
+        $fileName = 'productions_import.xlsx';
+
+        if ($cachedAnalysis && ! empty($cachedAnalysis['staged_path']) && Storage::disk('local')->exists($cachedAnalysis['staged_path'])) {
+            $storedPath = 'imports/productions/'.uniqid('prod_', true).'.xlsx';
+            Storage::disk('local')->copy($cachedAnalysis['staged_path'], $storedPath);
+            $fileName = $cachedAnalysis['file_name'] ?? $fileName;
+        } elseif ($request->hasFile('file')) {
+            $file = $request->file('file');
+            $storedPath = $file->store('imports', 'local');
+            $fileName = $file->getClientOriginalName();
+        } else {
+            return back()->with('error', 'No file or analysis token provided for import.');
+        }
+
         $importJob = ImportJob::create([
             'user_id' => $request->user()?->id,
             'type' => 'productions_excel',
             'status' => ImportJob::STATUS_QUEUED,
-            'file_name' => $file->getClientOriginalName(),
+            'file_name' => $fileName,
             'context' => [
                 'file_path' => $storedPath,
                 'crop_year' => $cropYear,
-                'file_name' => $file->getClientOriginalName(),
+                'file_name' => $fileName,
                 'composite_sugar_price' => $compositeSugarPrice,
                 'composite_molasses_price' => $compositeMolassesPrice,
-                'mapping_name' => $mapping->name ?? null,
+                'mapping_name' => $mappingModel->name ?? null,
             ],
         ]);
 
@@ -387,16 +449,20 @@ class ProductionController extends Controller
             $storedPath,
             [
                 'crop_year' => $cropYear,
-                'mapping' => $mapping->mapping ?? [],
+                'mapping' => $mapping,
                 'composite_sugar_price' => $compositeSugarPrice,
                 'composite_molasses_price' => $compositeMolassesPrice,
+                'duplicate_resolutions' => $validated['duplicate_resolutions'] ?? [],
             ],
         );
+
+        if ($analysisToken) {
+            $analyzer->clearCachedAnalysis($analysisToken);
+        }
 
         return back()
             ->with('success', 'Productions import queued. You can keep using the app while it processes.')
             ->with('import_job_id', $importJob->id);
-
     }
 
     public function get()

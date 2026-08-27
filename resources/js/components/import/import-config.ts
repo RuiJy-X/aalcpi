@@ -3,6 +3,7 @@ import planters from '@/routes/planters';
 
 export interface ImportConfig {
     route: string;
+    analyzeRoute?: string;
     label: string;
     requireCropYear?: boolean;
     headerGuide?: string[];
@@ -96,6 +97,7 @@ export const plantersImportConfig: ImportConfig = {
 
 export const productionsImportConfig: ImportConfig = {
     route: productions.import.url(),
+    analyzeRoute: '/Productions/analyze',
     label: 'Import Productions Data',
     requireCropYear: true,
     mappingType: 'productions',

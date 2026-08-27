@@ -49,15 +49,14 @@ class Employee extends Model
     public function getCashAdvanceBalanceAttribute(): float
     {
         return (float) Advancement::where('employee_id', $this->id)
-            ->whereIn('status', ['pending_payout', 'paid_out', 'partially_deducted'])
+            ->where('status', '!=', 'cancelled')
+            ->where('remaining_balance', '>', 0)
             ->sum('remaining_balance');
     }
 
     public function getPendingAdvancementPayoutAttribute(): float
     {
-        return (float) Advancement::where('employee_id', $this->id)
-            ->where('status', 'pending_payout')
-            ->sum('amount');
+        return 0.00;
     }
 
     public function attendances(): HasMany

@@ -33,7 +33,10 @@ import {
     markJobModalShown,
     unregisterJobPoll,
 } from '@/lib/import-poll-tracker';
-
+import {
+    ImportAuditPreviewStep,
+    type PreImportAnalysisResult,
+} from '@/components/import/import-audit-preview-step';
 
 type MappingPreviewResponse = {
     headers: string[];
@@ -141,10 +144,11 @@ export function BankReconImportDialog({
     const isOpen = controlledOpen !== undefined ? controlledOpen : internalOpen;
     const setIsOpen = controlledOnOpenChange || setInternalOpen;
 
-    const [step, setStep] = useState<1 | 2 | 3 | 'mapping'>(1);
+    const [step, setStep] = useState<1 | 2 | 3 | 'mapping' | 'audit'>(1);
     const [isImporting, setIsImporting] = useState(false);
     const [isPreviewing, setIsPreviewing] = useState(false);
     const [isSavingMapping, setIsSavingMapping] = useState(false);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
 
     const currentDate = new Date();
     const currentYearStr = currentDate.getFullYear().toString();
@@ -160,6 +164,10 @@ export function BankReconImportDialog({
         initialBankMonth || `${currentYearStr}-${currentMonthStr}`,
     );
     const [error, setError] = useState<string | null>(null);
+
+    // Pre-import analysis and duplicate resolution state
+    const [analysisResult, setAnalysisResult] = useState<PreImportAnalysisResult | null>(null);
+    const [resolutions, setResolutions] = useState<Record<string, 'update' | 'keep_both' | 'replace'>>({});
 
     React.useEffect(() => {
         if (isOpen) {
@@ -184,6 +192,7 @@ export function BankReconImportDialog({
     const [headers, setHeaders] = useState<string[]>([]);
     const [signature, setSignature] = useState<string>('');
     const [mapping, setMapping] = useState<Record<string, string>>({});
+    const [savedMappingId, setSavedMappingId] = useState<number | null>(null);
 
     const currentMappingTargets = useMemo<ImportTarget[]>(() => {
         return importType === 'internal'
@@ -214,11 +223,17 @@ export function BankReconImportDialog({
         setHeaders([]);
         setSignature('');
         setMapping({});
+        setSavedMappingId(null);
+        setAnalysisResult(null);
+        setResolutions({});
+        setIsAnalyzing(false);
     };
 
     const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
         setSelectedFile(e.target.files?.[0] ?? null);
         setError(null);
+        setAnalysisResult(null);
+        setResolutions({});
     };
 
     const handleNextOrPreview = async (e: React.FormEvent) => {
@@ -235,7 +250,7 @@ export function BankReconImportDialog({
                 return;
             }
             if (!disbursementWeek) {
-                setError('Please select the week number for this batch.');
+                setError('Please enter the week number for this batch.');
                 setStep(2);
                 return;
             }
@@ -283,6 +298,7 @@ export function BankReconImportDialog({
             setHeaders(nextHeaders);
             setSignature(preview.signature ?? '');
             setMapping(nextMapping);
+            setSavedMappingId(preview.mapping_id ?? null);
             setStep('mapping');
         } catch (err) {
             const error = err as Error;
@@ -332,59 +348,60 @@ export function BankReconImportDialog({
         }, 1000);
     };
 
-    const submitImport = (mappingId?: number) => {
-        if (!selectedFile) {
-            setError('Please select a file to import.');
-            return;
+    // Analyze file and advance to Audit step
+    const handleRunAnalysis = async (mappingId?: number) => {
+        if (!selectedFile) return;
+
+        setIsAnalyzing(true);
+        setError(null);
+
+        try {
+            const computedBankDate = `${bankMonth}-01`;
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            formData.append('type', importType);
+            if (importType === 'internal') {
+                formData.append('date_issued', dateIssued);
+                formData.append('disbursement_week', disbursementWeek);
+            } else {
+                formData.append('bank_date', computedBankDate);
+            }
+            if (mappingId || savedMappingId) {
+                formData.append('mapping_id', String(mappingId || savedMappingId));
+            }
+
+            // Append mapping fields
+            Object.entries(mapping).forEach(([key, val]) => {
+                if (val) {
+                    formData.append(`mapping[${key}]`, val);
+                }
+            });
+
+            const result = await postFormData<PreImportAnalysisResult>(
+                '/bank-reconciliation-import/analyze',
+                formData,
+            );
+
+            setAnalysisResult(result);
+
+            // Default resolution: 'update' for each possible duplicate
+            const initialResolutions: Record<string, 'update' | 'keep_both' | 'replace'> = {};
+            result.possible_duplicates.forEach((item) => {
+                initialResolutions[item.row_id] = item.default_action || 'update';
+            });
+            setResolutions(initialResolutions);
+
+            setStep('audit');
+        } catch (err) {
+            const error = err as Error;
+            setError(`Pre-import analysis failed: ${error.message || 'Unknown error'}`);
+        } finally {
+            setIsAnalyzing(false);
         }
-
-        const computedBankDate = `${bankMonth}-01`;
-
-        router.post(
-            importRoute.url(),
-            {
-                file: selectedFile,
-                type: importType,
-                ...(importType === 'internal'
-                    ? {
-                          date_issued: dateIssued,
-                          disbursement_week: disbursementWeek,
-                      }
-                    : {
-                          bank_date: computedBankDate,
-                      }),
-                ...(mappingId ? { mapping_id: mappingId } : {}),
-            },
-            {
-                forceFormData: true,
-                preserveScroll: true,
-                onStart: () => setIsImporting(true),
-                onFinish: () => setIsImporting(false),
-                onSuccess: (page) => {
-                    const jobId = (page.props as Record<string, unknown>).import_job_id ||
-                        ((page.props as Record<string, unknown>).flash as Record<string, unknown>)?.import_job_id;
-                    resetDialog();
-                    setIsOpen(false);
-                    if (jobId && typeof jobId === 'number') {
-                        pollSummary(jobId);
-                    }
-                },
-                onError: (errors) => {
-                    setError(
-                        errors.file ||
-                            errors.type ||
-                            errors.date_issued ||
-                            errors.disbursement_week ||
-                            errors.bank_date ||
-                            errors.mapping_id ||
-                            'Something went wrong during the import.',
-                    );
-                },
-            },
-        );
     };
 
-    const handleSaveMappingAndImport = async () => {
+    // Save Mapping & Analyze
+    const handleSaveMappingAndAnalyze = async () => {
         if (!selectedFile) return;
 
         if (!signature) {
@@ -406,7 +423,8 @@ export function BankReconImportDialog({
                 },
             );
 
-            submitImport(response.mapping_id);
+            setSavedMappingId(response.mapping_id);
+            await handleRunAnalysis(response.mapping_id);
         } catch (err) {
             const error = err as Error;
             setError(
@@ -415,6 +433,60 @@ export function BankReconImportDialog({
         } finally {
             setIsSavingMapping(false);
         }
+    };
+
+    // Confirm and Execute Import
+    const handleConfirmImport = () => {
+        if (!analysisResult) return;
+
+        setIsImporting(true);
+        setError(null);
+
+        const computedBankDate = `${bankMonth}-01`;
+
+        router.post(
+            importRoute.url(),
+            {
+                analysis_token: analysisResult.analysis_token,
+                duplicate_resolutions: resolutions,
+                type: importType,
+                ...(importType === 'internal'
+                    ? {
+                          date_issued: dateIssued,
+                          disbursement_week: disbursementWeek,
+                      }
+                    : {
+                          bank_date: computedBankDate,
+                      }),
+                ...(savedMappingId ? { mapping_id: savedMappingId } : {}),
+            },
+            {
+                preserveScroll: true,
+                onStart: () => setIsImporting(true),
+                onFinish: () => setIsImporting(false),
+                onSuccess: (page) => {
+                    const jobId =
+                        (page.props as Record<string, unknown>).import_job_id ||
+                        ((page.props as Record<string, unknown>).flash as Record<string, unknown>)?.import_job_id;
+                    resetDialog();
+                    setIsOpen(false);
+                    if (jobId && typeof jobId === 'number') {
+                        pollSummary(jobId);
+                    }
+                },
+                onError: (errors) => {
+                    setError(
+                        errors.analysis_token ||
+                            errors.file ||
+                            errors.type ||
+                            errors.date_issued ||
+                            errors.disbursement_week ||
+                            errors.bank_date ||
+                            'Something went wrong executing the import.',
+                    );
+                },
+            },
+        );
     };
 
     const getDialogHeader = () => {
@@ -427,9 +499,10 @@ export function BankReconImportDialog({
             case 2:
                 return {
                     title: 'Import Reconciliation Ledger - Step 2 of 3',
-                    description: importType === 'internal'
-                        ? 'Specify the date issued and week number for the internal ledgers.'
-                        : 'Specify the year and month for the bank statement.',
+                    description:
+                        importType === 'internal'
+                            ? 'Specify the date issued and week number for the internal ledgers.'
+                            : 'Specify the year and month for the bank statement.',
                 };
             case 3:
                 return {
@@ -441,6 +514,11 @@ export function BankReconImportDialog({
                     title: 'Map Column Headers',
                     description: 'Match the columns in your spreadsheet file to system target fields.',
                 };
+            case 'audit':
+                return {
+                    title: 'Import Audit & Duplicate Verification',
+                    description: 'Review duplicate classification and approve actions before database mutation.',
+                };
         }
     };
 
@@ -448,483 +526,424 @@ export function BankReconImportDialog({
 
     return (
         <>
-        <Dialog
-            open={isOpen}
-            onOpenChange={(open) => {
-                setIsOpen(open);
-                if (!open) resetDialog();
-            }}
-        >
-            {trigger !== null && (
-                <DialogTrigger asChild>
-                    {trigger || (
-                        <Button className="gap-2">
-                            <Import className="h-4 w-4" />
-                            Import Datasets
-                        </Button>
+            <Dialog
+                open={isOpen}
+                onOpenChange={(open) => {
+                    setIsOpen(open);
+                    if (!open) resetDialog();
+                }}
+            >
+                {trigger !== null && (
+                    <DialogTrigger asChild>
+                        {trigger || (
+                            <Button className="gap-2">
+                                <Import className="h-4 w-4" />
+                                Import Datasets
+                            </Button>
+                        )}
+                    </DialogTrigger>
+                )}
+
+                <DialogContent
+                    className={`bg-card max-h-[90vh] overflow-y-auto transition-all ${
+                        step === 'audit' || step === 'mapping' ? 'sm:max-w-2xl' : 'sm:max-w-md'
+                    }`}
+                >
+                    <DialogHeader>
+                        <DialogTitle>{headerInfo.title}</DialogTitle>
+                        <DialogDescription>{headerInfo.description}</DialogDescription>
+                    </DialogHeader>
+
+                    {/* Progress Tracker */}
+                    {step !== 'audit' && (
+                        <div className="mb-2 flex items-center justify-between border-b pb-3 text-xs pt-1">
+                            <div
+                                className={`flex items-center gap-1.5 font-medium ${
+                                    step === 1 ? 'text-primary' : 'text-muted-foreground'
+                                }`}
+                            >
+                                <span
+                                    className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${
+                                        step === 1
+                                            ? 'bg-primary text-primary-foreground'
+                                            : typeof step === 'number' && step > 1
+                                            ? 'bg-primary/20 text-primary'
+                                            : 'bg-muted text-muted-foreground'
+                                    }`}
+                                >
+                                    1
+                                </span>
+                                <span>Source</span>
+                            </div>
+                            <div className="h-[1px] flex-1 bg-border mx-2" />
+                            <div
+                                className={`flex items-center gap-1.5 font-medium ${
+                                    step === 2 ? 'text-primary' : 'text-muted-foreground'
+                                }`}
+                            >
+                                <span
+                                    className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${
+                                        step === 2
+                                            ? 'bg-primary text-primary-foreground'
+                                            : typeof step === 'number' && step > 2
+                                            ? 'bg-primary/20 text-primary'
+                                            : 'bg-muted text-muted-foreground'
+                                    }`}
+                                >
+                                    2
+                                </span>
+                                <span>Batch</span>
+                            </div>
+                            <div className="h-[1px] flex-1 bg-border mx-2" />
+                            <div
+                                className={`flex items-center gap-1.5 font-medium ${
+                                    step === 3 || step === 'mapping' ? 'text-primary' : 'text-muted-foreground'
+                                }`}
+                            >
+                                <span
+                                    className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${
+                                        step === 3 || step === 'mapping'
+                                            ? 'bg-primary text-primary-foreground'
+                                            : 'bg-muted text-muted-foreground'
+                                    }`}
+                                >
+                                    3
+                                </span>
+                                <span>File & Map</span>
+                            </div>
+                        </div>
                     )}
-                </DialogTrigger>
-            )}
 
-            <DialogContent className="bg-card sm:max-w-md max-h-[85vh] overflow-y-auto">
-                <DialogHeader>
-                    <DialogTitle>{headerInfo.title}</DialogTitle>
-                    <DialogDescription>{headerInfo.description}</DialogDescription>
-                </DialogHeader>
-
-                {/* Progress Tracker */}
-                <div className="mb-2 flex items-center justify-between border-b pb-3 text-xs pt-1">
-                    <div
-                        className={`flex items-center gap-1.5 font-medium ${
-                            step === 1 ? 'text-primary' : 'text-muted-foreground'
-                        }`}
-                    >
-                        <span
-                            className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${
-                                step === 1
-                                    ? 'bg-primary text-primary-foreground'
-                                    : typeof step === 'number' && step > 1
-                                    ? 'bg-primary/20 text-primary'
-                                    : 'bg-muted text-muted-foreground'
-                            }`}
-                        >
-                            1
-                        </span>
-                        <span>Source</span>
-                    </div>
-                    <div className="h-[1px] flex-1 bg-border mx-2" />
-                    <div
-                        className={`flex items-center gap-1.5 font-medium ${
-                            step === 2 ? 'text-primary' : 'text-muted-foreground'
-                        }`}
-                    >
-                        <span
-                            className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${
-                                step === 2
-                                    ? 'bg-primary text-primary-foreground'
-                                    : typeof step === 'number' && step > 2
-                                    ? 'bg-primary/20 text-primary'
-                                    : 'bg-muted text-muted-foreground'
-                            }`}
-                        >
-                            2
-                        </span>
-                        <span>Details</span>
-                    </div>
-                    <div className="h-[1px] flex-1 bg-border mx-2" />
-                    <div
-                        className={`flex items-center gap-1.5 font-medium ${
-                            step === 3 ? 'text-primary' : 'text-muted-foreground'
-                        }`}
-                    >
-                        <span
-                            className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${
-                                step === 3
-                                    ? 'bg-primary text-primary-foreground'
-                                    : step === 'mapping'
-                                    ? 'bg-primary/20 text-primary'
-                                    : 'bg-muted text-muted-foreground'
-                            }`}
-                        >
-                            3
-                        </span>
-                        <span>File</span>
-                    </div>
-                    <div className="h-[1px] flex-1 bg-border mx-2" />
-                    <div
-                        className={`flex items-center gap-1.5 font-medium ${
-                            step === 'mapping' ? 'text-primary' : 'text-muted-foreground'
-                        }`}
-                    >
-                        <span
-                            className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${
-                                step === 'mapping'
-                                    ? 'bg-primary text-primary-foreground'
-                                    : 'bg-muted text-muted-foreground'
-                            }`}
-                        >
-                            4
-                        </span>
-                        <span>Mapping</span>
-                    </div>
-                </div>
-
-                {/* Step 1: Import Type Selection */}
-                {step === 1 && (
-                    <div className="space-y-6 pt-2">
-                        <div className="space-y-2">
-                            <Label>Select Import Source</Label>
-                            <div className="grid grid-cols-2 gap-3">
+                    {/* Step 1: Type Selection */}
+                    {step === 1 && (
+                        <div className="space-y-4 pt-2">
+                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                 <button
                                     type="button"
-                                    onClick={() => {
-                                        setImportType('internal');
-                                        setError(null);
-                                    }}
-                                    className={`flex flex-col items-center justify-center rounded-xl border-2 p-4 text-center transition-all ${
+                                    onClick={() => setImportType('internal')}
+                                    className={`flex flex-col items-start gap-2 rounded-xl border p-4 text-left transition-all ${
                                         importType === 'internal'
-                                            ? 'border-primary bg-primary/5 text-primary'
-                                            : 'border-muted bg-transparent text-muted-foreground hover:bg-accent/50'
+                                            ? 'border-primary bg-primary/5 text-primary shadow-sm'
+                                            : 'border-border bg-card hover:bg-muted/50 text-foreground'
                                     }`}
                                 >
-                                    <Building2 className="mb-2 h-6 w-6" />
-                                    <span className="text-sm font-semibold">
-                                        Internal Ledgers
-                                    </span>
-                                    <span className="mt-0.5 text-xs text-muted-foreground">
-                                        Company Books
-                                    </span>
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setImportType('bank');
-                                        setError(null);
-                                    }}
-                                    className={`flex flex-col items-center justify-center rounded-xl border-2 p-4 text-center transition-all ${
-                                        importType === 'bank'
-                                            ? 'border-primary bg-primary/5 text-primary'
-                                            : 'border-muted bg-transparent text-muted-foreground hover:bg-accent/50'
-                                    }`}
-                                >
-                                    <FileSpreadsheet className="mb-2 h-6 w-6" />
-                                    <span className="text-sm font-semibold">
-                                        Bank Statement
-                                    </span>
-                                    <span className="mt-0.5 text-xs text-muted-foreground">
-                                        Raw Bank Exports
-                                    </span>
-                                </button>
-                            </div>
-                        </div>
-
-                        {error && (
-                            <p
-                                className="rounded-lg bg-destructive/10 p-2.5 text-xs font-medium text-destructive"
-                                role="alert"
-                            >
-                                {error}
-                            </p>
-                        )}
-
-                        <DialogFooter className="gap-2 sm:gap-0">
-                            <DialogClose asChild>
-                                <Button type="button" variant="outline">
-                                    Cancel
-                                </Button>
-                            </DialogClose>
-                            <Button
-                                type="button"
-                                onClick={() => {
-                                    setError(null);
-                                    setStep(2);
-                                }}
-                            >
-                                Next: Enter Details
-                            </Button>
-                        </DialogFooter>
-                    </div>
-                )}
-
-                {/* Step 2: Batch Metadata Details */}
-                {step === 2 && (
-                    <div className="space-y-6 pt-2">
-                        {importType === 'internal' ? (
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="space-y-2">
-                                    <Label htmlFor="date-issued">Date Issued</Label>
-                                    <Input
-                                        type="date"
-                                        id="date-issued"
-                                        value={dateIssued}
-                                        onChange={(e) => {
-                                            setDateIssued(e.target.value);
-                                            setError(null);
-                                        }}
-                                        disabled={isImporting || isPreviewing}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="disbursement-week">Week Number</Label>
-                                    <Input
-                                        type="number"
-                                        min="1"
-                                        max="53"
-                                        id="disbursement-week"
-                                        placeholder="e.g. 1, 2, 12, 52..."
-                                        value={disbursementWeek}
-                                        onChange={(e) => {
-                                            setDisbursementWeek(e.target.value);
-                                            setError(null);
-                                        }}
-                                        disabled={isImporting || isPreviewing}
-                                    />
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="space-y-2">
-                                <Label htmlFor="bank-month">Month and Year</Label>
-                                <Input
-                                    type="month"
-                                    id="bank-month"
-                                    value={bankMonth}
-                                    onChange={(e) => {
-                                        setBankMonth(e.target.value);
-                                        setError(null);
-                                    }}
-                                    disabled={isImporting || isPreviewing}
-                                />
-                            </div>
-                        )}
-
-                        {error && (
-                            <p
-                                className="rounded-lg bg-destructive/10 p-2.5 text-xs font-medium text-destructive"
-                                role="alert"
-                            >
-                                {error}
-                            </p>
-                        )}
-
-                        <DialogFooter className="gap-2 sm:gap-0">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => {
-                                    setError(null);
-                                    setStep(1);
-                                }}
-                            >
-                                Back
-                            </Button>
-                            <Button
-                                type="button"
-                                onClick={() => {
-                                    if (importType === 'internal') {
-                                        if (!dateIssued) {
-                                            setError('Please select the date issued for this batch.');
-                                            return;
-                                        }
-                                        if (!disbursementWeek) {
-                                            setError('Please select the week number for this batch.');
-                                            return;
-                                        }
-                                    } else {
-                                        if (!bankMonth) {
-                                            setError('Please select the year and month for this batch.');
-                                            return;
-                                        }
-                                    }
-                                    setError(null);
-                                    setStep(3);
-                                }}
-                            >
-                                Next: Select File
-                            </Button>
-                        </DialogFooter>
-                    </div>
-                )}
-
-                {/* Step 3: File Attachment */}
-                {step === 3 && (
-                    <form onSubmit={handleNextOrPreview} className="space-y-6 pt-2">
-                        <div className="space-y-2">
-                            <Label htmlFor="recon-file">
-                                Spreadsheet Attachment
-                            </Label>
-                            <Input
-                                type="file"
-                                id="recon-file"
-                                accept=".xlsx,.xls,.csv"
-                                onChange={handleFileChange}
-                                disabled={isImporting || isPreviewing}
-                                className="cursor-pointer file:text-primary"
-                            />
-                            {selectedFile && (
-                                <p className="text-xs text-muted-foreground font-medium pt-1">
-                                    Selected file: <span className="text-foreground">{selectedFile.name}</span> ({Math.round(selectedFile.size / 1024)} KB)
-                                </p>
-                            )}
-                            <p className="text-[11px] text-muted-foreground">
-                                Supported extensions:{' '}
-                                <code className="rounded bg-muted px-1 py-0.5">
-                                    .xlsx
-                                </code>
-                                ,{' '}
-                                <code className="rounded bg-muted px-1 py-0.5">
-                                    .xls
-                                </code>
-                                ,{' '}
-                                <code className="rounded bg-muted px-1 py-0.5">
-                                    .csv
-                                </code>
-                            </p>
-                        </div>
-
-                        {error && (
-                            <p
-                                className="rounded-lg bg-destructive/10 p-2.5 text-xs font-medium text-destructive"
-                                role="alert"
-                            >
-                                {error}
-                            </p>
-                        )}
-
-                        <DialogFooter className="gap-2 sm:gap-0">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => {
-                                    setError(null);
-                                    setStep(2);
-                                }}
-                                disabled={isImporting || isPreviewing}
-                            >
-                                Back
-                            </Button>
-                            <Button
-                                type="submit"
-                                disabled={isImporting || isPreviewing || !selectedFile}
-                            >
-                                {isPreviewing
-                                    ? 'Reading Headers...'
-                                    : 'Next: Map Columns'}
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                )}
-
-                {/* Step 4: Column Mapping */}
-                {step === 'mapping' && (
-                    <div className="space-y-4 pt-2">
-                        <div className="rounded-md bg-muted p-3 text-xs leading-5">
-                            <p className="font-medium text-foreground">
-                                Detected Headers in File:
-                            </p>
-                            <p className="mt-1 break-words text-muted-foreground">
-                                {headers.length
-                                    ? headers.join(', ')
-                                    : 'No headers detected.'}
-                            </p>
-                        </div>
-
-                        {requiredMissing.length > 0 && (
-                            <div className="rounded-md border border-amber-500/50 bg-amber-500/10 p-3 text-xs leading-5">
-                                <p className="font-semibold text-amber-600 dark:text-amber-400">
-                                    Unmapped Required Fields:
-                                </p>
-                                <p className="mt-1 text-amber-700 dark:text-amber-300">
-                                    {requiredMissing
-                                        .map((t) => t.label)
-                                        .join(', ')}
-                                </p>
-                            </div>
-                        )}
-
-                        <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-1">
-                            {currentMappingTargets.map((target) => (
-                                <div
-                                    key={target.key}
-                                    className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:items-center"
-                                >
-                                    <div className="text-sm font-medium">
-                                        {target.label}
-                                        {target.required && (
-                                            <span className="ml-1 text-red-500">
-                                                *
-                                            </span>
-                                        )}
+                                    <div
+                                        className={`rounded-lg p-2.5 ${
+                                            importType === 'internal'
+                                                ? 'bg-primary text-primary-foreground'
+                                                : 'bg-muted text-muted-foreground'
+                                        }`}
+                                    >
+                                        <FileSpreadsheet className="h-5 w-5" />
                                     </div>
                                     <div>
-                                        <Select
-                                            value={
-                                                mapping[target.key] ||
-                                                '__none__'
-                                            }
-                                            onValueChange={(value) =>
-                                                setMapping((prev) => ({
-                                                    ...prev,
-                                                    [target.key]:
-                                                        value === '__none__'
-                                                            ? ''
-                                                            : value,
-                                                }))
-                                            }
-                                        >
-                                            <SelectTrigger id={target.key}>
-                                                <SelectValue placeholder="Select a header" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="__none__">
-                                                    <span className="text-red-500">
-                                                        Not Mapped
-                                                    </span>
-                                                </SelectItem>
-                                                {headers.map((header) => (
-                                                    <SelectItem
-                                                        key={header}
-                                                        value={header}
-                                                    >
-                                                        {header}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                        <div className="font-semibold text-sm">Internal Ledger</div>
+                                        <div className="text-xs text-muted-foreground mt-0.5">
+                                            Weekly check disbursements issued by the cooperative.
+                                        </div>
+                                    </div>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => setImportType('bank')}
+                                    className={`flex flex-col items-start gap-2 rounded-xl border p-4 text-left transition-all ${
+                                        importType === 'bank'
+                                            ? 'border-primary bg-primary/5 text-primary shadow-sm'
+                                            : 'border-border bg-card hover:bg-muted/50 text-foreground'
+                                    }`}
+                                >
+                                    <div
+                                        className={`rounded-lg p-2.5 ${
+                                            importType === 'bank'
+                                                ? 'bg-primary text-primary-foreground'
+                                                : 'bg-muted text-muted-foreground'
+                                        }`}
+                                    >
+                                        <Building2 className="h-5 w-5" />
+                                    </div>
+                                    <div>
+                                        <div className="font-semibold text-sm">Bank Statement</div>
+                                        <div className="text-xs text-muted-foreground mt-0.5">
+                                            Official monthly transaction statements from the bank.
+                                        </div>
+                                    </div>
+                                </button>
+                            </div>
+
+                            <DialogFooter className="pt-2">
+                                <DialogClose asChild>
+                                    <Button type="button" variant="outline">
+                                        Cancel
+                                    </Button>
+                                </DialogClose>
+                                <Button type="button" onClick={() => setStep(2)}>
+                                    Next: Set Batch Context
+                                </Button>
+                            </DialogFooter>
+                        </div>
+                    )}
+
+                    {/* Step 2: Context Input */}
+                    {step === 2 && (
+                        <div className="space-y-4 pt-2">
+                            {importType === 'internal' ? (
+                                <div className="space-y-3">
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="date-issued" className="text-xs font-semibold">
+                                            Date Issued <span className="text-destructive">*</span>
+                                        </Label>
+                                        <Input
+                                            type="date"
+                                            id="date-issued"
+                                            value={dateIssued}
+                                            onChange={(e) => setDateIssued(e.target.value)}
+                                            required
+                                        />
+                                        <p className="text-[11px] text-muted-foreground">
+                                            The reference date for this batch of check disbursements.
+                                        </p>
+                                    </div>
+
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="disbursement-week" className="text-xs font-semibold">
+                                            Disbursement Week Number <span className="text-destructive">*</span>
+                                        </Label>
+                                        <Input
+                                            type="number"
+                                            id="disbursement-week"
+                                            min={1}
+                                            placeholder="Enter week number (e.g. 1, 2, 15, 32...)"
+                                            value={disbursementWeek}
+                                            onChange={(e) => setDisbursementWeek(e.target.value)}
+                                            required
+                                        />
+                                        <p className="text-[11px] text-muted-foreground">
+                                            Weekly period assigned to these checks (e.g. 1, 2, 15, 30+).
+                                        </p>
                                     </div>
                                 </div>
-                            ))}
-                        </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="bank-month" className="text-xs font-semibold">
+                                            Bank Statement Month <span className="text-destructive">*</span>
+                                        </Label>
+                                        <Input
+                                            type="month"
+                                            id="bank-month"
+                                            value={bankMonth}
+                                            onChange={(e) => setBankMonth(e.target.value)}
+                                            required
+                                        />
+                                        <p className="text-[11px] text-muted-foreground">
+                                            Year and month corresponding to this bank statement.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
 
-                        {error && (
-                            <p
-                                className="rounded-lg bg-destructive/10 p-2.5 text-xs font-medium text-destructive"
-                                role="alert"
-                            >
-                                {error}
-                            </p>
-                        )}
+                            {error && (
+                                <p className="rounded-lg bg-destructive/10 p-2.5 text-xs font-medium text-destructive">
+                                    {error}
+                                </p>
+                            )}
 
-                        <DialogFooter className="gap-2 sm:gap-0">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => {
-                                    setError(null);
-                                    setStep(3);
-                                }}
-                                disabled={isSavingMapping || isImporting}
-                            >
-                                Back
-                            </Button>
-                            <DialogClose asChild>
+                            <DialogFooter className="gap-2 sm:gap-0 pt-2">
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    disabled={isSavingMapping || isImporting}
+                                    onClick={() => {
+                                        setError(null);
+                                        setStep(1);
+                                    }}
                                 >
-                                    Cancel
+                                    Back
                                 </Button>
-                            </DialogClose>
-                            <Button
-                                type="button"
-                                onClick={handleSaveMappingAndImport}
-                                disabled={isSavingMapping || isImporting}
-                            >
-                                {isSavingMapping || isImporting
-                                    ? 'Saving & Processing...'
-                                    : 'Save & Run Importer'}
-                            </Button>
-                        </DialogFooter>
-                    </div>
-                )}
-            </DialogContent>
-        </Dialog>
-        <ImportSummaryModal
-            isOpen={isSummaryOpen}
-            onClose={() => setIsSummaryOpen(false)}
-            summary={summaryData}
-        />
+                                <Button
+                                    type="button"
+                                    onClick={() => {
+                                        if (importType === 'internal' && (!dateIssued || !disbursementWeek)) {
+                                            setError('Please provide both Date Issued and Week Number.');
+                                            return;
+                                        }
+                                        if (importType === 'bank' && !bankMonth) {
+                                            setError('Please select the Bank Statement Month.');
+                                            return;
+                                        }
+                                        setError(null);
+                                        setStep(3);
+                                    }}
+                                >
+                                    Next: Select File
+                                </Button>
+                            </DialogFooter>
+                        </div>
+                    )}
+
+                    {/* Step 3: File Selection */}
+                    {step === 3 && (
+                        <form onSubmit={handleNextOrPreview} className="space-y-4 pt-2">
+                            <div className="space-y-1.5">
+                                <Label htmlFor="file-input" className="text-xs font-semibold">
+                                    Spreadsheet File (.xlsx, .xls, .csv) <span className="text-destructive">*</span>
+                                </Label>
+                                <Input
+                                    type="file"
+                                    id="file-input"
+                                    accept=".xlsx,.xls,.csv"
+                                    onChange={handleFileChange}
+                                    required
+                                />
+                                <p className="text-[11px] text-muted-foreground">
+                                    {importType === 'internal'
+                                        ? 'Recommended: Excel file starting at Row 6 with Check No, Amount, Payee, etc.'
+                                        : 'Recommended: Excel file starting at Row 1 with Transaction Date, Debit/Credit, Balance.'}
+                                </p>
+                            </div>
+
+                            {error && (
+                                <p className="rounded-lg bg-destructive/10 p-2.5 text-xs font-medium text-destructive">
+                                    {error}
+                                </p>
+                            )}
+
+                            <DialogFooter className="gap-2 sm:gap-0 pt-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => {
+                                        setError(null);
+                                        setStep(2);
+                                    }}
+                                    disabled={isPreviewing}
+                                >
+                                    Back
+                                </Button>
+                                <Button type="submit" disabled={!selectedFile || isPreviewing}>
+                                    {isPreviewing ? 'Reading Headers...' : 'Next: Map Columns'}
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    )}
+
+                    {/* Step: Column Mapping */}
+                    {step === 'mapping' && (
+                        <div className="space-y-4 pt-2">
+                            <div className="rounded-md bg-muted p-3 text-xs leading-5">
+                                <p className="font-medium text-foreground">Detected Headers in File:</p>
+                                <p className="mt-1 break-words text-muted-foreground">
+                                    {headers.length ? headers.join(', ') : 'No headers detected.'}
+                                </p>
+                            </div>
+
+                            {requiredMissing.length > 0 && (
+                                <div className="rounded-md border border-amber-500/50 bg-amber-500/10 p-3 text-xs leading-5">
+                                    <p className="font-semibold text-amber-600 dark:text-amber-400">
+                                        Unmapped Required Fields:
+                                    </p>
+                                    <p className="mt-1 text-amber-700 dark:text-amber-300">
+                                        {requiredMissing.map((t) => t.label).join(', ')}
+                                    </p>
+                                </div>
+                            )}
+
+                            <div className="space-y-3 max-h-[35vh] overflow-y-auto pr-1">
+                                {currentMappingTargets.map((target) => (
+                                    <div
+                                        key={target.key}
+                                        className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:items-center"
+                                    >
+                                        <div className="text-sm font-medium">
+                                            {target.label}
+                                            {target.required && <span className="ml-1 text-red-500">*</span>}
+                                        </div>
+                                        <div>
+                                            <Select
+                                                value={mapping[target.key] || '__none__'}
+                                                onValueChange={(value) =>
+                                                    setMapping((prev) => ({
+                                                        ...prev,
+                                                        [target.key]: value === '__none__' ? '' : value,
+                                                    }))
+                                                }
+                                            >
+                                                <SelectTrigger id={target.key}>
+                                                    <SelectValue placeholder="Select a header" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="__none__">
+                                                        <span className="text-red-500">Not Mapped</span>
+                                                    </SelectItem>
+                                                    {headers.map((header) => (
+                                                        <SelectItem key={header} value={header}>
+                                                            {header}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {error && (
+                                <p className="rounded-lg bg-destructive/10 p-2.5 text-xs font-medium text-destructive">
+                                    {error}
+                                </p>
+                            )}
+
+                            <DialogFooter className="gap-2 sm:gap-0">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => {
+                                        setError(null);
+                                        setStep(3);
+                                    }}
+                                    disabled={isSavingMapping || isAnalyzing}
+                                >
+                                    Back
+                                </Button>
+                                <DialogClose asChild>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        disabled={isSavingMapping || isAnalyzing}
+                                    >
+                                        Cancel
+                                    </Button>
+                                </DialogClose>
+                                <Button
+                                    type="button"
+                                    onClick={handleSaveMappingAndAnalyze}
+                                    disabled={isSavingMapping || isAnalyzing}
+                                >
+                                    {isSavingMapping || isAnalyzing ? 'Analyzing File...' : 'Review Import Audit'}
+                                </Button>
+                            </DialogFooter>
+                        </div>
+                    )}
+
+                    {/* Step: Import Audit & Duplicate Verification */}
+                    {step === 'audit' && analysisResult && (
+                        <ImportAuditPreviewStep
+                            analysis={analysisResult}
+                            resolutions={resolutions}
+                            onResolutionsChange={setResolutions}
+                            onConfirm={handleConfirmImport}
+                            onBack={() => setStep('mapping')}
+                            isSubmitting={isImporting}
+                        />
+                    )}
+                </DialogContent>
+            </Dialog>
+
+            <ImportSummaryModal
+                isOpen={isSummaryOpen}
+                onClose={() => setIsSummaryOpen(false)}
+                summary={summaryData}
+            />
         </>
     );
 }

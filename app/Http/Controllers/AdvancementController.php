@@ -42,8 +42,8 @@ class AdvancementController extends Controller
 
         $totals = [
             'total_granted' => (float) $raw->where('status', '!=', 'cancelled')->sum('amount'),
-            'pending_payout' => (float) $raw->where('status', 'pending_payout')->sum('amount'),
-            'outstanding_repayment' => (float) $raw->whereIn('status', ['paid_out', 'partially_deducted'])->sum('remaining_balance'),
+            'pending_payout' => 0.00,
+            'outstanding_repayment' => (float) $raw->where('status', '!=', 'cancelled')->sum('remaining_balance'),
             'fully_repaid' => (float) $raw->where('status', 'deducted')->sum('amount'),
         ];
 
@@ -125,7 +125,7 @@ class AdvancementController extends Controller
             'amount' => $amount,
             'remaining_balance' => $amount,
             'advancement_date' => Carbon::parse($validated['advancement_date']),
-            'status' => 'pending_payout',
+            'status' => 'paid_out',
             'repayment_term_type' => $repaymentTermType,
             'repayment_terms' => $repaymentTerms,
             'installment_amount' => $installmentAmount,
@@ -147,18 +147,26 @@ class AdvancementController extends Controller
     {
         $advancement = Advancement::findOrFail($id);
 
-        if ($advancement->status !== 'pending_payout') {
+        if ($advancement->status === 'cancelled') {
+            return redirect()->back()->with('info', 'Advancement is already cancelled.');
+        }
+
+        if ((float) $advancement->remaining_balance < (float) $advancement->amount) {
+            $msg = 'Cannot cancel an advancement that has already undergone repayment deductions.';
             if (request()->wantsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Only pending advancements can be cancelled.',
+                    'message' => $msg,
                 ], 422);
             }
 
-            return redirect()->back()->withErrors(['message' => 'Only pending advancements can be cancelled.']);
+            return redirect()->back()->withErrors(['message' => $msg]);
         }
 
-        $advancement->update(['status' => 'cancelled']);
+        $advancement->update([
+            'status' => 'cancelled',
+            'remaining_balance' => 0.00,
+        ]);
 
         if (request()->wantsJson()) {
             return response()->json([

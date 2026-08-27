@@ -76,7 +76,7 @@ class EmployeeController extends Controller
                     'overtime_pay' => (float) ($record->overtime_pay ?? 0),
                     'holidays' => (int) ($record->holidays ?? 0),
                     'holiday_pay' => (float) ($record->holiday_pay ?? 0),
-                    'cash_advance_payout' => (float) ($record->cash_advance_payout ?? 0),
+                    'cash_advance_payout' => 0.00,
                     'cash_advance_deduction' => (float) ($record->cash_advance_deduction ?? 0),
                     'gross_pay' => (float) ($record->gross_pay ?? 0),
                     'sss_contribution' => (float) ($record->sss_contribution ?? $employee->sss_contribution ?? 0),
@@ -385,8 +385,8 @@ class EmployeeController extends Controller
         $latestPayroll = $employee->payrolls()->latest('period_end')->first();
 
         $advancements = Advancement::where('employee_id', $employee->id)
-            ->whereIn('status', ['pending_payout', 'paid_out', 'partially_deducted'])
-            ->whereNotIn('status', ['cancelled', 'deducted', 'fully_repaid'])
+            ->where('status', '!=', 'cancelled')
+            ->where('remaining_balance', '>', 0)
             ->latest('advancement_date')
             ->get();
 
@@ -395,7 +395,6 @@ class EmployeeController extends Controller
 
         $basicPay = (float) ($latestPayroll->basic_pay ?? round(($employee->daily_rate ?? 0) * 13, 2));
         $grossPay = (float) ($latestPayroll->gross_pay ?? $basicPay);
-        $cashAdvancePayout = (float) ($latestPayroll->cash_advance_payout ?? 0);
         $cashAdvanceDeduction = (float) ($latestPayroll->cash_advance_deduction ?? 0);
 
         $data = [
@@ -421,7 +420,7 @@ class EmployeeController extends Controller
             'overtime_pay' => (float) ($latestPayroll->overtime_pay ?? 0),
             'holidays' => (int) ($latestPayroll->holidays ?? 0),
             'holiday_pay' => (float) ($latestPayroll->holiday_pay ?? 0),
-            'cash_advance_payout' => $cashAdvancePayout,
+            'cash_advance_payout' => 0.00,
             'gross_pay' => $grossPay,
             'sss_contribution' => (float) ($employee->sss_contribution ?? 0),
             'sss_loan' => (float) ($latestPayroll->sss_loan ?? $employee->sss_loan ?? 0),
